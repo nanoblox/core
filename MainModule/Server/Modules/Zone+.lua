@@ -91,16 +91,16 @@ end
 
 
 function Zone:getPlayersInRegion()
-	local players = players:GetPlayers()
+	local playersArray = players:GetPlayers()
 	local playerCharacters = {}
-	for _, player in pairs(players) do
+	for _, player in pairs(playersArray) do
 		local char = player.Character
 		local hrp = char and char:FindFirstChild("HumanoidRootPart")
 		if hrp then
 			table.insert(playerCharacters, hrp)
 		end
 	end
-	local partsInRegion = workspace:FindPartsInRegion3WithWhiteList(self.Region, playerCharacters, #players)
+	local partsInRegion = workspace:FindPartsInRegion3WithWhiteList(self.Region, playerCharacters, #playersArray)
 	local charsChecked = {}
 	local playersInRegion = {}
 	if #partsInRegion > 0 then
