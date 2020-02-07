@@ -6,8 +6,8 @@ nav:
 
 theme:
   name: material
-  favicon: "img/logo_32.png"
-  logo: "img/logo_32.png"
+  favicon: "img/LogoWhite64.png"
+  logo: "img/LogoWhite64.png"
   palette:
     primary: black
     accent: black
