@@ -1,8 +1,27 @@
 site_name: HD Admin
-
 nav:
     - Home: index.md
-    - About: about.md
+    - Setup:
+        - Download: about.md
+        - Config:
+            - Ranks: about.md
+            - Settings: about.md
+        - Extensions: about.md
+    - Framework:
+        - Execution: about.md
+        - Services & Controllers: about.md
+        - Modules: about.md
+    - Module Docs:
+        - Client:
+            - Modules:
+                - TopBar+: about.md
+        - Server:
+            - Modules:
+                - DataStore+: about.md
+                - Zone+: about.md
+        - Shared:
+            - Modules:
+                - TextLabel+: about.md
 
 theme:
   name: material
