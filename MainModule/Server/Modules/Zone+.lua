@@ -1,16 +1,6 @@
--- CONFIG
-local defaultRegionHeight = 20
-local displayBoundParts = false
-
-
-
--- SERVICES
-local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
-
-
-
 -- LOCAL
+local players = game:GetService("Players")
+local httpService = game:GetService("HttpService")
 local Signal = require(4644649679)
 local Zone = {}
 Zone.__index = Zone
@@ -23,7 +13,7 @@ function Zone.new(group, regionHeight, displayBoundParts)
 	setmetatable(self, Zone)
 
 	self.Group = group
-	self.RegionHeight = regionHeight or defaultRegionHeight
+	self.RegionHeight = regionHeight or 20
 	self.DisplayBoundParts = displayBoundParts or false
 	self.GroupParts = {}
 	self.Region = self:getRegion()
@@ -101,7 +91,7 @@ end
 
 
 function Zone:getPlayersInRegion()
-	local players = Players:GetPlayers()
+	local players = players:GetPlayers()
 	local playerCharacters = {}
 	for _, player in pairs(players) do
 		local char = player.Character
@@ -118,7 +108,7 @@ function Zone:getPlayersInRegion()
 			local char = part.Parent
 			if not charsChecked[char] then
 				charsChecked[char] = true
-				local player = Players:GetPlayerFromCharacter(char)
+				local player = players:GetPlayerFromCharacter(char)
 				if player then
 					table.insert(playersInRegion, player)
 				end
@@ -167,7 +157,7 @@ end
 
 function Zone:initLoop(loopDelay)
 	loopDelay = tonumber(loopDelay) or 0.5
-	local loopId = HttpService:GenerateGUID(false)
+	local loopId = httpService:GenerateGUID(false)
 	self.currentLoop = loopId
 	if not self.loopInitialized then
 		self.loopInitialized = true
