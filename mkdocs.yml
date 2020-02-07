@@ -1,0 +1,13 @@
+site_name: HD Admin
+nav:
+    - Home: index.md
+    - About: about.md
+
+theme:
+  name: material
+  palette:
+    primary: black
+    accent: black
+  highlightjs: true
+  hljs_languages:
+    - lua
