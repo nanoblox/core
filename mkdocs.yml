@@ -1,10 +1,13 @@
 site_name: HD Admin
+
 nav:
     - Home: index.md
     - About: about.md
 
 theme:
   name: material
+  favicon: "img/logo_32.png"
+  logo: "img/logo_32.png"
   palette:
     primary: black
     accent: black
