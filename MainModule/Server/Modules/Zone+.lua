@@ -138,17 +138,23 @@ function Zone:getPlayers()
 	local playersInRegion = self:getPlayersInRegion()
 	local playersInZone = {}
 	local newPreviousPlayers = {}
+	-- Check for players in zone
 	for _, player in pairs(playersInRegion) do
 		if self:getPlayer(player) then
 			if not self.PreviousPlayers[player] then
 				self.PlayerAdded:Fire(player)
 			end
-			table.insert(playersInZone, player)
 			newPreviousPlayers[player] = true
-		elseif self.PreviousPlayers[player] then
-			self.PlayerRemoving:Fire(player)
+			table.insert(playersInZone, player)
 		end
 	end
+	-- Check if any players left zone
+	for player, _ in pairs(self.PreviousPlayers) do
+		if not newPreviousPlayers[player] then
+			self.PlayerRemoving:Fire(player)
+		end
+	end 
+	-- Update record of players
 	self.PreviousPlayers = newPreviousPlayers
 	return playersInZone
 end
