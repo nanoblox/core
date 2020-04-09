@@ -1,4 +1,8 @@
 site_name: HD Admin
+site_url: https://hd.community/software
+repo_url: https://github.com/1ForeverHD/HDAdmin
+repo_name: HDAdmin
+
 nav:
     - Home: index.md
     - Setup:
@@ -14,14 +18,14 @@ nav:
     - Module Docs:
         - Client:
             - Modules:
-                - TopBar+: about.md
+                - TopBar+: topbar.md
         - Server:
             - Modules:
-                - DataStore+: about.md
-                - Zone+: about.md
+                - DataStore+: datastore.md
+                - Zone+: zone.md
         - Shared:
             - Modules:
-                - TextLabel+: about.md
+                - TextLabel+: textlabel.md
 
 theme:
   name: material

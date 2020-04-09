@@ -12,14 +12,14 @@ function Zone.new(group, regionHeight, displayBoundParts)
 	local self = {}
 	setmetatable(self, Zone)
 
-	self.Group = group
-	self.RegionHeight = regionHeight or 20
-	self.DisplayBoundParts = displayBoundParts or false
-	self.GroupParts = {}
-	self.Region = self:getRegion()
-	self.PreviousPlayers = {}
-	self.PlayerAdded = Signal.new()
-	self.PlayerRemoving = Signal.new()
+	self.group = group
+	self.regionHeight = regionHeight or 20
+	self.displayBoundParts = displayBoundParts or false
+	self.groupParts = {}
+	self.region = self:getRegion()
+	self.previousPlayers = {}
+	self.playerAdded = Signal.new()
+	self.playerRemoving = Signal.new()
 
 	return self
 end
@@ -47,9 +47,9 @@ function Zone:getRegion()
 			end
 		end
 	end
-	for _, part in pairs(self.Group:GetDescendants()) do
+	for _, part in pairs(self.group:GetDescendants()) do
 		if part:isA("BasePart") then
-			table.insert(self.GroupParts, part)
+			table.insert(self.groupParts, part)
 			local sizeHalf = part.Size * 0.5
 			local corners = {
 				part.CFrame * CFrame.new(-sizeHalf.X, -sizeHalf.Y, -sizeHalf.Z),
@@ -70,8 +70,8 @@ function Zone:getRegion()
 		end
 	end
 	local boundMin = Vector3.new(unpack(bounds.Min.Values))
-	local boundMax = Vector3.new(unpack(bounds.Max.Values)) + Vector3.new(0, self.RegionHeight, 0)
-	if self.DisplayBoundParts then
+	local boundMax = Vector3.new(unpack(bounds.Max.Values)) + Vector3.new(0, self.regionHeight, 0)
+	if self.displayBoundParts then
 		local boundParts = {BoundMin = boundMin, BoundMax = boundMax}
 		for boundName, boundCFrame in pairs(boundParts) do
 			local part = Instance.new("Part")
@@ -82,7 +82,7 @@ function Zone:getRegion()
 			part.Color = Color3.fromRGB(255,0,0)
 			part.CFrame = CFrame.new(boundCFrame)
 			part.Name = boundName
-			part.Parent = self.Group
+			part.Parent = self.group
 		end
 	end
 	local region = Region3.new(boundMin, boundMax)
@@ -100,7 +100,7 @@ function Zone:getPlayersInRegion()
 			table.insert(playerCharacters, hrp)
 		end
 	end
-	local partsInRegion = workspace:FindPartsInRegion3WithWhiteList(self.Region, playerCharacters, #playersArray)
+	local partsInRegion = workspace:FindPartsInRegion3WithWhiteList(self.region, playerCharacters, #playersArray)
 	local charsChecked = {}
 	local playersInRegion = {}
 	if #partsInRegion > 0 then
@@ -125,12 +125,13 @@ function Zone:getPlayer(player)
 	if hrp then
 		local origin = hrp.Position + Vector3.new(0, 4, 0)
 		local lookDirection = origin + Vector3.new(0, -1, 0)
-		local ray = Ray.new(origin, (lookDirection - origin).unit * (self.RegionHeight))
-		local groupPart = workspace:FindPartOnRayWithWhitelist(ray, self.GroupParts)
+		local ray = Ray.new(origin, (lookDirection - origin).unit * (self.regionHeight))
+		local groupPart = workspace:FindPartOnRayWithWhitelist(ray, self.groupParts)
 		if groupPart then
 			return true
 		end
 	end
+	return false
 end
 
 
@@ -138,24 +139,30 @@ function Zone:getPlayers()
 	local playersInRegion = self:getPlayersInRegion()
 	local playersInZone = {}
 	local newPreviousPlayers = {}
+	local oldPreviousPlayers = self.previousPlayers
+	local playersAdded = {}
 	-- Check for players in zone
 	for _, player in pairs(playersInRegion) do
 		if self:getPlayer(player) then
-			if not self.PreviousPlayers[player] then
-				self.PlayerAdded:Fire(player)
+			if not oldPreviousPlayers[player] then
+				table.insert(playersAdded, player)
 			end
 			newPreviousPlayers[player] = true
 			table.insert(playersInZone, player)
 		end
 	end
+	-- Update record of players before firing events otherwise the recursive monster will visit in your sleep
+	self.previousPlayers = newPreviousPlayers
+	-- Fire PlayerAdded event if necessary
+	for _, player in pairs(playersAdded) do
+		self.playerAdded:Fire(player)
+	end
 	-- Check if any players left zone
-	for player, _ in pairs(self.PreviousPlayers) do
+	for player, _ in pairs(oldPreviousPlayers) do
 		if not newPreviousPlayers[player] then
-			self.PlayerRemoving:Fire(player)
+			self.playerRemoving:Fire(player)
 		end
 	end 
-	-- Update record of players
-	self.PreviousPlayers = newPreviousPlayers
 	return playersInZone
 end
 
