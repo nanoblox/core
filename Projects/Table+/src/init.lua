@@ -4,7 +4,7 @@ local Signal = require(4644649679)
 local Table = {}
 Table.__index = Table
 
-
+print(script.Name)
 
 -- CONSTRUCTOR
 function Table.new(eventsParent)

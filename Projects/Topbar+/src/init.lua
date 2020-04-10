@@ -3,7 +3,7 @@ local players = game:GetService("Players")
 local starterGui = game:GetService("StarterGui")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 
-
+print(script.Name)
 
 -- CREATE UI
 local topbarGui = Instance.new("ScreenGui")

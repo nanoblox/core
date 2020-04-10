@@ -10,7 +10,7 @@ local User = {}
 User.__index = User
 setmetatable(User, Table)
 
-
+print(script.Name)
 
 -- CONSTRUCTOR
 function User.new(dataStoreName, key)
