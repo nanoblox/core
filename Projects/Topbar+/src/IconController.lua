@@ -118,5 +118,5 @@ function TopbarController:removeIcon(name)
 end
 
 
--- hello ben i like pie (2) but pineapple is cool (4)
+-- hello ben i like pie (2) but pineapple is cool (5)
 return TopbarController
