@@ -16,16 +16,34 @@ nav:
         - Services & Controllers: about.md
         - Modules: about.md
     - Module Docs:
-        - Client:
-            - Modules:
-                - TopBar+: topbar.md
-        - Server:
-            - Modules:
-                - DataStore+: datastore.md
-                - Zone+: zone.md
-        - Shared:
-            - Modules:
-                - TextLabel+: textlabel.md
+        - MainModule:
+            - Client:
+                - Modules:
+                    Test: index.md
+            - Server:
+                - Modules:
+                    Test: index.md
+            - Shared:
+                - Modules:
+                    Test: index.md
+        - Projects:
+            - DataStore+:
+                About: module_docs\projects\datastoreplus\about.md
+                UserService: module_docs\projects\datastoreplus\userservice.md
+                User: module_docs\projects\datastoreplus\user.md
+            - SomeEventThing+:
+                About: module_docs\projects\signalplus\about.md
+            - Table+:
+                About: module_docs\projects\tableplus\about.md
+                Table: module_docs\projects\tableplus\table.md
+            - Topbar+:
+                About: module_docs\projects\topbarplus\about.md
+                IconController: module_docs\projects\topbarplus\iconcontroller.md
+                Icon: module_docs\projects\topbarplus\icon.md
+            - Zone+:
+                About: module_docs\projects\zoneplus\about.md
+                ZoneService: module_docs\projects\zoneplus\zoneservice.md
+                Zone: module_docs\projects\zoneplus\zone.md
 
 theme:
   name: material
