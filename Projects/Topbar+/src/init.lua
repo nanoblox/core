@@ -89,5 +89,5 @@ end
 clientContainer.Parent = replicatedStorage
 
 
--- hello ben i like pie (1)
+-- LIFE HAPPENS WHEREVER YOU ARE, WHETHER YOU MAKE IT OR NOT.
 return true
