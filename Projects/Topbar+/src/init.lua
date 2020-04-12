@@ -89,5 +89,4 @@ end
 clientContainer.Parent = replicatedStorage
 
 
--- LIFE HAPPENS WHEREVER YOU ARE, WHETHER YOU MAKE IT OR NOT.
 return true
