@@ -25,7 +25,7 @@ jobs:
 
     - name: Deploy
       run: |
-        rojo upload --cookie "$ROBLOSECURITY" --asset_id 4881430843 Projects/Core
+        rojo upload --cookie "$ROBLOSECURITY" --asset_id 4881430843 Core
         rojo upload --cookie "$ROBLOSECURITY" --asset_id 4643209210 Projects/DataStore+
         rojo upload --cookie "$ROBLOSECURITY" --asset_id 4893141590 Projects/Signal+
         rojo upload --cookie "$ROBLOSECURITY" --asset_id 4734187373 Projects/Table+
