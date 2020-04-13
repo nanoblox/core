@@ -1,0 +1,54 @@
+{
+  "name": "HDAdmin",
+  "tree": {
+    "$className": "DataModel",
+    "HttpService": {
+      "$className": "HttpService",
+      "$properties": {
+        "HttpEnabled": true
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "HDAdmin": {
+        "$className": "Folder",
+        "Core": {
+          "$className": "Folder",
+          "MainModule": {
+            "$path": "Core"
+          }
+        },
+        "DataStore+": {
+          "$className": "Folder",
+          "MainModule": {
+            "$path": "Projects/DataStore+"
+          }
+        },
+        "Signal+": {
+          "$className": "Folder",
+          "MainModule": {
+            "$path": "Projects/Signal+"
+          }
+        },
+        "Table+": {
+          "$className": "Folder",
+          "MainModule": {
+            "$path": "Projects/Table+"
+          }
+        },
+        "Topbar+": {
+          "$className": "Folder",
+          "MainModule": {
+            "$path": "Projects/Topbar+"
+          }
+        },
+        "Zone+": {
+          "$className": "Folder",
+          "MainModule": {
+            "$path": "Projects/Zone+"
+          }
+        }
+      }
+    }
+  }
+}

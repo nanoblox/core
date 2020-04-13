@@ -1,3 +1,4 @@
+-- Automation test Signal+
 -- SERVICES
 local players = game:GetService("Players")
 local starterGui = game:GetService("StarterGui")
@@ -25,5 +26,4 @@ for a,b in pairs(script:GetChildren()) do
 end
 
 
-print("Test automation signal+ 9008")
 return true
