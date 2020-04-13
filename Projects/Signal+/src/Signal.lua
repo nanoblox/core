@@ -1,4 +1,4 @@
--- QUENTY'S SIGNAL MODULE
+-- Quenty's Signal Module, modified to include Disconnect method
 local Signal = {}
 Signal.__index = Signal
 Signal.ClassName = "Signal"

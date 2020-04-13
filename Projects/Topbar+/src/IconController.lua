@@ -1,12 +1,12 @@
 -- LOCAL
-local TopbarController = {}
-local Icon = require(script.Icon)
+local IconController = {}
+local Icon = require(script.Parent.Icon)
 local topbarIcons = {}
 
 
 
 -- FUNCTIONS
-function TopbarController:createIcon(name, imageId, order)
+function IconController:createIcon(name, imageId, order)
 	
 	-- Verify data
 	local iconDetails = topbarIcons[name]
@@ -39,9 +39,9 @@ function TopbarController:createIcon(name, imageId, order)
 			table.sort(orderedIconDetails, function(a,b) return a.order < b.order end)
 		end
 		for i, details in pairs(orderedIconDetails) do
-			local iconButton = details.icon.iconButton
+			local button = details.icon.objects.button
 			local iconX = 104 + (i-1)*44
-			iconButton.Position = UDim2.new(0, iconX, 0, 4)
+			button.Position = UDim2.new(0, iconX, 0, 4)
 		end
 		return true
 	end
@@ -52,7 +52,7 @@ function TopbarController:createIcon(name, imageId, order)
 	icon.selected:Connect(function()
 		local allIcons = self:getAllIcons()
 		for _, otherIcon in pairs(allIcons) do
-			if otherIcon ~= icon and otherIcon.deselectWhenOtherIconSelected and otherIcon.isSelected then
+			if otherIcon ~= icon and otherIcon.deselectWhenOtherIconSelected and otherIcon.toggleStatus == "selected" then
 				otherIcon:deselect()
 			end
 		end
@@ -62,7 +62,7 @@ function TopbarController:createIcon(name, imageId, order)
 	return icon
 end
 
-function TopbarController:getIcon(name)
+function IconController:getIcon(name)
 	local iconDetails = topbarIcons[name]
 	if not iconDetails then
 		warn(("Topbar+ | Failed to get Icon '%s': icon not found."):format(name))
@@ -71,7 +71,7 @@ function TopbarController:getIcon(name)
 	return iconDetails.icon
 end
 
-function TopbarController:getAllIcons()
+function IconController:getAllIcons()
 	local allIcons = {}
 	for name, details in pairs(topbarIcons) do
 		table.insert(allIcons, details.icon)
@@ -79,46 +79,21 @@ function TopbarController:getAllIcons()
 	return allIcons
 end
 
-function TopbarController:removeIcon(name)
+function IconController:removeIcon(name)
 	local iconDetails = topbarIcons[name]
 	if not iconDetails then
 		warn(("Topbar+ | Failed to remove Icon '%s': icon not found."):format(name))
 		return false
 	end
-	--
-	local function destroyObject(object)
-		local validTypes = {["table"]=true, ["Instance"]=true}
-		local objectType = typeof(object)
-		local isTable = objectType == "table"
-		if not validTypes[objectType] then
-			return
-		end
-		local isDestroyPresent = (isTable and rawget(object, "Destroy")) or object.Destroy
-		local className = object.ClassName
-		if isDestroyPresent and (className == nil or className ~= "Player") then
-			pcall(function() object:Destroy() end)
-		end
-		local invalidNames = {["__index"]=true}
-		if isTable then
-			for a,b in pairs(object) do
-				if not invalidNames[a] then
-					destroyObject(a)
-					destroyObject(b)
-				end
-			end
-		end
-	end
 	local icon = iconDetails.icon
 	icon:setEnabled(false)
+	icon:deselect()
 	icon.updated:Fire()
-	destroyObject(icon)
-	--
+	icon:destroy()
 	topbarIcons[name] = nil
 	return true
 end
 
 
--- hello ben i like pie (2) but pineapple is cool (5) HELLO WORLD BEN > MATT
--- hammy was here
 
-return TopbarController
+return IconController

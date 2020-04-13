@@ -16,7 +16,7 @@ nav:
         - Services & Controllers: about.md
         - Modules: about.md
     - Module Docs:
-        - MainModule:
+        - Core:
             - Client:
                 - Modules:
                     Test: index.md
@@ -31,8 +31,6 @@ nav:
                 About: module_docs\projects\datastoreplus\about.md
                 UserService: module_docs\projects\datastoreplus\userservice.md
                 User: module_docs\projects\datastoreplus\user.md
-            - SomeEventThing+:
-                About: module_docs\projects\signalplus\about.md
             - Table+:
                 About: module_docs\projects\tableplus\about.md
                 Table: module_docs\projects\tableplus\table.md
