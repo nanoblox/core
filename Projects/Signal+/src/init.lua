@@ -25,5 +25,5 @@ for a,b in pairs(script:GetChildren()) do
 end
 
 
-print("Test automation signal+ 2")
+print("Test automation signal+ 9008")
 return true
