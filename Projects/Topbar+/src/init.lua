@@ -2,7 +2,7 @@
 local players = game:GetService("Players")
 local starterGui = game:GetService("StarterGui")
 local replicatedStorage = game:GetService("ReplicatedStorage")
-local signalPlus = require(game.ServerScriptService["Signal+"].MainModule)
+local signalPlus = require(4893141590)
 
 
 
