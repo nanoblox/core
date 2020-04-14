@@ -4,7 +4,6 @@ local players = game:GetService("Players")
 local starterGui = game:GetService("StarterGui")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local signalPlus = require(4893141590)
-wait(1)
 
 
 
