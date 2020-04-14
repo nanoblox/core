@@ -4,6 +4,7 @@ local players = game:GetService("Players")
 local starterGui = game:GetService("StarterGui")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local signalPlus = require(4893141590)
+wait(1)
 
 
 
@@ -101,7 +102,10 @@ end
 -- StarterGui/PlayerGui
 local directoryGui = setupDirectory(mainDirectoryName, starterGui)
 for _, plr in pairs(players:GetPlayers()) do
-	directoryGui:Clone().Parent = plr.PlayerGui
+	local playerDirectoryGui = setupDirectory(mainDirectoryName, starterGui)
+	for a,b in pairs(directoryGui:GetChildren()) do
+		b:Clone().Parent = playerDirectoryGui
+	end
 end
 topbarPlusGui.Parent = directoryGui
 
