@@ -2,6 +2,7 @@ site_name: HD Admin
 site_url: https://hd.community/software
 repo_url: https://github.com/1ForeverHD/HDAdmin
 repo_name: HDAdmin
+edit_uri: edit/master/mkdocs/docs/
 
 nav:
     - Home: index.md
@@ -28,20 +29,20 @@ nav:
                     Test: index.md
         - Projects:
             - DataStore+:
-                About: module_docs\projects\datastoreplus\about.md
-                UserService: module_docs\projects\datastoreplus\userservice.md
-                User: module_docs\projects\datastoreplus\user.md
+                About: projects\datastoreplus\about.md
+                UserService: projects\datastoreplus\userservice.md
+                User: projects\datastoreplus\user.md
             - Table+:
-                About: module_docs\projects\tableplus\about.md
-                Table: module_docs\projects\tableplus\table.md
+                About: projects\tableplus\about.md
+                Table: projects\tableplus\table.md
             - Topbar+:
-                About: module_docs\projects\topbarplus\about.md
-                IconController: module_docs\projects\topbarplus\iconcontroller.md
-                Icon: module_docs\projects\topbarplus\icon.md
+                About: projects\topbarplus\about.md
+                IconController: projects\topbarplus\iconcontroller.md
+                Icon: projects\topbarplus\icon.md
             - Zone+:
-                About: module_docs\projects\zoneplus\about.md
-                ZoneService: module_docs\projects\zoneplus\zoneservice.md
-                Zone: module_docs\projects\zoneplus\zone.md
+                About: projects\zoneplus\about.md
+                ZoneService: projects\zoneplus\zoneservice.md
+                Zone: projects\zoneplus\zone.md
 
 theme:
   name: material
@@ -49,8 +50,24 @@ theme:
   logo: "img/LogoWhite64.png"
   palette:
     primary: black
-    accent: black
+    accent: grey
   highlightjs: true
   hljs_languages:
     - lua
 
+extra_css:
+  - stylesheets/dark_theme.css
+  - stylesheets/monokai.css
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+      baselevel: 2
+  - codehilite:
+      guess_lang: false
+#  - pymdownx.superfences:
+#      custom_fences:
+#        - name: mermaid
+#          class: mermaid
+#          format: !!python/name:pymdownx.superfences.fence_div_format

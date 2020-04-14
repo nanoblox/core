@@ -39,9 +39,9 @@ function IconController:createIcon(name, imageId, order)
 			table.sort(orderedIconDetails, function(a,b) return a.order < b.order end)
 		end
 		for i, details in pairs(orderedIconDetails) do
-			local button = details.icon.objects.button
+			local container = details.icon.objects.container
 			local iconX = 104 + (i-1)*44
-			button.Position = UDim2.new(0, iconX, 0, 4)
+			container.Position = UDim2.new(0, iconX, 0, 4)
 		end
 		return true
 	end

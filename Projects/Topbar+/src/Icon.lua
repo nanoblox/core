@@ -20,11 +20,13 @@ function Icon.new(name, imageId, order)
 	local self = {}
 	setmetatable(self, Icon)
 	
-	local button = iconTemplate:Clone()
-	button.Name = name
-	button.Visible = true
+	local container = iconTemplate:Clone()
+	container.Name = name
+	container.Visible = true
+	local button = container.IconButton
 	
 	self.objects = {
+		["container"] = container,
 		["button"] = button,
 		["image"] = button.IconImage,
 		["notification"] = button.Notification,
@@ -36,6 +38,14 @@ function Icon.new(name, imageId, order)
 		["toggleTweenInfo"] = TweenInfo.new(0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 		
 		-- OBJECT PROPERTIES
+		["container"] = {
+			selected = {
+				
+			},
+			deselected = {
+				
+			}
+		},
 		["button"] = {
 			selected = {
 				ImageColor3 = Color3.fromRGB(255, 255, 255),
@@ -65,13 +75,13 @@ function Icon.new(name, imageId, order)
 	self:applyThemeToAllObjects()
 	
 	self.name = name
-	self.objects.imageId = imageId or 0
+	self.imageId = imageId or 0
+	self.imageScale = 0.7
 	self.order = order or 1
-	self.objects.imageScale = 0.7
 	self.enabled = true
-	self.deselectWhenOtherIconSelected = true
 	self.totalNotifications = 0
-	self.toggleFunction = function(isSelected) end
+	self.toggleFunction = function() end
+	self.deselectWhenOtherIconSelected = true
 	
 	self.updated = Signal.new()
 	self.selected = Signal.new()
@@ -90,7 +100,7 @@ function Icon.new(name, imageId, order)
 		self:setImage(imageId)
 	end
 	
-	button.Parent = topbarContainer
+	container.Parent = topbarContainer
 	
 	return self
 end
@@ -99,7 +109,7 @@ end
 
 -- METHODS
 function Icon:setImage(imageId)
-	self.objects.imageId = imageId
+	self.imageId = imageId
 	self.objects.image.Image = "http://www.roblox.com/asset/?id="..imageId
 end
 
@@ -109,15 +119,15 @@ function Icon:setOrder(order)
 end
 
 function Icon:setImageScale(scale)
-	scale = ((tonumber(scale) and scale >= 0 and scale <=1) and scale) or self.objects.imageScale
-	self.objects.imageScale = scale
+	scale = ((tonumber(scale) and scale >= 0 and scale <=1) and scale) or self.imageScale
+	self.imageScale = scale
 	self.objects.image.Position = UDim2.new(0, 0, (1-scale)/2, 0)
 	self.objects.image.Size = UDim2.new(1, 0, scale, 0)
 end
 
 function Icon:setEnabled(bool)
 	self.enabled = bool
-	self.objects.button.Visible = bool
+	self.objects.container.Visible = bool
 	self.updated:Fire()
 end
 
@@ -251,6 +261,7 @@ function Icon:clearNotifications()
 end
 
 function Icon:destroy()
+	self:clearNotifications()
 	self.objects.button:Destroy()
 	for signalName, signal in pairs(self) do
 		if type(signal) == "table" and signal.Destroy then

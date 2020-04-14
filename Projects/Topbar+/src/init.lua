@@ -24,18 +24,27 @@ topbarContainer.Visible = true
 topbarContainer.ZIndex = 1
 topbarContainer.Parent = topbarPlusGui
 
+local iconContainer = Instance.new("Frame")
+iconContainer.BackgroundTransparency = 1
+iconContainer.Name = "_IconTemplate"
+iconContainer.Position = UDim2.new(0, 104, 0, 4)
+iconContainer.Size = UDim2.new(0, 32, 0, 32)
+iconContainer.Visible = false
+iconContainer.ZIndex = 1
+iconContainer.Parent = topbarContainer
+
 local iconButton = Instance.new("ImageButton")
 iconButton.BackgroundTransparency = 1
-iconButton.Name = "_IconTemplate"
-iconButton.Position = UDim2.new(0, 104, 0, 4)
-iconButton.Size = UDim2.new(0, 32, 0, 32)
-iconButton.Visible = false
+iconButton.Name = "IconButton"
+iconButton.Position = UDim2.new(0, 0, 0, 0)
+iconButton.Size = UDim2.new(1, 0, 1, 0)
+iconButton.Visible = true
 iconButton.ZIndex = 2
 iconButton.Image = "http://www.roblox.com/asset/?id=4871650602"
 iconButton.ImageTransparency = 0.3
 iconButton.ImageColor3 = Color3.fromRGB(31, 33, 35)
 iconButton.ScaleType = Enum.ScaleType.Stretch
-iconButton.Parent = topbarContainer
+iconButton.Parent = iconContainer
 
 local iconImage = Instance.new("ImageLabel")
 iconImage.BackgroundTransparency = 1
@@ -91,10 +100,10 @@ end
 
 -- StarterGui/PlayerGui
 local directoryGui = setupDirectory(mainDirectoryName, starterGui)
-topbarPlusGui.Parent = directoryGui
 for _, plr in pairs(players:GetPlayers()) do
 	directoryGui:Clone().Parent = plr.PlayerGui
 end
+topbarPlusGui.Parent = directoryGui
 
 -- ReplicatedStorage
 local directoryRs = setupDirectory(mainDirectoryName, replicatedStorage)
