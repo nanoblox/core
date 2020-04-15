@@ -39,12 +39,8 @@ function Icon.new(name, imageId, order)
 		
 		-- OBJECT PROPERTIES
 		["container"] = {
-			selected = {
-				
-			},
-			deselected = {
-				
-			}
+			selected = {},
+			deselected = {}
 		},
 		["button"] = {
 			selected = {

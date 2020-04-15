@@ -1,4 +1,3 @@
--- Automation test Topbar+
 -- SERVICES
 local players = game:GetService("Players")
 local starterGui = game:GetService("StarterGui")

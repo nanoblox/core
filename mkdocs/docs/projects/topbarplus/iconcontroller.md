@@ -19,7 +19,7 @@ Returns an Icon of the corresponding name.
 ```lua
 IconController:getAllIcons()
 ```
-Returns an array of all Icons.
+Returns an array containing every Icon.
 
 --------------------
 ### removeIcon

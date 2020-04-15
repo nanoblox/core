@@ -25,7 +25,7 @@ A dictionary of Instances that make up the Icon.
 ```lua
 Icon.theme
 ```
-A dictionary describing the Icon's theme. Set using the ``Icon:setTheme()`` method.
+A dictionary describing the Icons theme. Set using the ``Icon:setTheme()`` method.
 
 | Key                 | Value            | Desc                                           |
 | :--------------     |:--------------   | :----------------------------------------------|
@@ -38,7 +38,7 @@ A dictionary describing the Icon's theme. Set using the ``Icon:setTheme()`` meth
 
 ***ToggleDetails***
 
-A dictionary containing the object's toggle-state properties.
+A dictionary containing the objects toggle-state properties.
 
 | Key                 | Value            | Desc                                           |
 | :--------------     |:--------------   | :----------------------------------------------|
@@ -47,7 +47,7 @@ A dictionary containing the object's toggle-state properties.
 
 ***PropertyDetails***
 
-A dictionary containing the object's properties for that particular toggle-state.
+A dictionary containing the objects properties for that particular toggle-state.
 
 | Key             | Value           |
 | :-------------- |:--------------  |
@@ -100,7 +100,7 @@ defaultThemeDetails = {
 ```lua
 Icon.toggleStatus
 ```
-A string describing the toggle status: "selected" or "deselected". Set using the ``Icon:Select()`` and ``Icon:Deselect()`` methods.
+A string describing the toggle status: "selected" or "deselected". Set using the ``Icon:select()`` and ``Icon:deselect()`` methods.
 
 --------------------
 ### name
@@ -108,7 +108,7 @@ A string describing the toggle status: "selected" or "deselected". Set using the
 ```lua
 Icon.name
 ```
-The Icons's creation name.
+The Icon creation name.
 
 --------------------
 ### imageId
@@ -116,7 +116,7 @@ The Icons's creation name.
 ```lua
 Icon.imageId
 ```
-The Icons's imageId. Set using the ``Icon:setImage()`` method.
+The Icons imageId. Set using the ``Icon:setImage()`` method.
 
 --------------------
 ### imageScale
@@ -124,7 +124,7 @@ The Icons's imageId. Set using the ``Icon:setImage()`` method.
 ```lua
 Icon.imageScale
 ```
-The scale of the Icon's image. A value between 0 and 1. Set using the ``Icon:setImageScale()`` method.
+The scale of the Icon image. A value between 0 and 1. Set using the ``Icon:setImageScale()`` method.
 
 --------------------
 ### order
@@ -132,7 +132,7 @@ The scale of the Icon's image. A value between 0 and 1. Set using the ``Icon:set
 ```lua
 Icon.order
 ```
-The Icons's order. This determines whether the Icon comes before or after other Icons. Set using the ``Icon:setOrder()`` method.
+The Icons order. This determines whether the Icon comes before or after other Icons. Set using the ``Icon:setOrder()`` method.
 
 --------------------
 ### enabled
@@ -156,7 +156,7 @@ An integer representing the amount of active notifications.
 ```lua
 Icon.toggleFunction 
 ```
-A custom function called during ``Icon:Select()`` and ``Icon:Deselect()``. Set using the ``Icon:setToggleFunction ()`` method.
+A custom function called during ``Icon:select()`` and ``Icon:deselect()``. Set using the ``Icon:setToggleFunction()`` method.
 
 --------------------
 ### deselectWhenOtherIconSelected 
@@ -211,7 +211,7 @@ end)
 ```lua
 Icon.endNotifications
 ```
-Fired when the Icon's notifcations are cleared.
+Fired when the Icons notifcations are cleared.
 ```lua
 Icon.endNotifications:Connect(function())
 
@@ -270,14 +270,14 @@ Applies the specified theme to the Icon. See ``Icon.theme`` for details on creat
 ```lua
 Icon:select()
 ```
-Selectes the Icon.
+Selects the Icon.
 
 --------------------
 ### deselect
 ```lua
 Icon:deselect()
 ```
-Deselectes the Icon.
+Deselects the Icon.
 
 --------------------
 ### notify
