@@ -9,6 +9,13 @@ Topbar+ is a lightweight application that expands upon Roblox's topbar to give y
 # Collaborate
 Topbar+ is an open-source project; all contributions are much appreciated. You're welcome to report bugs, suggest features and make pull requests at [our repository](https://github.com/1ForeverHD/HDAdmin/tree/master/Projects).
 
+# Referencing
+Topbar+ modules can be required on the client under the HD Admin directory in ReplicatedStorage.
+
+| Location                 | Pathway            |
+| :--------------     |:--------------   |
+| Client       | ``ReplicatedStorage:WaitForChild("HDAdmin"):WaitForChild("Topbar+")``   |
+
 # Example
 In a server script:
 ```lua

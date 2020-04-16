@@ -1,4 +1,5 @@
 -- LOCAL
+local starterGui = game:GetService("StarterGui")
 local IconController = {}
 local Icon = require(script.Parent.Icon)
 local topbarIcons = {}
@@ -38,9 +39,14 @@ function IconController:createIcon(name, imageId, order)
 		if #orderedIconDetails > 1 then
 			table.sort(orderedIconDetails, function(a,b) return a.order < b.order end)
 		end
+		local startPosition = 104
+		local positionIncrement = 44
+		if not starterGui:GetCoreGuiEnabled("Chat") then
+			startPosition = startPosition - positionIncrement
+		end
 		for i, details in pairs(orderedIconDetails) do
 			local container = details.icon.objects.container
-			local iconX = 104 + (i-1)*44
+			local iconX = 104 + (i-1)*positionIncrement
 			container.Position = UDim2.new(0, iconX, 0, 4)
 		end
 		return true
