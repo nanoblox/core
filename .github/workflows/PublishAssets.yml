@@ -27,9 +27,9 @@ jobs:
       run: |
         rojo upload --cookie "$ROBLOSECURITY" --asset_id 4881430843 Core
         rojo upload --cookie "$ROBLOSECURITY" --asset_id 4643209210 Projects/DataStore+
-        rojo upload --cookie "$ROBLOSECURITY" --asset_id 4893141590 Projects/Signal+
-        rojo upload --cookie "$ROBLOSECURITY" --asset_id 4734187373 Projects/Table+
         rojo upload --cookie "$ROBLOSECURITY" --asset_id 4874365424 Projects/Topbar+
         rojo upload --cookie "$ROBLOSECURITY" --asset_id 4664437268 Projects/Zone+
+        rojo upload --cookie "$ROBLOSECURITY" --asset_id 4926442976 Utility/DirectoryService
+        rojo upload --cookie "$ROBLOSECURITY" --asset_id 4893141590 Utility/Signal
       env:
         ROBLOSECURITY: ${{ secrets.ROBLOSECURITY }} # d
