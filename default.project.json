@@ -12,28 +12,10 @@
       "$className": "ServerScriptService",
       "HDAdmin": {
         "$className": "Folder",
-        "Core": {
-          "$className": "Folder",
-          "MainModule": {
-            "$path": "Core"
-          }
-        },
         "DataStore+": {
           "$className": "Folder",
           "MainModule": {
             "$path": "Projects/DataStore+"
-          }
-        },
-        "Signal+": {
-          "$className": "Folder",
-          "MainModule": {
-            "$path": "Projects/Signal+"
-          }
-        },
-        "Table+": {
-          "$className": "Folder",
-          "MainModule": {
-            "$path": "Projects/Table+"
           }
         },
         "Topbar+": {
@@ -46,6 +28,18 @@
           "$className": "Folder",
           "MainModule": {
             "$path": "Projects/Zone+"
+          }
+        },
+        "DirectoryService": {
+          "$className": "Folder",
+          "MainModule": {
+            "$path": "Utility/DirectoryService"
+          }
+        },
+        "Signal": {
+          "$className": "Folder",
+          "MainModule": {
+            "$path": "Utility/Signal"
           }
         }
       }

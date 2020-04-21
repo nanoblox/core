@@ -2,7 +2,8 @@
 local players = game:GetService("Players")
 local starterGui = game:GetService("StarterGui")
 local replicatedStorage = game:GetService("ReplicatedStorage")
-local signalPlus = require(4893141590)
+local SignalPlus = require(4893141590)
+local DirectoryService = require(4926442976)
 
 
 
@@ -86,33 +87,9 @@ amount.Parent = notification
 
 
 -- SETUP DIRECTORIES
-local mainDirectoryName = "HDAdmin"
-local function setupDirectory(directoryName, directoryParent)
-	local directory = directoryParent:FindFirstChild(directoryName)
-	if not directory then
-		directory = Instance.new("Folder")
-		directory.Name = directoryName
-		directory.Parent = directoryParent
-	end
-	return directory
-end
-
--- StarterGui/PlayerGui
-local directoryGui = setupDirectory(mainDirectoryName, starterGui)
-for _, plr in pairs(players:GetPlayers()) do
-	local playerDirectoryGui = setupDirectory(mainDirectoryName, starterGui)
-	for a,b in pairs(directoryGui:GetChildren()) do
-		b:Clone().Parent = playerDirectoryGui
-	end
-end
-topbarPlusGui.Parent = directoryGui
-
--- ReplicatedStorage
-local directoryRs = setupDirectory(mainDirectoryName, replicatedStorage)
-local topbarPlusRs = setupDirectory("Topbar+", directoryRs)
-for a,b in pairs(script:GetChildren()) do
-	b.Parent = topbarPlusRs
-end
+local projectName = "Topbar+"
+DirectoryService:createDirectory("ReplicatedStorage.HDAdmin."..projectName, script:GetChildren())
+DirectoryService:createDirectory("StarterGui.HDAdmin", {topbarPlusGui})
 
 
 

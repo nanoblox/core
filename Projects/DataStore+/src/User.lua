@@ -5,16 +5,16 @@ local players = game:GetService("Players")
 local runService = game:GetService("RunService")
 local teleportService = game:GetService("TeleportService")
 local Signal = require(4644649679)
-local Table = require(4734187373)
+local TableModifiers = require(script.Parent.TableModifiers)
 local User = {}
 User.__index = User
-setmetatable(User, Table)
+setmetatable(User, TableModifiers)
 
 
 
 -- CONSTRUCTOR
 function User.new(dataStoreName, key)
-	local self = Table.new()
+	local self = TableModifiers.new()
 	setmetatable(self, User)
 	
 	-- Setup information
@@ -91,7 +91,7 @@ function User:loadAsync(ignoreLimits)
 	local core = self._core
 	local success, additional = self:protectedCall(callType, ignoreLimits, function(finalAttempt)
 		-- Setup table
-		local data = Table.new(self)
+		local data = TableModifiers.new(self)
 		-- Load data
 		local rawData = core.dataStore:GetAsync(core.key)
 		if not rawData then
@@ -99,7 +99,7 @@ function User:loadAsync(ignoreLimits)
 			core.IsNewData = true
 		end
 		-- Check for _failData
-		local failData = Table.new(self)
+		local failData = TableModifiers.new(self)
 		local previousFailData = rawData._failData or {}
 		for k,v in pairs(previousFailData) do
 			failData[k] = v

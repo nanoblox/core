@@ -1,27 +1,27 @@
 -- LOCAL
 local httpService = game:GetService("HttpService")
 local Signal = require(4644649679)
-local Table = {}
-Table.__index = Table
+local TableModifiers = {}
+TableModifiers.__index = TableModifiers
 
-print(script.Name)
+
 
 -- CONSTRUCTOR
-function Table.new(eventsParent)
+function TableModifiers.new(eventsParent)
 	local self = {}
-	setmetatable(self, Table)
+	setmetatable(self, TableModifiers)
 	eventsParent = eventsParent or self
 	local differentParents = eventsParent ~= self
 	
 	local pathwayId = (differentParents and game:GetService("HttpService"):GenerateGUID()) or ""
-	local events = {"changed", "inserted", "removed", "mapped", "merged", "destroyed"}
+	local events = {"changed", "inserted", "removed", "paired", "merged", "destroyed"}
 	for _, eventName in pairs(events) do
 		eventsParent[pathwayId..eventName] = Signal.new()
 	end
 	if differentParents then
 		setmetatable(self, {
 			__index = function(this, index)
-				local newIndex = Table[index] or eventsParent[pathwayId..index]
+				local newIndex = TableModifiers[index] or eventsParent[pathwayId..index]
 				return newIndex
 			end
 		})
@@ -35,11 +35,11 @@ end
 
 
 -- METHODS
-function Table:get(stat)
+function TableModifiers:get(stat)
 	return self[stat]
 end
 
-function Table:find(stat, value)
+function TableModifiers:find(stat, value)
 	local tab = self[stat]
 	if type(tab) == "table" then
 		if #tab == 0 then return tab[value] end
@@ -52,7 +52,7 @@ function Table:find(stat, value)
 	return false
 end
 
-function Table:len(stat)
+function TableModifiers:len(stat)
 	local value = self[stat]
 	local typeActions = {
 		["table"] = function()
@@ -73,7 +73,7 @@ function Table:len(stat)
 	return((typeAction and typeAction()) or 0)
 end
 
-function Table:change(stat, value)
+function TableModifiers:change(stat, value)
 	local oldValue = self[stat]
 	self[stat] = value
 	self._tableUpdated = true
@@ -81,7 +81,7 @@ function Table:change(stat, value)
 	return value
 end
 
-function Table:add(stat, value)
+function TableModifiers:add(stat, value)
 	local oldValue = self[stat] or 0
 	local newValue = oldValue + value
 	self[stat] = newValue
@@ -90,7 +90,7 @@ function Table:add(stat, value)
 	return newValue
 end
 
-function Table:insert(stat, value)
+function TableModifiers:insert(stat, value)
 	local tab = (type(self[stat]) == "table" and self[stat]) or {}
 	table.insert(tab, value)
 	self[stat] = tab
@@ -99,7 +99,7 @@ function Table:insert(stat, value)
 	return tab
 end
 
-function Table:remove(stat, value)
+function TableModifiers:remove(stat, value)
 	local tab = self[stat]
 	for i,v in pairs(tab) do
 		if v == value then
@@ -110,17 +110,17 @@ function Table:remove(stat, value)
 	self.removed:Fire(stat, value)
 end
 
-function Table:map(stat, key, value)
+function TableModifiers:pair(stat, key, value)
 	local originalTab = self[stat]
 	local tab = (type(originalTab) == "table" and originalTab) or {}
 	tab[key] = value
 	self[stat] = tab
 	self._tableUpdated = true
-	self.mapped:Fire(stat, key, value)
+	self.paired:Fire(stat, key, value)
 	return tab
 end
 
-function Table:merge(stat, value)
+function TableModifiers:merge(stat, value)
 	local oldValue = self[stat] or ""
 	local newValue = oldValue.. tostring(value)
 	self[stat] = newValue
@@ -129,7 +129,7 @@ function Table:merge(stat, value)
 	return newValue
 end
 
-function Table:destroy()
+function TableModifiers:destroy()
 	local function destroyObject(object)
 		local validTypes = {["table"]=true, ["Instance"]=true}
 		local objectType = typeof(object)
@@ -156,7 +156,7 @@ function Table:destroy()
 	destroyObject(self)
 end
 
-function Table:clear()
+function TableModifiers:clear()
 	self:destroy()
 	for k,v in pairs(self) do
 		self[k] = nil
@@ -165,4 +165,4 @@ end
 
 
 
-return Table
+return TableModifiers

@@ -1,7 +1,7 @@
 # Zone+
 
 # Referencing
-Zone+ modules can be required on the client under the HD Admin directory in ReplicatedStorage, and server in ServerStorage or directly from the MainModule.
+After requiring the MainModule, Zone+ modules can be referenced on the client under the HDAdmin directory in ReplicatedStorage, and server in ServerStorage or directly from the MainModule.
 
 | Location                 | Pathway            |
 | :--------------     |:--------------   |
