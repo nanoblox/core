@@ -32,9 +32,7 @@ nav:
                 About: projects\datastoreplus\about.md
                 UserService: projects\datastoreplus\userservice.md
                 User: projects\datastoreplus\user.md
-            - Table+:
-                About: projects\tableplus\about.md
-                Table: projects\tableplus\table.md
+                TableModifiers: projects\datastoreplus\tablemodifiers.md
             - Topbar+:
                 About: projects\topbarplus\about.md
                 IconController: projects\topbarplus\iconcontroller.md

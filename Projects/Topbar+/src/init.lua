@@ -1,13 +1,10 @@
--- SERVICES
-local players = game:GetService("Players")
-local starterGui = game:GetService("StarterGui")
-local replicatedStorage = game:GetService("ReplicatedStorage")
-local SignalPlus = require(4893141590)
+-- UTILITY
+local Signal = require(4893141590)
 local DirectoryService = require(4926442976)
 
 
 
--- CREATE UI
+-- CREATE ICON UI
 local topbarPlusGui = Instance.new("ScreenGui")
 topbarPlusGui.Enabled = true
 topbarPlusGui.DisplayOrder = 0

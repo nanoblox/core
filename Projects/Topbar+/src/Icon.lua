@@ -8,8 +8,7 @@ local topbarPlusGui = hdAdminGui:WaitForChild("Topbar+")
 local topbarContainer = topbarPlusGui.TopbarContainer
 local iconTemplate = topbarContainer["_IconTemplate"]
 local hdAdminRs = replicatedStorage:WaitForChild("HDAdmin")
-local signalPlus = hdAdminRs:WaitForChild("Signal+")
-local Signal = require(signalPlus:WaitForChild("Signal"))
+local Signal = require(hdAdminRs:WaitForChild("Signal"))
 local Icon = {}
 Icon.__index = Icon
 
