@@ -72,7 +72,7 @@ function module:createDirectory(pathway, contents)
 	local finalFunction = function(finalFolder)
 		local playerPathway = locationDetails.playerPathway
 		if playerPathway then
-			local playerPathwayTable = getPathwayTable(pathway)
+			local playerPathwayTable = getPathwayTable(playerPathway)
 			local playerFinalFunction = function(finalFolder)
 				for _, object in pairs(contents) do
 					object:Clone().Parent = finalFolder
