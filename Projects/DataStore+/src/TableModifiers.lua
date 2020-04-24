@@ -157,7 +157,6 @@ function TableModifiers:destroy()
 end
 
 function TableModifiers:clear()
-	self:destroy()
 	for k,v in pairs(self) do
 		self[k] = nil
 	end
