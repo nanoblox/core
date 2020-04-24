@@ -7,8 +7,9 @@ local DirectoryService = require(4926442976)
 
 
 -- SETUP DIRECTORIES
-DirectoryService:createDirectory("ReplicatedStorage.HDAdmin", {script.Signal})
+local signal = script.Signal
+DirectoryService:createDirectory("ReplicatedStorage.HDAdmin", {signal})
 
 
 
-return true
+return require(signal)
