@@ -5,7 +5,7 @@ local Signal = require(4644649679)
 local Zone = {}
 Zone.__index = Zone
 
-print(script.Name)
+
 
 -- CONSTRUCTOR
 function Zone.new(group, regionHeight, displayBoundParts)
