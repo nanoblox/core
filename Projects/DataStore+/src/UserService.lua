@@ -9,7 +9,7 @@ local errorStart = "HD Admin | User | "
 -- FUNCTIONS
 function UserService:createUser(dataStoreName, player)
 	if users[player] then
-		warn(("Failed to create User '%s': that user already exists."):format(errorStart, player.Name))
+		warn(("%sFailed to create User '%s': that user already exists."):format(errorStart, player.Name))
 		return false
 	end
 	local key = player.UserId
@@ -85,7 +85,7 @@ end
 function UserService:removeUser(player)
 	local user = self:getUser(player)
 	if not user then
-		warn(("Failed to remove User '%s': user does not exist."):format(errorStart, player.Name))
+		warn(("%sFailed to remove User '%s': user does not exist."):format(errorStart, player.Name))
 		return false
 	end
 	user:saveAsync()

@@ -13,7 +13,7 @@ function IconController:createIcon(name, imageId, order)
 	-- Verify data
 	local iconDetails = topbarIcons[name]
 	if iconDetails then
-		warn(("Failed to create Icon '%s': an icon already exists under that name."):format(errorStart, name))
+		warn(("%sFailed to create Icon '%s': an icon already exists under that name."):format(errorStart, name))
 		return false
 	end
 	
@@ -27,7 +27,7 @@ function IconController:createIcon(name, imageId, order)
 	local function updateIcon()
 		local iconDetails = topbarIcons[name]
 		if not iconDetails then
-			warn(("Failed to update Icon '%s': icon not found."):format(errorStart, name))
+			warn(("%sFailed to update Icon '%s': icon not found."):format(errorStart, name))
 			return false
 		end
 		iconDetails.order = icon.order or 1
@@ -72,7 +72,7 @@ end
 function IconController:getIcon(name)
 	local iconDetails = topbarIcons[name]
 	if not iconDetails then
-		warn(("Failed to get Icon '%s': icon not found."):format(errorStart, name))
+		warn(("%sFailed to get Icon '%s': icon not found."):format(errorStart, name))
 		return false
 	end
 	return iconDetails.icon
@@ -89,7 +89,7 @@ end
 function IconController:removeIcon(name)
 	local iconDetails = topbarIcons[name]
 	if not iconDetails then
-		warn(("Failed to remove Icon '%s': icon not found."):format(errorStart, name))
+		warn(("%sFailed to remove Icon '%s': icon not found."):format(errorStart, name))
 		return false
 	end
 	local icon = iconDetails.icon
