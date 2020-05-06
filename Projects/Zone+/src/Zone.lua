@@ -103,7 +103,6 @@ function Zone:update()
 			table.insert(clusters, {
 				region = region,
 				parts = parts,
-				size = size,
 				volume = volume,
 			})
 		end

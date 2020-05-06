@@ -298,6 +298,6 @@ Clears the Icons notifications.
 ```lua
 Icon:destroy()
 ```
-Destroys all objects and events associcated with the Icon.
+Destroys all instances, connections and signals associcated with the icon.
 
 --------------------
