@@ -12,26 +12,64 @@ Zone.__index = Zone
 function Zone.new(group, additionalHeight)
 	local self = {}
 	setmetatable(self, Zone)
-
+	
+	self.autoUpdate = true
+	self.respectUpdateQueue = true
 	self.group = group
 	self.additionalHeight = additionalHeight or 0
 	self.previousPlayers = {}
 	self.playerAdded = Signal.new()
 	self.playerRemoving = Signal.new()
+	self.updated = Signal.new()
 	self.instances = {}
+	self.connections = {}
 	
+	self:update()
+	
+	return self
+end
+
+
+
+-- METHODS
+function Zone:update()
+	local clusters = {}
+	local totalVolume = 0
+	local groupParts = self.groupParts
 	local groupParts = {}
 	local groupPartsCopy = {}
-	for _, part in pairs(group:GetDescendants()) do
+	local updateQueue = 0
+	self:clearConnections()
+	for _, part in pairs(self.group:GetDescendants()) do
 		if part:isA("BasePart") then
 			table.insert(groupParts, part)
 			table.insert(groupPartsCopy, part)
+			local randomId = httpService:GenerateGUID()
+			local partProperties = {"Size", "Position"}
+			local groupEvents = {"ChildAdded", "ChildRemoved"}
+			local function update()
+				if self.autoUpdate then
+					coroutine.wrap(function()
+						if self.respectUpdateQueue then
+							updateQueue = updateQueue + 1
+							wait(0.1)
+							updateQueue = updateQueue - 1
+						end
+						if updateQueue == 0 then
+							self:update()
+						end
+					end)()
+				end
+			end
+			for _, prop in pairs(partProperties) do
+				self.connections[prop..randomId] = part:GetPropertyChangedSignal(prop):Connect(update)
+			end
+			for _, event in pairs(groupEvents) do
+				self.connections[event..randomId] = self.group[event]:Connect(update)
+			end
 		end
 	end
-	self.groupParts = groupParts
 	
-	local clusters = {}
-	local totalVolume = 0
 	local function getTouchingParts(part)
 		local connection = part.Touched:Connect(function() end)
 		local results = part:GetTouchingParts()
@@ -84,13 +122,11 @@ function Zone.new(group, additionalHeight)
 	self.boundMin = boundMin
 	self.boundMax = boundMax
 	self.regionHeight = boundMax.Y - boundMin.Y
+	self.groupParts = groupParts
 	
-	return self
+	self.updated:Fire()
 end
 
-
-
--- METHODS
 function Zone:displayBounds()
 	if not self.displayBoundParts then
 		self.displayBoundParts = true
@@ -104,10 +140,25 @@ function Zone:displayBounds()
 			part.Color = Color3.fromRGB(255,0,0)
 			part.CFrame = CFrame.new(boundCFrame)
 			part.Name = boundName
-			part.Parent = self.group
+			part.Parent = workspace
 			table.insert(self.instances, part)
 		end
 	end
+end
+
+function Zone:castRay(origin, parts)
+	local newOrigin = origin + Vector3.new(0, self.regionHeight, 0)
+	local lookDirection = newOrigin + Vector3.new(0, -1, 0)
+	local ray = Ray.new(newOrigin, (lookDirection - newOrigin).unit * (self.additionalHeight + self.regionHeight))
+	local hitPart, intersection = workspace:FindPartOnRayWithWhitelist(ray, parts)
+	if hitPart then
+		local intersectionY = intersection.Y
+		local pointY = origin.Y
+		if pointY + hitPart.Size.Y > intersectionY then
+			return true
+		end
+	end
+	return false
 end
 
 function Zone:getRegion(tableOfParts)
@@ -155,7 +206,6 @@ function Zone:getRegion(tableOfParts)
 	return region, boundMin, boundMax
 end
 
-
 function Zone:getPlayersInRegion()
 	local playersArray = players:GetPlayers()
 	local playerCharacters = {}
@@ -185,23 +235,17 @@ function Zone:getPlayersInRegion()
 	return playersInRegion
 end
 
-
 function Zone:getPlayer(player)
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	if hrp then
 		local charOffset = hrp.Size.Y * -1.5
-		local origin = hrp.Position + Vector3.new(0, self.regionHeight + charOffset, 0)
-		local lookDirection = origin + Vector3.new(0, -1, 0)
-		local ray = Ray.new(origin, (lookDirection - origin).unit * (self.additionalHeight + self.regionHeight))
-		local groupPart = workspace:FindPartOnRayWithWhitelist(ray, self.groupParts)
-		if groupPart then
-			return true
-		end
+		local origin = hrp.Position + Vector3.new(0, charOffset, 0)
+		local hitValidPart = self:castRay(origin, self.groupParts)
+		return hitValidPart
 	end
 	return false
 end
-
 
 function Zone:getPlayers()
 	local playersInRegion = self:getPlayersInRegion()
@@ -233,8 +277,6 @@ function Zone:getPlayers()
 	end 
 	return playersInZone
 end
-
-
 
 function Zone:initLoop(loopDelay)
 	loopDelay = tonumber(loopDelay) or 0.5
@@ -273,14 +315,20 @@ function Zone:getRandomPoint()
 		local random = Random.new()
 		local randomCFrame = cframe * CFrame.new(random:NextNumber(-size.X/2,size.X/2), random:NextNumber(-size.Y/2,size.Y/2), random:NextNumber(-size.Z/2,size.Z/2))
 		local origin = randomCFrame.p
-		local lookDirection = origin + Vector3.new(0, -1, 0)
-		local ray = Ray.new(origin, (lookDirection - origin).unit * (self.additionalHeight + self.regionHeight))
-		local validPart = workspace:FindPartOnRayWithWhitelist(ray, parts)
-		if validPart then
-			pointCFrame = randomCFrame
+		local hitValidPart = self:castRay(origin, parts)
+		if hitValidPart then
+			pointCFrame = randomCFrame 
 		end
 	until pointCFrame
 	return pointCFrame
+end
+
+function Zone:clearConnections()
+	for cName, connection in pairs(self.connections) do
+		connection:Disconnect()
+		self.connections[cName] = nil
+	end
+	self.connections = {}
 end
 
 function Zone:destroy()
@@ -293,6 +341,7 @@ function Zone:destroy()
 	for _, instance in pairs(self.instances) do
 		instance:Destroy()
 	end
+	self:clearConnections()
 end
 			
 
