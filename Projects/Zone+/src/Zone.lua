@@ -283,8 +283,8 @@ function Zone:initLoop(loopDelay)
 		self.loopInitialized = true
 		coroutine.wrap(function()
 			while self.currentLoop == loopId do
-				wait(loopDelay)
 				self:getPlayers()
+				wait(loopDelay)
 			end
 		end)()
 	end
@@ -330,6 +330,7 @@ end
 
 function Zone:destroy()
 	self:endLoop()
+	self:clearConnections()
 	for signalName, signal in pairs(self) do
 		if type(signal) == "table" and signal.Destroy then
 			signal:Destroy()
@@ -338,7 +339,6 @@ function Zone:destroy()
 	for _, instance in pairs(self.instances) do
 		instance:Destroy()
 	end
-	self:clearConnections()
 end
 			
 
