@@ -37,13 +37,11 @@ function Zone:update()
 	local totalVolume = 0
 	local groupParts = self.groupParts
 	local groupParts = {}
-	local groupPartsCopy = {}
 	local updateQueue = 0
 	self:clearConnections()
 	for _, part in pairs(self.group:GetDescendants()) do
 		if part:isA("BasePart") then
 			table.insert(groupParts, part)
-			table.insert(groupPartsCopy, part)
 			local randomId = httpService:GenerateGUID()
 			local partProperties = {"Size", "Position"}
 			local groupEvents = {"ChildAdded", "ChildRemoved"}
@@ -70,46 +68,45 @@ function Zone:update()
 		end
 	end
 	
+	local scanned = {}
 	local function getTouchingParts(part)
 		local connection = part.Touched:Connect(function() end)
 		local results = part:GetTouchingParts()
 		connection:Disconnect()
 		local whitelistResult = {}
 		for _, touchingPart in pairs(results) do
-			if table.find(groupPartsCopy, touchingPart) then
+			if table.find(groupParts, touchingPart) then
 				table.insert(whitelistResult, touchingPart)
 			end
 		end
 		return whitelistResult
 	end
-	for _, part in pairs(groupPartsCopy) do
-		local scanned = {part = true}
-		local parts = {}
-		local function formCluster(partToScan)
-			table.insert(parts, partToScan)
-			local touchingParts = getTouchingParts(partToScan)
-			for _, touchingPart in pairs(touchingParts) do
-				local i = table.find(groupPartsCopy, touchingPart)
-				if i then
-					table.remove(groupPartsCopy, i)
-				end
-				if not scanned[touchingPart] then
-					scanned[touchingPart] = true
-					formCluster(touchingPart)
+	for _, part in pairs(groupParts) do
+		if not scanned[part] then
+			scanned[part] = true
+			local parts = {}
+			local function formCluster(partToScan)
+				table.insert(parts, partToScan)
+				local touchingParts = getTouchingParts(partToScan)
+				for _, touchingPart in pairs(touchingParts) do
+					if not scanned[touchingPart] then
+						scanned[touchingPart] = true
+						formCluster(touchingPart)
+					end
 				end
 			end
+			formCluster(part)
+			local region = self:getRegion(parts)
+			local size = region.Size
+			local volume = size.X * size.Y * size.Z
+			totalVolume = totalVolume + volume
+			table.insert(clusters, {
+				region = region,
+				parts = parts,
+				size = size,
+				volume = volume,
+			})
 		end
-		formCluster(part)
-		local region = self:getRegion(parts)
-		local size = region.Size
-		local volume = size.X * size.Y * size.Z
-		totalVolume = totalVolume + volume
-		table.insert(clusters, {
-			region = region,
-			parts = parts,
-			size = size,
-			volume = volume,
-		})
 	end
 	for part, details in pairs(clusters) do
 		details.weight = details.volume/totalVolume
@@ -155,7 +152,7 @@ function Zone:castRay(origin, parts)
 		local intersectionY = intersection.Y
 		local pointY = origin.Y
 		if pointY + hitPart.Size.Y > intersectionY then
-			return true
+			return hitPart, intersection
 		end
 	end
 	return false
@@ -298,7 +295,7 @@ function Zone:endLoop()
 end
 
 function Zone:getRandomPoint()
-	local pointCFrame
+	local pointCFrame, hitPart, hitIntersection
 	repeat
 		local parts, region 
 		local randomWeight = math.random()
@@ -315,12 +312,12 @@ function Zone:getRandomPoint()
 		local random = Random.new()
 		local randomCFrame = cframe * CFrame.new(random:NextNumber(-size.X/2,size.X/2), random:NextNumber(-size.Y/2,size.Y/2), random:NextNumber(-size.Z/2,size.Z/2))
 		local origin = randomCFrame.p
-		local hitValidPart = self:castRay(origin, parts)
+		local hitValidPart, hitValidIntersection = self:castRay(origin, parts)
 		if hitValidPart then
-			pointCFrame = randomCFrame 
+			pointCFrame, hitPart, hitIntersection = randomCFrame, hitValidPart, hitValidIntersection
 		end
 	until pointCFrame
-	return pointCFrame
+	return pointCFrame, hitPart, hitIntersection
 end
 
 function Zone:clearConnections()
