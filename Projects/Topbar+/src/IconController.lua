@@ -7,7 +7,7 @@ local errorStart = "Topbar+ | "
 
 
 
--- FUNCTIONS
+-- METHODS
 function IconController:createIcon(name, imageId, order)
 	
 	-- Verify data

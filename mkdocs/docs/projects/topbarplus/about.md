@@ -7,7 +7,7 @@ Topbar+ is a lightweight application that expands upon Roblox's topbar to give y
 - Thread: Coming soon
 
 # Collaborate
-Topbar+ is an open-source project; all contributions are much appreciated. You're welcome to report bugs, suggest features and make pull requests at [our repository](https://github.com/1ForeverHD/HDAdmin/tree/master/Projects).
+Topbar+ is an open-source project; all contributions are much appreciated. You're welcome to report bugs, suggest features and make pull requests at our repository.
 
 # Referencing
 After requiring the MainModule, Topbar+ modules can be referenced on the client under the HDAdmin directory in ReplicatedStorage.

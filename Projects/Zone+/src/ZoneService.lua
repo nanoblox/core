@@ -6,7 +6,7 @@ local zones = {}
 
 
 
--- API
+-- METHODS
 function ZoneService:createZone(name, group, additionalHeight)
 	local zone = zones[name]
 	if zone then

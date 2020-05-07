@@ -6,7 +6,7 @@ local errorStart = "HD Admin | User | "
 
 
 
--- FUNCTIONS
+-- METHODS
 function UserService:createUser(dataStoreName, player)
 	if users[player] then
 		warn(("%sFailed to create User '%s': that user already exists."):format(errorStart, player.Name))

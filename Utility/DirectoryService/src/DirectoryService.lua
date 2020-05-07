@@ -39,7 +39,7 @@ end
 
 
 
--- FUNCTIONS
+-- METHODS
 function module:getLocationDetails(location)
 	local realLocations = {
 		["ServerStorage"] = {

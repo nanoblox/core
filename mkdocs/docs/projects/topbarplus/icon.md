@@ -1,3 +1,159 @@
+# Constructors
+--------------------
+### new
+```lua
+Icon.new(name, imageId, order)
+```
+Constructs a new icon where ``name`` is a unique string identifying the icon, ``imageId`` an int representing the icons image, and ``order``, a number defining how the icon should be positioned in relation to neighbouring icons, greater values being shifted rightward.
+
+
+
+<br>
+
+
+
+# Methods
+--------------------
+### setImage
+```lua
+Icon:setImage(imageId)
+```
+Sets the icons image.
+
+--------------------
+### setOrder
+```lua
+Icon:setOrder(order)
+```
+Sets the icons priority order, determining whether it will appear before or after other icons.
+
+--------------------
+### setImageScale
+```lua
+Icon:setImageScale(scale)
+```
+Sets the scale of the image based on a value between 0 and 1.
+
+--------------------
+### setEnabled
+```lua
+Icon:setEnabled(bool)
+```
+Sets the Icons visibility.
+
+--------------------
+### setToggleFunction
+```lua
+Icon:setToggleFunction(toggleFunction)
+```
+Sets a function that is called every time the Icon is selected and deslected.
+
+--------------------
+### setTheme
+```lua
+Icon:setTheme(themeDetails)
+```
+Applies the specified theme to the Icon. See ``Icon.theme`` for details on creating a theme.
+
+--------------------
+### select
+```lua
+Icon:select()
+```
+Selects the Icon.
+
+--------------------
+### deselect
+```lua
+Icon:deselect()
+```
+Deselects the Icon.
+
+--------------------
+### notify
+```lua
+Icon:notify(clearNoticeEvent)
+```
+Prompts a notification that appears in the top-right corner of the Icon. Specifiy ``clearNoticeEvent`` with an event to determine when to end the notifcation. If not specified, ``clearNoticeEvent`` defaults to ``Icon.deselected``.
+
+--------------------
+### clearNotifications
+```lua
+Icon:clearNotifications()
+```
+Clears the Icons notifications.
+
+--------------------
+### destroy
+```lua
+Icon:destroy()
+```
+Destroys all instances, connections and signals associcated with the icon.
+
+--------------------
+
+
+
+<br>
+
+
+
+# Events
+--------------------
+### updated
+```lua
+Icon.updated
+```
+Fired when the Icon causes a position shift of other icons.
+```lua
+Icon.updated:Connect(function())
+
+end)
+```
+
+--------------------
+### selected
+```lua
+Icon.selected
+```
+Fired when the Icon is selected.
+```lua
+Icon.selected:Connect(function())
+
+end)
+```
+
+--------------------
+### deselected
+```lua
+Icon.deselected
+```
+Fired when the Icon is deselected.
+```lua
+Icon.deselected:Connect(function())
+
+end)
+```
+
+--------------------
+### endNotifications
+```lua
+Icon.endNotifications
+```
+Fired when the Icons notifcations are cleared.
+```lua
+Icon.endNotifications:Connect(function())
+
+end)
+```
+
+
+
+<br>
+
+
+
+--------------------
 # Properties
 
 --------------------
@@ -164,140 +320,3 @@ A custom function called during ``Icon:select()`` and ``Icon:deselect()``. Set u
 Icon.toggleFunction 
 ```
 A bool deciding whether the icon will be deselected when another icon is selected.
-
-
-<br>
-
-
-# Events
---------------------
-### updated
-```lua
-Icon.updated
-```
-Fired when the Icon causes a position shift of other icons.
-```lua
-Icon.updated:Connect(function())
-
-end)
-```
-
---------------------
-### selected
-```lua
-Icon.selected
-```
-Fired when the Icon is selected.
-```lua
-Icon.selected:Connect(function())
-
-end)
-```
-
---------------------
-### deselected
-```lua
-Icon.deselected
-```
-Fired when the Icon is deselected.
-```lua
-Icon.deselected:Connect(function())
-
-end)
-```
-
---------------------
-### endNotifications
-```lua
-Icon.endNotifications
-```
-Fired when the Icons notifcations are cleared.
-```lua
-Icon.endNotifications:Connect(function())
-
-end)
-```
-
-
-<br>
-
-
-# Methods
---------------------
-### setImage
-```lua
-Icon:setImage(imageId)
-```
-Sets the icons image.
-
---------------------
-### setOrder
-```lua
-Icon:setOrder(order)
-```
-Sets the icons priority order, determining whether it will appear before or after other icons.
-
---------------------
-### setImageScale
-```lua
-Icon:setImageScale(scale)
-```
-Sets the scale of the image based on a value between 0 and 1.
-
---------------------
-### setEnabled
-```lua
-Icon:setEnabled(bool)
-```
-Sets the Icons visibility.
-
---------------------
-### setToggleFunction
-```lua
-Icon:setToggleFunction(toggleFunction)
-```
-Sets a function that is called every time the Icon is selected and deslected.
-
---------------------
-### setTheme
-```lua
-Icon:setTheme(themeDetails)
-```
-Applies the specified theme to the Icon. See ``Icon.theme`` for details on creating a theme.
-
---------------------
-### select
-```lua
-Icon:select()
-```
-Selects the Icon.
-
---------------------
-### deselect
-```lua
-Icon:deselect()
-```
-Deselects the Icon.
-
---------------------
-### notify
-```lua
-Icon:notify(clearNoticeEvent)
-```
-Prompts a notification that appears in the top-right corner of the Icon. Specifiy ``clearNoticeEvent`` with an event to determine when to end the notifcation. If not specified, ``clearNoticeEvent`` defaults to ``Icon.deselected``.
-
---------------------
-### clearNotifications
-```lua
-Icon:clearNotifications()
-```
-Clears the Icons notifications.
-
---------------------
-### destroy
-```lua
-Icon:destroy()
-```
-Destroys all instances, connections and signals associcated with the icon.
-
---------------------
