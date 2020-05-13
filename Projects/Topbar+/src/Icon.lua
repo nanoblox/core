@@ -84,6 +84,7 @@ function Icon.new(name, imageId, order)
 	self.deselected = Signal.new()
 	self.endNotifications = Signal.new()
 	
+	--[[
 	local hoverInputs = {"InputBegan", "InputEnded"}
 	local originalTransparency = button.ImageTransparency
 	self:setHoverFunction(function(inputName)
@@ -97,6 +98,7 @@ function Icon.new(name, imageId, order)
 			end
 		end)
 	end
+	--]]
 	
 	button.MouseButton1Click:Connect(function()
 		if self.toggleStatus == "selected" then

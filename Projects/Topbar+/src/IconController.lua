@@ -82,14 +82,16 @@ end
 
 function IconController:createFakeChat(theme)
 	local chatMain = require(players.LocalPlayer.PlayerScripts:WaitForChild("ChatScript").ChatMain)
-	local icon = self:createIcon("_FakeChat", "rbxasset://textures/ui/TopBar/chatOff.png", -1)
-	if theme then
-		theme = deepCopy(theme)
-		theme.image = theme.image or {}
-		theme.image.selected = theme.image.selected or {}
-		theme.image.selected.Image = "rbxasset://textures/ui/TopBar/chatOn.png"
-		icon:setTheme(theme)
+	local iconName = "_FakeChat"
+	local icon = self:getIcon(iconName)
+	if not icon then
+		icon = self:createIcon(iconName, "rbxasset://textures/ui/TopBar/chatOff.png", -1)
 	end
+	theme = (theme and deepCopy(theme)) or {}
+	theme.image = theme.image or {}
+	theme.image.selected = theme.image.selected or {}
+	theme.image.selected.Image = "rbxasset://textures/ui/TopBar/chatOn.png"
+	icon:setTheme(theme)
 	icon:setImageSize(20)
 	icon:setToggleFunction(function()
 		local isSelected = icon.toggleStatus == "selected"
@@ -103,7 +105,7 @@ end
 function IconController:getIcon(name)
 	local iconDetails = topbarIcons[name]
 	if not iconDetails then
-		warn(("%sFailed to get Icon '%s': icon not found."):format(errorStart, name))
+		--warn(("%sFailed to get Icon '%s': icon not found."):format(errorStart, name))
 		return false
 	end
 	return iconDetails.icon

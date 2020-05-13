@@ -54,6 +54,8 @@ Sets a function that is called every time the icon is selected and deslected.
 Icon:setHoverFunction(hoverFunction)
 ```
 Sets a function that is called when the icon is (un)highlighted
+!!! warning
+    This method is likely to change. It's recommended not to use for the time being.
 
 --------------------
 ### setTheme
