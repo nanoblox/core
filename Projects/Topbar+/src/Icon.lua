@@ -46,7 +46,7 @@ function Icon.new(name, imageId, order)
 				ImageColor3 = Color3.fromRGB(255, 255, 255),
 			},
 			deselected = {
-				ImageColor3 = Color3.fromRGB(31, 33, 35),
+				ImageColor3 = Color3.fromRGB(0, 0, 0),
 			}
 		},
 		["image"] = {
@@ -71,17 +71,32 @@ function Icon.new(name, imageId, order)
 	
 	self.name = name
 	self.imageId = imageId or 0
-	self.imageScale = 0.7
+	self:setImageSize(20)
 	self.order = order or 1
 	self.enabled = true
 	self.totalNotifications = 0
 	self.toggleFunction = function() end
+	self.hoverFunction = function() end
 	self.deselectWhenOtherIconSelected = true
 	
 	self.updated = Signal.new()
 	self.selected = Signal.new()
 	self.deselected = Signal.new()
 	self.endNotifications = Signal.new()
+	
+	local hoverInputs = {"InputBegan", "InputEnded"}
+	local originalTransparency = button.ImageTransparency
+	self:setHoverFunction(function(inputName)
+		local hovering = inputName == "InputBegan"
+		button.ImageTransparency = (hovering and originalTransparency + 0.2) or (self.theme.button.selected.ImageTransparency or originalTransparency)
+	end)
+	for _, inputName in pairs(hoverInputs) do
+		button[inputName]:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseMovement then
+				self.hoverFunction(inputName)
+			end
+		end)
+	end
 	
 	button.MouseButton1Click:Connect(function()
 		if self.toggleStatus == "selected" then
@@ -104,8 +119,12 @@ end
 
 -- METHODS
 function Icon:setImage(imageId)
-	self.imageId = imageId
-	self.objects.image.Image = "http://www.roblox.com/asset/?id="..imageId
+	local textureId = (tonumber(imageId) and "http://www.roblox.com/asset/?id="..imageId) or imageId
+	self.imageId = textureId
+	self.objects.image.Image = textureId
+	self.theme.image = self.theme.image or {}
+	self.theme.image.selected = self.theme.image.selected or {}
+	self.theme.image.selected.Image = textureId
 end
 
 function Icon:setOrder(order)
@@ -113,11 +132,13 @@ function Icon:setOrder(order)
 	self.updated:Fire()
 end
 
-function Icon:setImageScale(scale)
-	scale = ((tonumber(scale) and scale >= 0 and scale <=1) and scale) or self.imageScale
-	self.imageScale = scale
-	self.objects.image.Position = UDim2.new(0, 0, (1-scale)/2, 0)
-	self.objects.image.Size = UDim2.new(1, 0, scale, 0)
+function Icon:setImageSize(pixelsX, pixelsY)
+	pixelsX = tonumber(pixelsX) or self.imageSize
+	if not pixelsY then
+		pixelsY = pixelsX
+	end
+	self.imageSize = Vector2.new(pixelsX, pixelsY)
+	self.objects.image.Size = UDim2.new(0, pixelsX, 0, pixelsY)
 end
 
 function Icon:setEnabled(bool)
@@ -136,6 +157,12 @@ end
 function Icon:setToggleFunction(toggleFunction)
 	if type(toggleFunction) == "function" then
 		self.toggleFunction = toggleFunction
+	end
+end
+
+function Icon:setHoverFunction(hoverFunction)
+	if type(hoverFunction) == "function" then
+		self.hoverFunction = hoverFunction
 	end
 end
 
@@ -185,6 +212,7 @@ function Icon:applyThemeToObject(objectName, toggleStatus)
 		local invalidProperties = {"Image"}
 		local finalPropertiesTable = {}
 		for propName, propValue in pairs(propertiesTable) do
+			print(objectName, toggleStatus, propName, propValue)
 			if table.find(invalidProperties, propName) then
 				object[propName] = propValue
 			else
