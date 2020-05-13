@@ -37,17 +37,18 @@ iconButton.Position = UDim2.new(0, 0, 0, 0)
 iconButton.Size = UDim2.new(1, 0, 1, 0)
 iconButton.Visible = true
 iconButton.ZIndex = 2
-iconButton.Image = "http://www.roblox.com/asset/?id=4871650602"
-iconButton.ImageTransparency = 0.3
-iconButton.ImageColor3 = Color3.fromRGB(31, 33, 35)
+iconButton.Image = "rbxassetid://5027411759"
+iconButton.ImageTransparency = 0.5
+iconButton.ImageColor3 = Color3.fromRGB(0, 0, 0)
 iconButton.ScaleType = Enum.ScaleType.Stretch
 iconButton.Parent = iconContainer
 
 local iconImage = Instance.new("ImageLabel")
 iconImage.BackgroundTransparency = 1
 iconImage.Name = "IconImage"
-iconImage.Position = UDim2.new(0, 0, 0.2, 0)
-iconImage.Size = UDim2.new(1, 0, 0.6, 0)
+iconImage.AnchorPoint = Vector2.new(0.5, 0.5)
+iconImage.Position = UDim2.new(0.5, 0, 0.5, 0)
+iconImage.Size = UDim2.new(0, 20, 0, 20)
 iconImage.Visible = true
 iconImage.ZIndex = 3
 iconImage.ImageTransparency = 0
