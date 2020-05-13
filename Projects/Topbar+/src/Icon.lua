@@ -212,7 +212,6 @@ function Icon:applyThemeToObject(objectName, toggleStatus)
 		local invalidProperties = {"Image"}
 		local finalPropertiesTable = {}
 		for propName, propValue in pairs(propertiesTable) do
-			print(objectName, toggleStatus, propName, propValue)
 			if table.find(invalidProperties, propName) then
 				object[propName] = propValue
 			else
