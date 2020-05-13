@@ -97,6 +97,7 @@ function IconController:createFakeChat(theme)
 		chatMain:SetVisible(isSelected)
 	end)
 	starterGui:SetCoreGuiEnabled("Chat", false)
+	return icon
 end
 
 function IconController:getIcon(name)
