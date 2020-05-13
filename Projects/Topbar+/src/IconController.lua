@@ -1,9 +1,20 @@
 -- LOCAL
 local starterGui = game:GetService("StarterGui")
+local players = game:GetService("Players")
 local IconController = {}
 local Icon = require(script.Parent.Icon)
 local topbarIcons = {}
 local errorStart = "Topbar+ | "
+local function deepCopy(original)
+    local copy = {}
+    for k, v in pairs(original) do
+        if type(v) == "table" then
+            v = deepCopy(v)
+        end
+        copy[k] = v
+    end
+    return copy
+end
 
 
 
@@ -47,7 +58,7 @@ function IconController:createIcon(name, imageId, order)
 		end
 		for i, details in pairs(orderedIconDetails) do
 			local container = details.icon.objects.container
-			local iconX = 104 + (i-1)*positionIncrement
+			local iconX = startPosition + (i-1)*positionIncrement
 			container.Position = UDim2.new(0, iconX, 0, 4)
 		end
 		return true
@@ -67,6 +78,23 @@ function IconController:createIcon(name, imageId, order)
 	
 	
 	return icon
+end
+
+function IconController:createFakeChat(theme)
+	local chatMain = require(players.LocalPlayer.PlayerScripts:WaitForChild("ChatScript").ChatMain)
+	local icon = self:createIcon("_FakeChat", "rbxasset://textures/ui/TopBar/chatOff.png", -1)
+	theme = deepCopy(theme)
+	theme.image = theme.image or {}
+	theme.image.selected = theme.image.selected or {}
+	theme.image.selected.Image = "rbxasset://textures/ui/TopBar/chatOn.png"
+	icon:setImageSize(20)
+	icon:setTheme(theme)
+	icon:setToggleFunction(function()
+		local isSelected = icon.toggleStatus == "selected"
+		chatMain.CoreGuiEnabled:fire(isSelected)
+		chatMain:SetVisible(isSelected)
+	end)
+	starterGui:SetCoreGuiEnabled("Chat", false)
 end
 
 function IconController:getIcon(name)
