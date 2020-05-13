@@ -83,12 +83,14 @@ end
 function IconController:createFakeChat(theme)
 	local chatMain = require(players.LocalPlayer.PlayerScripts:WaitForChild("ChatScript").ChatMain)
 	local icon = self:createIcon("_FakeChat", "rbxasset://textures/ui/TopBar/chatOff.png", -1)
-	theme = deepCopy(theme)
-	theme.image = theme.image or {}
-	theme.image.selected = theme.image.selected or {}
-	theme.image.selected.Image = "rbxasset://textures/ui/TopBar/chatOn.png"
+	if theme then
+		theme = deepCopy(theme)
+		theme.image = theme.image or {}
+		theme.image.selected = theme.image.selected or {}
+		theme.image.selected.Image = "rbxasset://textures/ui/TopBar/chatOn.png"
+		icon:setTheme(theme)
+	end
 	icon:setImageSize(20)
-	icon:setTheme(theme)
 	icon:setToggleFunction(function()
 		local isSelected = icon.toggleStatus == "selected"
 		chatMain.CoreGuiEnabled:fire(isSelected)
