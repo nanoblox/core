@@ -4,7 +4,7 @@
 ```lua
 Icon.new(name, imageId, order)
 ```
-Constructs a new icon where ``name`` is a unique string identifying the icon, ``imageId`` an int representing the icons image, and ``order``, a number defining how the icon should be positioned in relation to neighbouring icons, greater values being shifted rightward.
+Constructs a new icon where ``name`` is a unique string identifying the icon, ``imageId`` an int representing the icons image, and ``order``, a number defining how the icon should be positioned in relation to neighbouring icons.
 
 
 
@@ -28,60 +28,67 @@ Icon:setOrder(order)
 Sets the icons priority order, determining whether it will appear before or after other icons.
 
 --------------------
-### setImageScale
+### setImageSize
 ```lua
-Icon:setImageScale(scale)
+Icon:setImageSize(width, height)
 ```
-Sets the scale of the image based on a value between 0 and 1.
+Sets the image size in pixels. Height will equal width if not specified.
 
 --------------------
 ### setEnabled
 ```lua
 Icon:setEnabled(bool)
 ```
-Sets the Icons visibility.
+Sets the icons visibility.
 
 --------------------
 ### setToggleFunction
 ```lua
 Icon:setToggleFunction(toggleFunction)
 ```
-Sets a function that is called every time the Icon is selected and deslected.
+Sets a function that is called every time the icon is selected and deslected.
+
+--------------------
+### setHoverFunction
+```lua
+Icon:setHoverFunction(hoverFunction)
+```
+Sets a function that is called when the icon is (un)highlighted
 
 --------------------
 ### setTheme
 ```lua
 Icon:setTheme(themeDetails)
 ```
-Applies the specified theme to the Icon. See ``Icon.theme`` for details on creating a theme.
+Applies the specified theme to the icon. See ``Icon.theme`` for details on creating a theme.
 
 --------------------
 ### select
 ```lua
 Icon:select()
 ```
-Selects the Icon.
+Selects the icon.
 
 --------------------
 ### deselect
 ```lua
 Icon:deselect()
 ```
-Deselects the Icon.
+Deselects the icon.
 
 --------------------
 ### notify
 ```lua
 Icon:notify(clearNoticeEvent)
 ```
-Prompts a notification that appears in the top-right corner of the Icon. Specifiy ``clearNoticeEvent`` with an event to determine when to end the notifcation. If not specified, ``clearNoticeEvent`` defaults to ``Icon.deselected``.
+Prompts a notification that appears in the top-right corner of the icon. Specifiy ``clearNoticeEvent`` with an event to determine when to end the notifcation. If not specified, ``clearNoticeEvent`` defaults to ``Icon.deselected``.
 
 --------------------
 ### clearNotifications
 ```lua
 Icon:clearNotifications()
 ```
-Clears the Icons notifications.
+Clears all notifications.
 
 --------------------
 ### destroy
@@ -104,7 +111,7 @@ Destroys all instances, connections and signals associcated with the icon.
 ```lua
 Icon.updated
 ```
-Fired when the Icon causes a position shift of other icons.
+Fired when the icon causes a position shift of other icons.
 ```lua
 Icon.updated:Connect(function())
 
@@ -116,7 +123,7 @@ end)
 ```lua
 Icon.selected
 ```
-Fired when the Icon is selected.
+Fired when the icon is selected.
 ```lua
 Icon.selected:Connect(function())
 
@@ -128,7 +135,7 @@ end)
 ```lua
 Icon.deselected
 ```
-Fired when the Icon is deselected.
+Fired when the icon is deselected.
 ```lua
 Icon.deselected:Connect(function())
 
@@ -140,7 +147,7 @@ end)
 ```lua
 Icon.endNotifications
 ```
-Fired when the Icons notifcations are cleared.
+Fired when the icons notifcations are cleared.
 ```lua
 Icon.endNotifications:Connect(function())
 
@@ -161,7 +168,7 @@ end)
 ```lua
 Icon.objects
 ```
-A dictionary of Instances that make up the Icon.
+A dictionary of instances that make up the icon.
 
 
 
@@ -181,7 +188,7 @@ A dictionary of Instances that make up the Icon.
 ```lua
 Icon.theme
 ```
-A dictionary describing the Icons theme. Set using the ``Icon:setTheme()`` method.
+A dictionary describing the icons theme. To change, use ``Icon:setTheme()``.
 
 | Key                 | Value            | Desc                                           |
 | :--------------     |:--------------   | :----------------------------------------------|
@@ -256,7 +263,7 @@ defaultThemeDetails = {
 ```lua
 Icon.toggleStatus
 ```
-A string describing the toggle status: "selected" or "deselected". Set using the ``Icon:select()`` and ``Icon:deselect()`` methods.
+A string describing the toggle status: "selected" or "deselected". To change, use ``Icon:select()`` and ``Icon:deselect()``.
 
 --------------------
 ### name
@@ -264,7 +271,7 @@ A string describing the toggle status: "selected" or "deselected". Set using the
 ```lua
 Icon.name
 ```
-The Icon creation name.
+The icon creation name.
 
 --------------------
 ### imageId
@@ -272,15 +279,15 @@ The Icon creation name.
 ```lua
 Icon.imageId
 ```
-The Icons imageId. Set using the ``Icon:setImage()`` method.
+The icons imageId. To change, use ``Icon:setImage()``.
 
 --------------------
-### imageScale
+### imageSize
 *(read only)*
 ```lua
-Icon.imageScale
+Icon.imageSize
 ```
-The scale of the Icon image. A value between 0 and 1. Set using the ``Icon:setImageScale()`` method.
+A Vector2 representing the images size. To change, use ``Icon:setImageSize()``.
 
 --------------------
 ### order
@@ -288,7 +295,7 @@ The scale of the Icon image. A value between 0 and 1. Set using the ``Icon:setIm
 ```lua
 Icon.order
 ```
-The Icons order. This determines whether the Icon comes before or after other Icons. Set using the ``Icon:setOrder()`` method.
+The icons order. This determines whether the icon comes before or after other icons. Defaults to ``1``. To change, use ``Icon:setOrder()``.
 
 --------------------
 ### enabled
@@ -296,7 +303,7 @@ The Icons order. This determines whether the Icon comes before or after other Ic
 ```lua
 Icon.order
 ```
-A bool describing whether the icon is enabled or not. Set using the ``Icon:setEnabled()`` method.
+A bool describing whether the icon is enabled or not. To change, use ``Icon:setEnabled()``.
 
 --------------------
 ### totalNotifications
@@ -304,7 +311,7 @@ A bool describing whether the icon is enabled or not. Set using the ``Icon:setEn
 ```lua
 Icon.totalNotifications
 ```
-An integer representing the amount of active notifications.
+An int representing the amount of active notifications.
 
 --------------------
 ### toggleFunction 
@@ -312,11 +319,19 @@ An integer representing the amount of active notifications.
 ```lua
 Icon.toggleFunction 
 ```
-A custom function called during ``Icon:select()`` and ``Icon:deselect()``. Set using the ``Icon:setToggleFunction()`` method.
+A custom function called during ``Icon:select()`` and ``Icon:deselect()``. To change, use ``Icon:setToggleFunction()``.
+
+--------------------
+### hoverFunction 
+*(read only)*
+```lua
+Icon.hoverFunction 
+```
+A custom function called when the icon is (un)highlighted. To change, use ``Icon:setHoverFunction()``.
 
 --------------------
 ### deselectWhenOtherIconSelected 
 ```lua
 Icon.toggleFunction 
 ```
-A bool deciding whether the icon will be deselected when another icon is selected.
+A bool deciding whether the icon will be deselected when another icon is selected. Defaults to ``true``.

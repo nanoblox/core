@@ -21,13 +21,6 @@ Zone:update()
 Reconstructs the region and clusters forming the zone.
 
 --------------------
-### displayBounds
-```lua
-Zone:displayBounds()
-```
-Creates two parts representing the zones minimum and maximum boundaries.
-
---------------------
 ### getPlayersInRegion
 ```lua
 Zone:getPlayersInRegion()
@@ -51,7 +44,7 @@ Returns an array of players within the zone.
 --------------------
 ### initLoop
 ```lua
-Zone:initLoop()
+Zone:initLoop(interval)
 ```
 Automatically initiates a loop which calls ``Zone:getPlayers()`` every x second, defaults to ``0.5``.
 

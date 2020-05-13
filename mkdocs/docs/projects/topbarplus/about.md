@@ -43,14 +43,14 @@ shop.Visible = false
 shop.Parent = gui
 gui.Parent = player.PlayerGui
 
--- Create an Icon called 'Shop', with image '4882429582' and order of 1
+-- Create an icon called 'Shop', with image '4882429582' and order of 1
 local shopIcon = iconController:createIcon("Shop", 4882429582, 1)
 shopIcon:setToggleMenu(gui.Shop) -- Set the shop menu to be toggled by the icon
 shopIcon:notify() -- Prompt a notification
 ```
 
 # Themes
-Themes are easily adaptable tables of information that can be applied to Icons to ehance their appearance and behaviour. For details on setting up a theme, visit the Icon docs. A theme can be applied by simply doing:
+Themes are easily adaptable tables of information that can be applied to icons to ehance their appearance and behaviour. For details on setting up a theme, visit the Icon docs. A theme can be applied by simply doing:
 ```lua
 Icon:setTheme(theme)
 ```
@@ -66,10 +66,6 @@ local theme = {
 	["toggleTweenInfo"] = TweenInfo.new(0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 	
 	-- OBJECT PROPERTIES
-	["container"] = {
-		selected = {},
-		deselected = {}
-	},
 	["button"] = {
 		selected = {
 			ImageColor3 = Color3.fromRGB(255, 255, 255),
@@ -85,14 +81,6 @@ local theme = {
 		deselected = {
 			ImageColor3 = Color3.fromRGB(255, 255, 255),
 		}
-	},
-	["notification"] = {
-		selected = {},
-		deselected = {},
-	},
-	["amount"] = {
-		selected = {},
-		deselected = {},
 	},
 }
 ```
@@ -173,10 +161,6 @@ local function getTheme(primaryColor)
 	["toggleTweenInfo"] = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 
 	-- OBJECT PROPERTIES
-	["container"] = {
-		selected = {},
-		deselected = {}
-	},
 	["button"] = {
 		selected = {
 			Position = UDim2.new(-0.1, 0, -0.1, 0),
