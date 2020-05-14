@@ -77,6 +77,7 @@ function Icon.new(name, imageId, order)
 	self.toggleFunction = function() end
 	self.hoverFunction = function() end
 	self.deselectWhenOtherIconSelected = true
+	self.connections = {}
 	
 	self.updated = Signal.new()
 	self.selected = Signal.new()
@@ -286,6 +287,10 @@ end
 function Icon:destroy()
 	self:clearNotifications()
 	self.objects.button:Destroy()
+	for cName, connection in pairs(self.connections) do
+		connection:Disconnect()
+		self.connections[cName] = nil
+	end
 	for signalName, signal in pairs(self) do
 		if type(signal) == "table" and signal.Destroy then
 			signal:Destroy()
