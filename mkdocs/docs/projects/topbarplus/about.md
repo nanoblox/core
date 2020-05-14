@@ -4,7 +4,7 @@ Topbar+ is a lightweight application that expands upon Roblox's topbar to give y
 - [Repository](https://github.com/1ForeverHD/HDAdmin/tree/master/Projects)
 - [MainModule](https://www.roblox.com/library/4874365424/Topbar)
 - [Playground](https://www.roblox.com/games/4871625933/Topbar)
-- Thread: Coming soon
+- [Thread](https://devforum.roblox.com/t/topbar/573313)
 
 # Collaborate
 Topbar+ is an open-source project; all contributions are much appreciated. You're welcome to report bugs, suggest features and make pull requests at our repository.

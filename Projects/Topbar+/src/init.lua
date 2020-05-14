@@ -87,7 +87,7 @@ amount.Parent = notification
 -- SETUP DIRECTORIES
 local projectName = "Topbar+"
 DirectoryService:createDirectory("ReplicatedStorage.HDAdmin."..projectName, script:GetChildren())
-DirectoryService:createDirectory("StarterGui.HDAdmin", {topbarPlusGui})
+DirectoryService:createDirectory("StarterGui", {topbarPlusGui})
 
 
 

@@ -12,7 +12,7 @@ Creates, stores and returns an icon, where ``name`` is a unique string identifyi
 ```lua
 IconController:createFakeChat(theme)
 ```
-Creates and returns and icon imitating the chat icon, and disables the original chat icon.
+Disables the default core chat icon, and creates and returns a new icon imitating it.
 
 --------------------
 ### getIcon
