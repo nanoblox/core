@@ -50,10 +50,48 @@ shopIcon:notify() -- Prompt a notification
 ```
 
 # Themes
-Themes are easily adaptable tables of information that can be applied to icons to ehance their appearance and behaviour. For details on setting up a theme, visit the Icon docs. A theme can be applied by simply doing:
+Themes are easily adaptable tables of information that can be applied to icons to ehance their appearance and behaviour.
+
+You can break down a theme into three sections:
+
+1. The appearance of the icon when 'selected'  (i.e. ``objectName.selected``)
+2. The appearance of the icon when 'deselected'  (i.e. ``objectName.deselected``)
+3. How the icon transitions between these appearances when toggled (i.e. ``toggleTweenInfo``)
+
+An 'object' is simply a gui component that makes up the icon, such as the icons background (an ImageButton), its image (an ImageLabel), its notification background, etc. You can view the names and description of these [here](https://1foreverhd.github.io/HDAdmin/projects/topbarplus/icon/#objects).
+
+For example, to make an icon have a blue background, we simply say 'I want the icon to look blue (i.e. ``Color3.fromRGB(0, 170, 255)``) when it's selected and deselected':
+
 ```lua
-Icon:setTheme(theme)
+["button"] = {
+    selected = {
+        ImageColor3 = Color3.fromRGB(0, 170, 255),
+    },
+    deselected = {
+        ImageColor3 = Color3.fromRGB(0, 170, 255),
+    },
+},
 ```
+
+<a><img src="https://doy2mn9upadnk.cloudfront.net/uploads/default/original/4X/d/b/5/db58739e7ff8395d5d00b4615d0d88e5b3fc165a.png" width="30%"/></a>
+
+If a property is not specified for a 'toggle state' (i.e. the ``selected`` and ``deselected`` dictionaries), then it's automatically filled in with the default topbar properties.
+
+You then apply this theme by doing:
+```lua
+icon:setTheme(theme)
+```
+
+A theme can also be applied to all icons at once by doing:
+```lua
+local icons = iconController:getAllIcons()
+for _, icon in pairs(icons) do
+	icon:setTheme(theme)
+end
+```
+
+
+For further details, visit the Icon docs.
 
 Here's some examples of custom themes you can create:
 

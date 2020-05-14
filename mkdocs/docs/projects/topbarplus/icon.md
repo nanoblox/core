@@ -18,7 +18,7 @@ Constructs a new icon where ``name`` is a unique string identifying the icon, ``
 ```lua
 Icon:setImage(imageId)
 ```
-Sets the icons image.
+Sets the icons image, where ``imageId`` can be an int representing an asset id (such as ``4882428756``), or a string representing an assets pathway (such as ``"rbxasset://textures/ui/TopBar/chatOff.png"``).
 
 --------------------
 ### setOrder
@@ -46,14 +46,14 @@ Sets the icons visibility.
 ```lua
 Icon:setToggleMenu(guiObject)
 ```
-Binds the GuiObject so that its visibility is toggled on and off accordingly when ``Icon:select()`` and ``Icon:deselect`` are called (i.e. when the icon is selected and deselected).
+Binds the GuiObject so that its visibility is toggled on and off accordingly when ``Icon:select()`` and ``Icon:deselect()`` are called (i.e. when the icon is selected and deselected).
 
 --------------------
 ### setToggleFunction
 ```lua
 Icon:setToggleFunction(toggleFunction)
 ```
-Sets a function that is called every time the icon is selected and deslected.
+Sets a function that is called every time the icon is selected and deselected.
 
 --------------------
 ### setHoverFunction
