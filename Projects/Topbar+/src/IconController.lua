@@ -1,5 +1,6 @@
 -- LOCAL
 local starterGui = game:GetService("StarterGui")
+local userInputService = game:GetService("UserInputService")
 local players = game:GetService("Players")
 local IconController = {}
 local Icon = require(script.Parent.Icon)
@@ -81,11 +82,28 @@ function IconController:createIcon(name, imageId, order)
 end
 
 function IconController:createFakeChat(theme)
-	local chatMain = require(players.LocalPlayer.PlayerScripts:WaitForChild("ChatScript").ChatMain)
+	local chatMainModule = players.LocalPlayer.PlayerScripts:WaitForChild("ChatScript").ChatMain
+	local chatMain = require(chatMainModule)
 	local iconName = "_FakeChat"
 	local icon = self:getIcon(iconName)
+	local function displayChatBar(visibility)
+		chatMain.CoreGuiEnabled:fire(visibility)
+		chatMain:SetVisible(visibility)
+	end
 	if not icon then
 		icon = self:createIcon(iconName, "rbxasset://textures/ui/TopBar/chatOff.png", -1)
+		icon.connections["ChatInput"] = userInputService.InputEnded:connect(function(inputObject, gameProcessedEvent)
+			if gameProcessedEvent then
+				return "Another menu has priority"
+			elseif inputObject.KeyCode ~= Enum.KeyCode.Slash then
+				return "No relavent key pressed"
+			elseif chatMain.IsFocused() then
+				return "Chat bar already open"
+			end
+			displayChatBar(true)
+			chatMain:FocusChatBar(true)
+			icon:select()
+		end)
 	end
 	theme = (theme and deepCopy(theme)) or {}
 	theme.image = theme.image or {}
@@ -95,10 +113,10 @@ function IconController:createFakeChat(theme)
 	icon:setImageSize(20)
 	icon:setToggleFunction(function()
 		local isSelected = icon.toggleStatus == "selected"
-		chatMain.CoreGuiEnabled:fire(isSelected)
-		chatMain:SetVisible(isSelected)
+		displayChatBar(isSelected)
 	end)
 	starterGui:SetCoreGuiEnabled("Chat", false)
+	icon.updated:Fire()
 	return icon
 end
 
