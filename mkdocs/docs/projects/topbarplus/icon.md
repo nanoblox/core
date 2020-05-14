@@ -42,6 +42,13 @@ Icon:setEnabled(bool)
 Sets the icons visibility.
 
 --------------------
+### setToggleMenu
+```lua
+Icon:setToggleMenu(guiObject)
+```
+Binds the GuiObject so that its visibility is toggled on and off accordingly when ``Icon:select()`` and ``Icon:deselect`` are called (i.e. when the icon is selected and deselected).
+
+--------------------
 ### setToggleFunction
 ```lua
 Icon:setToggleFunction(toggleFunction)
@@ -314,6 +321,14 @@ A bool describing whether the icon is enabled or not. To change, use ``Icon:setE
 Icon.totalNotifications
 ```
 An int representing the amount of active notifications.
+
+--------------------
+### toggleMenu 
+*(read only)*
+```lua
+Icon.toggleFunction 
+```
+A GuiObject binded by ``Icon:setToggleMenu()``.
 
 --------------------
 ### toggleFunction 
