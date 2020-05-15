@@ -42,10 +42,12 @@ function Icon.new(name, imageId, order)
 		},
 		["button"] = {
 			selected = {
-				ImageColor3 = Color3.fromRGB(255, 255, 255),
+				ImageColor3 = Color3.fromRGB(245, 245, 245),
+				ImageTransparency = 0.1
 			},
 			deselected = {
 				ImageColor3 = Color3.fromRGB(0, 0, 0),
+				ImageTransparency = 0.5
 			}
 		},
 		["image"] = {
