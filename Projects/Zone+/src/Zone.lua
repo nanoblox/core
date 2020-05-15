@@ -236,7 +236,7 @@ function Zone:getPlayer(player)
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	if hrp then
 		local charOffset = hrp.Size.Y * -1.4
-		local hum = char:FindFirstChild("Humanoid");
+		local hum = char and char:FindFirstChild("Humanoid");
 		if hum and hum:IsA("Humanoid") then
 			charOffset = -hrp.Size.Y/2 - hum.HipHeight + 0.5
 		end
