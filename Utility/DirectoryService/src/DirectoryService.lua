@@ -50,7 +50,7 @@ function module:getLocationDetails(location)
 		},
 		["StarterGui"] = {
 			realLocation = game:GetService("StarterGui"),
-			playerPathway = "PlayerGui.HDAdmin",
+			playerPathway = "PlayerGui",
 		},
 		["StarterPlayerScripts"] = {
 			realLocation = game:GetService("StarterPlayer").StarterPlayerScripts,
