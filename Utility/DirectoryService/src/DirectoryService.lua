@@ -6,6 +6,7 @@ local module = {}
 local players = game:GetService("Players")
 local starterGui = game:GetService("StarterGui")
 local replicatedStorage = game:GetService("ReplicatedStorage")
+local runService = game:GetService("RunService")
 
 
 
@@ -73,17 +74,25 @@ function module:createDirectory(pathway, contents)
 		local playerPathway = locationDetails.playerPathway
 		if playerPathway then
 			local playerPathwayTable = getPathwayTable(playerPathway)
-			local playerFinalFunction = function(finalFolder)
+			local playerFinalFunction = function(playerFinalFolder)
 				for _, object in pairs(contents) do
-					object:Clone().Parent = finalFolder
+					if not playerFinalFolder:FindFirstChild(object.Name) then
+						object:Clone().Parent = playerFinalFolder
+					end
 				end
 			end
 			for _, plr in pairs(players:GetPlayers()) do
-				setupDirectory(playerPathwayTable, plr, playerFinalFunction)
+				coroutine.wrap(function()
+					local character = plr.Character or plr.CharacterAdded:Wait()
+					runService.Heartbeat:Wait()
+					setupDirectory(playerPathwayTable, plr, playerFinalFunction)
+				end)()
 			end
 		end
 		for _, object in pairs(contents) do
-			object.Parent = finalFolder
+			if not finalFolder:FindFirstChild(object.Name) then
+				object.Parent = finalFolder
+			end
 		end
 		return finalFolder
 	end
