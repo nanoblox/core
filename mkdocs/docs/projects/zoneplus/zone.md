@@ -93,7 +93,7 @@ Fired when a player enters the zone.
 	``Zone:getPlayers()`` must be called at frequent intervals, or Zone:initLoop() once (which calls this repeatedly), for this event to function.
 
 ```lua
-Zone.playerAdded:Connect(function(player))
+Zone.playerAdded:Connect(function(player)
 
 end)
 ```
@@ -109,7 +109,7 @@ Fired when a player leaves the zone.
 	``Zone:getPlayers()`` must be called at frequent intervals, or Zone:initLoop() once (which calls this repeatedly), for this event to function.
     
 ```lua
-Zone.playerRemoving:Connect(function(player))
+Zone.playerRemoving:Connect(function(player)
 
 end)
 ```
@@ -121,7 +121,7 @@ Zone.updated
 ```
 Fired when the zone updates (i.e. a group part is changed, such as its position or size, or a part is added or removed from the group).
 ```lua
-Zone.updated:Connect(function())
+Zone.updated:Connect(function()
 
 end)
 ```
