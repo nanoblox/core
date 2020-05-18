@@ -32,12 +32,14 @@ local iconController = require(topbarPlus.IconController)
 -- Create a shop menu
 local player = game.Players.LocalPlayer
 local gui = Instance.new("ScreenGui")
+gui.ResetOnSpawn = false
 local shop = Instance.new("Frame")
 shop.BackgroundColor3 = Color3.fromRGB(200, 66, 0)
 shop.BackgroundTransparency = 0.1
 shop.BorderSizePixel = 0
 shop.Name = "Shop"
-shop.Position = UDim2.new(0, 170, 255)
+shop.AnchorPoint = Vector2.new(0.5, 0.5)
+shop.Position = UDim2.new(0.5, 0, 0.5, 0)
 shop.Size = UDim2.new(0.25, 0, 0.6, 0)
 shop.Visible = false
 shop.Parent = gui

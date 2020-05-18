@@ -47,6 +47,8 @@ Sets the icons visibility.
 Icon:setToggleMenu(guiObject)
 ```
 Binds the GuiObject so that its visibility is toggled on and off accordingly when ``Icon:select()`` and ``Icon:deselect()`` are called (i.e. when the icon is selected and deselected).
+!!! info Info
+    You must ensure the GuiObject has 'ResetOnSpawn' set to ``false``, or that you are calling ``Icon:setToggleMenu(guiObject)`` every time the player respawns, for the menu to persist.
 
 --------------------
 ### setToggleFunction
@@ -147,7 +149,7 @@ Icon.deselected
 Fired when the icon is deselected.
 ```lua
 Icon.deselected:Connect(function()
-    
+
 end)
 ```
 
