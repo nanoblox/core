@@ -23,6 +23,7 @@ function Zone.new(group, additionalHeight)
 	self.updated = Signal.new()
 	self.instances = {}
 	self.connections = {}
+	self.zoneId = httpService:GenerateGUID()
 	
 	self:update()
 	
@@ -53,7 +54,7 @@ function Zone:update()
 							wait(0.1)
 							updateQueue = updateQueue - 1
 						end
-						if updateQueue == 0 then
+						if updateQueue == 0 and self.zoneId then
 							self:update()
 						end
 					end)()
@@ -342,6 +343,7 @@ function Zone:destroy()
 	for _, instance in pairs(self.instances) do
 		instance:Destroy()
 	end
+	self.zoneId = nil
 end
 	
 
