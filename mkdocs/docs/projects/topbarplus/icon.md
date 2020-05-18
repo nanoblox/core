@@ -122,7 +122,7 @@ Icon.updated
 ```
 Fired when the icon causes a position shift of other icons.
 ```lua
-Icon.updated:Connect(function())
+Icon.updated:Connect(function()
 
 end)
 ```
@@ -134,7 +134,7 @@ Icon.selected
 ```
 Fired when the icon is selected.
 ```lua
-Icon.selected:Connect(function())
+Icon.selected:Connect(function()
 
 end)
 ```
@@ -146,8 +146,8 @@ Icon.deselected
 ```
 Fired when the icon is deselected.
 ```lua
-Icon.deselected:Connect(function())
-
+Icon.deselected:Connect(function()
+    
 end)
 ```
 
@@ -158,7 +158,7 @@ Icon.endNotifications
 ```
 Fired when the icons notifcations are cleared.
 ```lua
-Icon.endNotifications:Connect(function())
+Icon.endNotifications:Connect(function()
 
 end)
 ```
