@@ -33,7 +33,7 @@ When set to false, hides all icons created with Topbar+. This can also be achiev
 ```lua
 IconController:setDisplayOrder(int)
 ```
-xxxx
+Changes the DisplayOrder of the Topbar+ ScreenGui to the given value.
 
 --------------------
 ### getIcon
