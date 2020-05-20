@@ -12,7 +12,13 @@ local runService = game:GetService("RunService")
 
 -- LOCAL FUNCTIONS
 local function createFolder(folderName, folderParent)
-	local folder = folderParent:FindFirstChild(folderName)
+	local folder
+	for a,b in pairs(folderParent:GetChildren()) do
+		if b:IsA("Folder") and b.Name == folderName then
+			folder = b
+			break
+		end
+	end
 	if not folder then
 		folder = Instance.new("Folder")
 		folder.Name = folderName
