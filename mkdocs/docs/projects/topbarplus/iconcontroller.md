@@ -12,7 +12,28 @@ Creates, stores and returns an icon, where ``name`` is a unique string identifyi
 ```lua
 IconController:createFakeChat(theme)
 ```
-Disables the default core chat icon, and creates and returns a new icon imitating it.
+Disables the default core chat icon, and creates and returns a new icon imitating it. The icon can be enabled and disabled by doing ``icon:setEnabled(bool)`` *or* ``StarterGui:SetCoreGuiEnabled("Chat", bool)``.
+
+--------------------
+### removeFakeChat
+```lua
+IconController:removeFakeChat()
+```
+Destroys and removes references of the fake chat icon.
+
+--------------------
+### setTopbarEnabled
+```lua
+IconController:setTopbarEnabled(bool)
+```
+When set to false, hides all icons created with Topbar+. This can also be achieved by doing ``StarterGui:SetCore("TopbarEnabled", bool)``.
+
+--------------------
+### setDisplayOrder
+```lua
+IconController:setDisplayOrder(int)
+```
+xxxx
 
 --------------------
 ### getIcon

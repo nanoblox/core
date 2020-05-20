@@ -42,6 +42,13 @@ Icon:setEnabled(bool)
 Sets the icons visibility.
 
 --------------------
+### setBaseZIndex
+```lua
+Icon:setBaseZIndex(int)
+```
+Calculates the difference between the existing baseZIndex (i.e. the ``object.container.ZIndex``) and new value, then updates the ZIndex of all objects within the icon accoridngly using this difference.
+
+--------------------
 ### setToggleMenu
 ```lua
 Icon:setToggleMenu(guiObject)
