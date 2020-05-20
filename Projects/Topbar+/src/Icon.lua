@@ -79,7 +79,7 @@ function Icon.new(name, imageId, order)
 	self.toggleFunction = function() end
 	self.hoverFunction = function() end
 	self.deselectWhenOtherIconSelected = true
-	self.connections = {}
+	self.fakeChatConnections = {}
 	
 	self.updated = Signal.new()
 	self.selected = Signal.new()
@@ -149,6 +149,18 @@ function Icon:setEnabled(bool)
 	self.enabled = bool
 	self.objects.container.Visible = bool
 	self.updated:Fire()
+end
+
+function Icon:setBaseZIndex(baseValue)
+	local container = self.objects.container
+	local baseValue = tonumber(baseValue) or container.ZIndex
+	local difference = baseValue - container.ZIndex
+	if difference == 0 then
+		return "The baseValue is the same"
+	end
+	for _, object in pairs(self.objects) do
+		object.ZIndex = object.ZIndex + difference
+	end
 end
 
 function Icon:setToggleMenu(guiObject)
@@ -258,7 +270,7 @@ function Icon:notify(clearNoticeEvent)
 			clearNoticeEvent = self.deselected
 		end
 		self.totalNotifications = self.totalNotifications + 1
-		self.objects.amount.Text = self.totalNotifications
+		self.objects.amount.Text = (self.totalNotifications < 100 and self.totalNotifications) or "99+"
 		self.objects.notification.Visible = true
 		
 		local notifComplete = Signal.new()
@@ -286,13 +298,17 @@ function Icon:clearNotifications()
 	self.endNotifications:Fire()
 end
 
+function Icon:clearFakeChatConnections()
+	for cName, connection in pairs(self.fakeChatConnections) do
+		connection:Disconnect()
+		self.fakeChatConnections[cName] = nil
+	end
+end
+
 function Icon:destroy()
 	self:clearNotifications()
+	self:clearFakeChatConnections()
 	self.objects.button:Destroy()
-	for cName, connection in pairs(self.connections) do
-		connection:Disconnect()
-		self.connections[cName] = nil
-	end
 	for signalName, signal in pairs(self) do
 		if type(signal) == "table" and signal.Destroy then
 			signal:Destroy()
