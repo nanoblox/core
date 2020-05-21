@@ -48,6 +48,12 @@ function IconController:createIcon(name, imageId, order)
 	topbarIcons[name] = iconDetails
 	icon:setOrder(icon.order)
 	
+	-- Apply game theme if found
+	local gameTheme = self.gameTheme
+	if gameTheme then
+		icon:setTheme(gameTheme)
+	end
+	
 	-- Events
 	local function updateIcon()
 		local iconDetails = topbarIcons[name]
@@ -178,6 +184,14 @@ function IconController:setTopbarEnabled(newState)
 	local topbarPlusGui = getTopbarPlusGui()
 	local topbarContainer = topbarPlusGui.TopbarContainer
 	topbarContainer.Visible = newState
+end
+
+function IconController:setGameTheme(theme)
+	self.gameTheme = theme
+	local icons = self:getAllIcons()
+	for _, icon in pairs(icons) do
+	    icon:setTheme(theme)
+	end
 end
 
 function IconController:setDisplayOrder(value)
