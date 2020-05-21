@@ -81,7 +81,7 @@ function IconController:createIcon(name, imageId, order)
 	icon.selected:Connect(function()
 		local allIcons = self:getAllIcons()
 		for _, otherIcon in pairs(allIcons) do
-			if otherIcon ~= icon and otherIcon.deselectWhenOtherIconSelected and otherIcon.toggleStatus == "selected" then
+			if icon.deselectWhenOtherIconSelected and otherIcon ~= icon and otherIcon.deselectWhenOtherIconSelected and otherIcon.toggleStatus == "selected" then
 				otherIcon:deselect()
 			end
 		end
