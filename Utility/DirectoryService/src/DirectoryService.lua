@@ -14,7 +14,7 @@ local runService = game:GetService("RunService")
 local function createFolder(folderName, folderParent)
 	local folder
 	for a,b in pairs(folderParent:GetChildren()) do
-		if b:IsA("Folder") and b.Name == folderName then
+		if not b:IsA("Configuration") and b.Name == folderName then
 			folder = b
 			break
 		end
