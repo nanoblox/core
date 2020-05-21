@@ -97,8 +97,11 @@ For further details, visit the Icon docs.
 
 Here's some examples of custom themes you can create:
 
+----------------------------------------------
+
+### Roblox Mimic
 <details>
-  <summary>Roblox-mimic</summary>
+  <summary>View</summary>
   
 ```lua
 local theme = {
@@ -129,13 +132,14 @@ local theme = {
 
 <a><img src="https://i.imgur.com/BJOC952.gif" width="100%"/></a>
 
+----------------------------------------------
 
 
 
-
+### Soft Blue
 
 <details>
-  <summary>Soft blue</summary>
+  <summary>View</summary>
   
 ```lua
 local theme = {
@@ -185,13 +189,14 @@ local theme = {
 
 <a><img src="https://i.imgur.com/Q5YnIuR.gif" width="100%"/></a>
 
+----------------------------------------------
 
 
 
-
+### Rainbow Pop
 
 <details>
-  <summary>Rainbow pop</summary>
+  <summary>View</summary>
   
 ```lua
 local function getTheme(primaryColor)
@@ -245,3 +250,64 @@ end
 </details>
 
 <a><img src="https://i.imgur.com/FXVoIS9.gif" width="100%"/></a>
+
+----------------------------------------------
+
+
+
+
+### Mint
+by [ViniDalvino](https://www.roblox.com/users/54904403/profile)
+
+<details>
+  <summary>View</summary>
+  
+```lua
+local theme = {
+    -- TOGGLE EFFECT
+    ["toggleTweenInfo"] = TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+
+    -- OBJECT PROPERTIES
+    ["button"] = {
+        selected = {
+            ImageTransparency = 0.35,
+            ImageColor3 = Color3.fromRGB(0, 255, 200),
+        },
+        deselected = {
+            ImageTransparency = 0.35,
+			ImageColor3 = Color3.fromRGB(15,15,15)
+        },
+    },
+    ["image"] = {
+        selected = {
+            ImageColor3 = Color3.fromRGB(255, 255, 255),
+        },
+        deselected = {
+            ImageColor3 = Color3.fromRGB(255, 255, 255),
+        },
+    },
+    ["notification"] = {
+        selected = {
+            Image = "http://www.roblox.com/asset/?id=4882430005",
+			ImageColor3 = Color3.fromRGB(70, 133, 107),
+        },
+        deselected = {
+            Image = "http://www.roblox.com/asset/?id=4882430005",
+            ImageColor3 = Color3.fromRGB(55, 145, 103),
+
+        },
+    },
+    ["amount"] = {
+        selected = {
+            TextColor3 = Color3.fromRGB(255,255,255),
+        },
+        deselected = {
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+        },
+    },
+}
+```
+  
+</details>
+
+<a><img src="https://i.imgur.com/zTf9IFa.png" width="100%"/></a>
