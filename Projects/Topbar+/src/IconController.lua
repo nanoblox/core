@@ -18,7 +18,7 @@ local function deepCopy(original)
     return copy
 end
 local function getChatMain()
-	return require(players.LocalPlayer.PlayerScripts:WaitForChild("ChatScript").ChatMain)
+	return players.LocalPlayer.PlayerScripts:WaitForChild("ChatScript").ChatMain
 end
 local function getTopbarPlusGui()
 	local player = game:GetService("Players").LocalPlayer
@@ -94,17 +94,18 @@ function IconController:createIcon(name, imageId, order)
 end
 
 function IconController:createFakeChat(theme)
-	local ChatMain = getChatMain()
+	local chatMainModule = getChatMain()
+	local ChatMain = require(chatMainModule)
 	local iconName = fakeChatName
 	local icon = self:getIcon(iconName)
 	local function displayChatBar(visibility)
 		icon.ignoreVisibilityStateChange = true
 		ChatMain.CoreGuiEnabled:fire(visibility)
+		ChatMain.IsCoreGuiEnabled = false
 		ChatMain:SetVisible(visibility)
 		icon.ignoreVisibilityStateChange = nil
 	end
 	local function setIconEnabled(visibility)
-		warn("setIconEnabled(visibility) = ", visibility)
 		icon.ignoreVisibilityStateChange = true
 		ChatMain.CoreGuiEnabled:fire(visibility)
 		icon:setEnabled(visibility)
@@ -119,12 +120,12 @@ function IconController:createFakeChat(theme)
 		icon.fakeChatConnections["ChatInput"] = userInputService.InputEnded:connect(function(inputObject, gameProcessedEvent)
 			if gameProcessedEvent then
 				return "Another menu has priority"
-			elseif inputObject.KeyCode ~= Enum.KeyCode.Slash then
+			elseif not(inputObject.KeyCode == Enum.KeyCode.Slash or inputObject.KeyCode == Enum.SpecialKey.ChatHotkey) then
 				return "No relavent key pressed"
 			elseif ChatMain.IsFocused() then
 				return "Chat bar already open"
-			end
-			displayChatBar(true)
+			end--]]
+			ChatMain:SpecialKeyPressed(inputObject.KeyCode)
 			ChatMain:FocusChatBar(true)
 			icon:select()
 		end)
@@ -222,7 +223,7 @@ end
 -- BEHAVIOUR
 coroutine.wrap(function()
 	-- Mimic the enabling of the topbar when StarterGui:SetCore("TopbarEnabled", state) is called
-	local ChatMain = getChatMain()
+	local ChatMain = require(getChatMain())
 	ChatMain.CoreGuiEnabled:connect(function(newState)
 		local enabled = checkTopbarEnabled()
 		IconController:setTopbarEnabled(enabled)
