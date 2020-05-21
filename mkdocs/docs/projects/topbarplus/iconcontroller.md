@@ -29,6 +29,13 @@ IconController:setTopbarEnabled(bool)
 When set to false, hides all icons created with Topbar+. This can also be achieved by doing ``StarterGui:SetCore("TopbarEnabled", bool)``.
 
 --------------------
+### setGameTheme
+```lua
+IconController:setGameTheme(theme)
+```
+Sets the default theme and updates all existing icons with this theme.
+
+--------------------
 ### setDisplayOrder
 ```lua
 IconController:setDisplayOrder(int)

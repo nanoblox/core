@@ -84,9 +84,13 @@ You then apply this theme by doing:
 icon:setTheme(theme)
 ```
 
-A theme can also be applied to all icons at once by doing:
+A theme can be applied to all icons at once by doing:
 ```lua
-local icons = iconController:getAllIcons()
+IconController:setGameTheme(theme)
+```
+or
+```lua
+local icons = IconController:getAllIcons()
 for _, icon in pairs(icons) do
 	icon:setTheme(theme)
 end
