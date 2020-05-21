@@ -26,6 +26,9 @@ local function getTopbarPlusGui()
 	local topbarPlusGui = playerGui:WaitForChild("Topbar+")
 	return topbarPlusGui
 end
+local function checkTopbarEnabled()
+	return(starterGui:GetCore("TopbarEnabled"))
+end
 
 
 
@@ -101,6 +104,7 @@ function IconController:createFakeChat(theme)
 		icon.ignoreVisibilityStateChange = nil
 	end
 	local function setIconEnabled(visibility)
+		warn("setIconEnabled(visibility) = ", visibility)
 		icon.ignoreVisibilityStateChange = true
 		ChatMain.CoreGuiEnabled:fire(visibility)
 		icon:setEnabled(visibility)
@@ -134,9 +138,15 @@ function IconController:createFakeChat(theme)
 			icon:notify(icon.selected)
 		end)
 		-- Mimic visibility when StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, state) is called
+		local previousTopbarEnabled = checkTopbarEnabled()
 		icon.fakeChatConnections["CoreGuiEnabled"] = ChatMain.CoreGuiEnabled:connect(function(newState)
 			if icon.ignoreVisibilityStateChange then
 				return "ignoreVisibilityStateChange enabled"
+			end
+			local topbarEnabled = checkTopbarEnabled()
+			if topbarEnabled ~= previousTopbarEnabled then
+				previousTopbarEnabled = topbarEnabled
+				return "SetCore was called instead of SetCoreGuiEnabled"
 			end
 			setIconEnabled(newState)
 		end)
@@ -214,14 +224,14 @@ coroutine.wrap(function()
 	-- Mimic the enabling of the topbar when StarterGui:SetCore("TopbarEnabled", state) is called
 	local ChatMain = getChatMain()
 	ChatMain.CoreGuiEnabled:connect(function(newState)
-		local enabled = starterGui:GetCore("TopbarEnabled")
+		local enabled = checkTopbarEnabled()
 		IconController:setTopbarEnabled(enabled)
 		local icons = IconController:getAllIcons()
 		for _, icon in pairs(icons) do
 			icon.updated:Fire()
 		end
 	end)
-	IconController:setTopbarEnabled(starterGui:GetCore("TopbarEnabled"))
+	IconController:setTopbarEnabled(checkTopbarEnabled())
 end)()
 
 
