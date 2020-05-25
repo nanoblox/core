@@ -130,6 +130,6 @@ end
 
 --- Alias for DoCleaning()
 -- @function Destroy
-Maid.destroy = Maid.DoCleaning
+Maid.destroy = Maid.doCleaning
 
 return Maid
