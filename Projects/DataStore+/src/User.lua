@@ -4,7 +4,10 @@ local httpService = game:GetService("HttpService")
 local players = game:GetService("Players")
 local runService = game:GetService("RunService")
 local teleportService = game:GetService("TeleportService")
-local Signal = require(4893141590)
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
+local Signal = require(HDAdmin:WaitForChild("Signal"))
+local Maid = require(HDAdmin:WaitForChild("Maid"))
 local TableModifiers = require(script.Parent.TableModifiers)
 local User = {}
 User.__index = User
@@ -19,10 +22,12 @@ function User.new(dataStoreName, key)
 	
 	-- Config
 	local currentTime = os.time()
+	local maid = Maid.new()
+	self._maid = maid
 	self.sessionId = httpService:GenerateGUID(false)
 	self.isNewData = nil
-	self.dataLoaded = Signal.new()
-	self.failDataPresent = Signal.new()
+	self.dataLoaded = maid:add(Signal.new())
+	self.failDataPresent = maid:add(Signal.new())
 	self.onlySaveDataWhenChanged = true
 	self.teleportPlayerAwayOnFail = false
 	self.autoSave = true
@@ -69,11 +74,6 @@ function User.new(dataStoreName, key)
 		    self:saveAsync()
 		end)
 	end
-	
-	-- When destroyed, clear relevant data
-	self.destroyed:Connect(function()
-		self.sessionId = nil
-	end)
 	
 	return self
 end
@@ -249,6 +249,15 @@ function User:protectedCall(callType, func)
 		wait(1)
 	end
 	return data
+end
+
+function User:destroy()
+	self.sessionId = nil
+	for maidName, maid in pairs(self) do
+		if type(maid) == "table" and maid.doCleaning then
+			maid:doCleaning()
+		end
+	end
 end
 
 
