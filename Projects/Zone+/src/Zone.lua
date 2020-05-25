@@ -2,7 +2,9 @@
 local players = game:GetService("Players")
 local httpService = game:GetService("HttpService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
-local Signal = require(replicatedStorage:WaitForChild("HDAdmin"):WaitForChild("Signal"))
+local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
+local Signal = require(HDAdmin:WaitForChild("Signal"))
+local Maid = require(HDAdmin:WaitForChild("Maid"))
 local Zone = {}
 Zone.__index = Zone
 
@@ -13,16 +15,17 @@ function Zone.new(group, additionalHeight)
 	local self = {}
 	setmetatable(self, Zone)
 	
+	local maid = Maid.new()
+	self._maid = maid
+	self._updateConnections = Maid.new()
 	self.autoUpdate = true
 	self.respectUpdateQueue = true
 	self.group = group
 	self.additionalHeight = additionalHeight or 0
 	self.previousPlayers = {}
-	self.playerAdded = Signal.new()
-	self.playerRemoving = Signal.new()
-	self.updated = Signal.new()
-	self.instances = {}
-	self.connections = {}
+	self.playerAdded = maid:add(Signal.new())
+	self.playerRemoving = maid:add(Signal.new())
+	self.updated = maid:add(Signal.new())
 	self.zoneId = httpService:GenerateGUID()
 	
 	self:update()
@@ -39,7 +42,7 @@ function Zone:update()
 	local groupParts = self.groupParts
 	local groupParts = {}
 	local updateQueue = 0
-	self:clearConnections()
+	self._updateConnections:doCleaning()
 	for _, part in pairs(self.group:GetDescendants()) do
 		if part:isA("BasePart") then
 			table.insert(groupParts, part)
@@ -61,10 +64,10 @@ function Zone:update()
 				end
 			end
 			for _, prop in pairs(partProperties) do
-				self.connections[prop..randomId] = part:GetPropertyChangedSignal(prop):Connect(update)
+				self._updateConnections:add(part:GetPropertyChangedSignal(prop):Connect(update))
 			end
 			for _, event in pairs(groupEvents) do
-				self.connections[event..randomId] = self.group[event]:Connect(update)
+				self._updateConnections:add(self.group[event]:Connect(update))
 			end
 		end
 	end
@@ -138,7 +141,7 @@ function Zone:displayBounds()
 			part.CFrame = CFrame.new(boundCFrame)
 			part.Name = boundName
 			part.Parent = workspace
-			table.insert(self.instances, part)
+			self._maid:add(part)
 		end
 	end
 end
@@ -324,25 +327,10 @@ function Zone:getRandomPoint()
 	return pointCFrame, hitPart, hitIntersection
 end
 
-function Zone:clearConnections()
-	for cName, connection in pairs(self.connections) do
-		connection:Disconnect()
-		self.connections[cName] = nil
-	end
-	self.connections = {}
-end
-
 function Zone:destroy()
 	self:endLoop()
-	self:clearConnections()
-	for signalName, signal in pairs(self) do
-		if type(signal) == "table" and signal.Destroy then
-			signal:Destroy()
-		end
-	end
-	for _, instance in pairs(self.instances) do
-		instance:Destroy()
-	end
+	self._maid:doCleaning()
+	self._updateConnections:doCleaning()
 	self.zoneId = nil
 end
 	
