@@ -123,7 +123,7 @@ function IconController:createFakeChat(theme)
 	if not icon then
 		icon = self:createIcon(iconName, "rbxasset://textures/ui/TopBar/chatOff.png", -1)
 		-- Open chat via Slash key
-		icon.fakeChatConnections["ChatInput"] = userInputService.InputEnded:connect(function(inputObject, gameProcessedEvent)
+		icon._fakeChatConnections:add(userInputService.InputEnded:connect(function(inputObject, gameProcessedEvent)
 			if gameProcessedEvent then
 				return "Another menu has priority"
 			elseif not(inputObject.KeyCode == Enum.KeyCode.Slash or inputObject.KeyCode == Enum.SpecialKey.ChatHotkey) then
@@ -134,19 +134,19 @@ function IconController:createFakeChat(theme)
 			ChatMain:SpecialKeyPressed(inputObject.KeyCode)
 			ChatMain:FocusChatBar(true)
 			icon:select()
-		end)
+		end))
 		-- Keep when other icons selected
 		icon.deselectWhenOtherIconSelected = false
 		-- Mimic chat notifications
-		icon.fakeChatConnections["MessagesChanged"] = ChatMain.MessagesChanged:connect(function(messageCount)
+		icon._fakeChatConnections:add(ChatMain.MessagesChanged:connect(function(messageCount)
 			if ChatMain:GetVisibility() == true then
 				return "ChatWindow was open"
 			end
 			icon:notify(icon.selected)
-		end)
+		end))
 		-- Mimic visibility when StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, state) is called
 		local previousTopbarEnabled = checkTopbarEnabled()
-		icon.fakeChatConnections["CoreGuiEnabled"] = ChatMain.CoreGuiEnabled:connect(function(newState)
+		icon._fakeChatConnections:add(ChatMain.CoreGuiEnabled:connect(function(newState)
 			if icon.ignoreVisibilityStateChange then
 				return "ignoreVisibilityStateChange enabled"
 			end
@@ -156,7 +156,7 @@ function IconController:createFakeChat(theme)
 				return "SetCore was called instead of SetCoreGuiEnabled"
 			end
 			setIconEnabled(newState)
-		end)
+		end))
 	end
 	theme = (theme and deepCopy(theme)) or {}
 	theme.image = theme.image or {}
@@ -175,7 +175,7 @@ end
 function IconController:removeFakeChat()
 	local icon = IconController:getIcon(fakeChatName)
 	local enabled = icon.enabled
-	icon:clearFakeChatConnections()
+	icon._fakeChatConnections:doCleaning()
 	IconController:removeIcon(fakeChatName)
 	starterGui:SetCoreGuiEnabled("Chat", enabled)
 end
@@ -239,10 +239,12 @@ coroutine.wrap(function()
 	-- Mimic the enabling of the topbar when StarterGui:SetCore("TopbarEnabled", state) is called
 	local ChatMain = require(getChatMain())
 	ChatMain.CoreGuiEnabled:connect(function(newState)
+		--print("TOPBAR CHANGED!")
 		local enabled = checkTopbarEnabled()
 		IconController:setTopbarEnabled(enabled)
 		local icons = IconController:getAllIcons()
 		for _, icon in pairs(icons) do
+			--print("Updated: ", icon.name)
 			icon.updated:Fire()
 		end
 	end)

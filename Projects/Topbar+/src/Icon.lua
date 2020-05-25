@@ -6,8 +6,9 @@ local playerGui = player.PlayerGui
 local topbarPlusGui = playerGui:WaitForChild("Topbar+")
 local topbarContainer = topbarPlusGui.TopbarContainer
 local iconTemplate = topbarContainer["_IconTemplate"]
-local hdAdminRs = replicatedStorage:WaitForChild("HDAdmin")
-local Signal = require(hdAdminRs:WaitForChild("Signal"))
+local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
+local Signal = require(HDAdmin:WaitForChild("Signal"))
+local Maid = require(HDAdmin:WaitForChild("Maid"))
 local Icon = {}
 Icon.__index = Icon
 
@@ -79,12 +80,15 @@ function Icon.new(name, imageId, order)
 	self.toggleFunction = function() end
 	self.hoverFunction = function() end
 	self.deselectWhenOtherIconSelected = true
-	self.fakeChatConnections = {}
 	
-	self.updated = Signal.new()
-	self.selected = Signal.new()
-	self.deselected = Signal.new()
-	self.endNotifications = Signal.new()
+	local maid = Maid.new()
+	self._maid = maid
+	self._fakeChatConnections = Maid.new()
+	self.updated = maid:add(Signal.new())
+	self.selected = maid:add(Signal.new())
+	self.deselected = maid:add(Signal.new())
+	self.endNotifications = maid:add(Signal.new())
+	maid:add(container)
 	
 	--[[
 	local hoverInputs = {"InputBegan", "InputEnded"}
@@ -298,22 +302,10 @@ function Icon:clearNotifications()
 	self.endNotifications:Fire()
 end
 
-function Icon:clearFakeChatConnections()
-	for cName, connection in pairs(self.fakeChatConnections) do
-		connection:Disconnect()
-		self.fakeChatConnections[cName] = nil
-	end
-end
-
 function Icon:destroy()
 	self:clearNotifications()
-	self:clearFakeChatConnections()
-	self.objects.button:Destroy()
-	for signalName, signal in pairs(self) do
-		if type(signal) == "table" and signal.Destroy then
-			signal:Destroy()
-		end
-	end
+	self._maid:doCleaning()
+	self._fakeChatConnections:doCleaning()
 end
 
 
