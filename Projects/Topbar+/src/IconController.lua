@@ -184,8 +184,8 @@ function IconController:removeFakeChat()
 	local icon = IconController:getIcon(fakeChatName)
 	local enabled = icon.enabled
 	icon._fakeChatConnections:doCleaning()
-	IconController:removeIcon(fakeChatName)
 	starterGui:SetCoreGuiEnabled("Chat", enabled)
+	IconController:removeIcon(fakeChatName)
 end
 
 function IconController:setTopbarEnabled(newState)
