@@ -33,7 +33,7 @@ When set to false, hides all icons created with Topbar+. This can also be achiev
 ```lua
 IconController:setGameTheme(theme)
 ```
-Sets the default theme and updates all existing icons with this theme.
+Sets the default theme which is applied to all existing and future icons.
 
 --------------------
 ### setDisplayOrder
