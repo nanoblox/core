@@ -84,6 +84,11 @@ function Maid:giveTask(task)
 	return taskId
 end
 
+function Maid:add(task)
+	local taskId = self:giveTask(task)
+	return task, taskId
+end
+
 function Maid:givePromise(promise)
 	if not promise:IsPending() then
 		return promise
