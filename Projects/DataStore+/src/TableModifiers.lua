@@ -1,6 +1,9 @@
 -- LOCAL
 local httpService = game:GetService("HttpService")
-local Signal = require(4644649679)
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
+local Signal = require(HDAdmin:WaitForChild("Signal"))
+local Maid = require(HDAdmin:WaitForChild("Maid"))
 local TableModifiers = {}
 TableModifiers.__index = TableModifiers
 
@@ -14,9 +17,11 @@ function TableModifiers.new(eventsParent)
 	local differentParents = eventsParent ~= self
 	
 	local pathwayId = (differentParents and game:GetService("HttpService"):GenerateGUID()) or ""
+	local maid = Maid.new()
+	eventsParent[pathwayId.."Maid"] = maid
 	local events = {"changed", "inserted", "removed", "paired", "merged", "destroyed"}
 	for _, eventName in pairs(events) do
-		eventsParent[pathwayId..eventName] = Signal.new()
+		eventsParent[pathwayId..eventName] = maid:add(Signal.new())
 	end
 	if differentParents then
 		setmetatable(self, {
@@ -127,33 +132,6 @@ function TableModifiers:merge(stat, value)
 	self._tableUpdated = true
 	self.merged:Fire(stat, newValue, oldValue)
 	return newValue
-end
-
-function TableModifiers:destroy()
-	local function destroyObject(object)
-		local validTypes = {["table"]=true, ["Instance"]=true}
-		local objectType = typeof(object)
-		local isTable = objectType == "table"
-		if not validTypes[objectType] then
-			return
-		end
-		local isDestroyPresent = (isTable and rawget(object, "Destroy")) or object.Destroy
-		local className = object.ClassName
-		if isDestroyPresent and (className == nil or className ~= "Player") then
-			pcall(function() object:Destroy() end)
-		end
-		local invalidNames = {["__index"]=true}
-		if isTable then
-			for a,b in pairs(object) do
-				if not invalidNames[a] then
-					destroyObject(a)
-					destroyObject(b)
-				end
-			end
-		end
-	end
-	self.destroyed:Fire()
-	destroyObject(self)
 end
 
 function TableModifiers:clear()
