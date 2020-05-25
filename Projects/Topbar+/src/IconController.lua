@@ -29,6 +29,7 @@ end
 local function checkTopbarEnabled()
 	return(starterGui:GetCore("TopbarEnabled"))
 end
+local previousTopbarEnabled = checkTopbarEnabled()
 
 
 
@@ -130,10 +131,19 @@ function IconController:createFakeChat(theme)
 				return "No relavent key pressed"
 			elseif ChatMain.IsFocused() then
 				return "Chat bar already open"
-			end--]]
-			ChatMain:SpecialKeyPressed(inputObject.KeyCode)
+			end
 			ChatMain:FocusChatBar(true)
 			icon:select()
+		end))
+		-- ChatActive
+		icon._fakeChatConnections:add(ChatMain.VisibilityStateChanged:connect(function(visibility)
+			if not icon.ignoreVisibilityStateChange then
+				if visibility == true then
+					icon:select()
+				else
+					icon:deselect()
+				end
+			end
 		end))
 		-- Keep when other icons selected
 		icon.deselectWhenOtherIconSelected = false
@@ -145,14 +155,12 @@ function IconController:createFakeChat(theme)
 			icon:notify(icon.selected)
 		end))
 		-- Mimic visibility when StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, state) is called
-		local previousTopbarEnabled = checkTopbarEnabled()
 		icon._fakeChatConnections:add(ChatMain.CoreGuiEnabled:connect(function(newState)
 			if icon.ignoreVisibilityStateChange then
 				return "ignoreVisibilityStateChange enabled"
 			end
 			local topbarEnabled = checkTopbarEnabled()
 			if topbarEnabled ~= previousTopbarEnabled then
-				previousTopbarEnabled = topbarEnabled
 				return "SetCore was called instead of SetCoreGuiEnabled"
 			end
 			setIconEnabled(newState)
@@ -239,12 +247,14 @@ coroutine.wrap(function()
 	-- Mimic the enabling of the topbar when StarterGui:SetCore("TopbarEnabled", state) is called
 	local ChatMain = require(getChatMain())
 	ChatMain.CoreGuiEnabled:connect(function(newState)
-		--print("TOPBAR CHANGED!")
-		local enabled = checkTopbarEnabled()
-		IconController:setTopbarEnabled(enabled)
+		local topbarEnabled = checkTopbarEnabled()
+		if topbarEnabled == previousTopbarEnabled then
+			return "SetCoreGuiEnabled was called instead of SetCore"
+		end
+		previousTopbarEnabled = topbarEnabled
+		IconController:setTopbarEnabled(topbarEnabled)
 		local icons = IconController:getAllIcons()
 		for _, icon in pairs(icons) do
-			--print("Updated: ", icon.name)
 			icon.updated:Fire()
 		end
 	end)
