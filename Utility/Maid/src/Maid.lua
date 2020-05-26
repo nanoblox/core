@@ -8,7 +8,11 @@
 
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
-local Promise = require(HDAdmin:WaitForChild("Promise"))
+local Promise
+coroutine.wrap(function()
+	Promise = require(HDAdmin:WaitForChild("Promise"))
+end)
+
 
 local Maid = {}
 Maid.ClassName = "Maid"
