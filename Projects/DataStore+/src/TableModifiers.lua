@@ -21,7 +21,7 @@ function TableModifiers.new(eventsParent)
 	eventsParent[pathwayId.."Maid"] = maid
 	local events = {"changed", "inserted", "removed", "paired", "merged", "destroyed"}
 	for _, eventName in pairs(events) do
-		eventsParent[pathwayId..eventName] = maid:add(Signal.new())
+		eventsParent[pathwayId..eventName] = maid:give(Signal.new())
 	end
 	if differentParents then
 		setmetatable(self, {

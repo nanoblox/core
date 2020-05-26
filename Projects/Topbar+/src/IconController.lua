@@ -124,7 +124,7 @@ function IconController:createFakeChat(theme)
 	if not icon then
 		icon = self:createIcon(iconName, "rbxasset://textures/ui/TopBar/chatOff.png", -1)
 		-- Open chat via Slash key
-		icon._fakeChatConnections:add(userInputService.InputEnded:connect(function(inputObject, gameProcessedEvent)
+		icon._fakeChatConnections:give(userInputService.InputEnded:connect(function(inputObject, gameProcessedEvent)
 			if gameProcessedEvent then
 				return "Another menu has priority"
 			elseif not(inputObject.KeyCode == Enum.KeyCode.Slash or inputObject.KeyCode == Enum.SpecialKey.ChatHotkey) then
@@ -136,7 +136,7 @@ function IconController:createFakeChat(theme)
 			icon:select()
 		end))
 		-- ChatActive
-		icon._fakeChatConnections:add(ChatMain.VisibilityStateChanged:connect(function(visibility)
+		icon._fakeChatConnections:give(ChatMain.VisibilityStateChanged:connect(function(visibility)
 			if not icon.ignoreVisibilityStateChange then
 				if visibility == true then
 					icon:select()
@@ -148,14 +148,14 @@ function IconController:createFakeChat(theme)
 		-- Keep when other icons selected
 		icon.deselectWhenOtherIconSelected = false
 		-- Mimic chat notifications
-		icon._fakeChatConnections:add(ChatMain.MessagesChanged:connect(function(messageCount)
+		icon._fakeChatConnections:give(ChatMain.MessagesChanged:connect(function(messageCount)
 			if ChatMain:GetVisibility() == true then
 				return "ChatWindow was open"
 			end
 			icon:notify(icon.selected)
 		end))
 		-- Mimic visibility when StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, state) is called
-		icon._fakeChatConnections:add(ChatMain.CoreGuiEnabled:connect(function(newState)
+		icon._fakeChatConnections:give(ChatMain.CoreGuiEnabled:connect(function(newState)
 			if icon.ignoreVisibilityStateChange then
 				return "ignoreVisibilityStateChange enabled"
 			end
@@ -183,7 +183,7 @@ end
 function IconController:removeFakeChat()
 	local icon = IconController:getIcon(fakeChatName)
 	local enabled = icon.enabled
-	icon._fakeChatConnections:doCleaning()
+	icon._fakeChatConnections:clean()
 	starterGui:SetCoreGuiEnabled("Chat", enabled)
 	IconController:removeIcon(fakeChatName)
 end

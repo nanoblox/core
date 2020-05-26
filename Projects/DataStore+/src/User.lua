@@ -26,8 +26,8 @@ function User.new(dataStoreName, key)
 	self._maid = maid
 	self.sessionId = httpService:GenerateGUID(false)
 	self.isNewData = nil
-	self.dataLoaded = maid:add(Signal.new())
-	self.failDataPresent = maid:add(Signal.new())
+	self.dataLoaded = maid:give(Signal.new())
+	self.failDataPresent = maid:give(Signal.new())
 	self.onlySaveDataWhenChanged = true
 	self.teleportPlayerAwayOnFail = false
 	self.autoSave = true
@@ -254,8 +254,8 @@ end
 function User:destroy()
 	self.sessionId = nil
 	for maidName, maid in pairs(self) do
-		if type(maid) == "table" and maid.doCleaning then
-			maid:doCleaning()
+		if type(maid) == "table" and maid.clean then
+			maid:clean()
 		end
 	end
 end

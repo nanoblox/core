@@ -23,9 +23,9 @@ function Zone.new(group, additionalHeight)
 	self.group = group
 	self.additionalHeight = additionalHeight or 0
 	self.previousPlayers = {}
-	self.playerAdded = maid:add(Signal.new())
-	self.playerRemoving = maid:add(Signal.new())
-	self.updated = maid:add(Signal.new())
+	self.playerAdded = maid:give(Signal.new())
+	self.playerRemoving = maid:give(Signal.new())
+	self.updated = maid:give(Signal.new())
 	self.zoneId = httpService:GenerateGUID()
 	
 	self:update()
@@ -42,7 +42,7 @@ function Zone:update()
 	local groupParts = self.groupParts
 	local groupParts = {}
 	local updateQueue = 0
-	self._updateConnections:doCleaning()
+	self._updateConnections:clean()
 	for _, part in pairs(self.group:GetDescendants()) do
 		if part:isA("BasePart") then
 			table.insert(groupParts, part)
@@ -64,10 +64,10 @@ function Zone:update()
 				end
 			end
 			for _, prop in pairs(partProperties) do
-				self._updateConnections:add(part:GetPropertyChangedSignal(prop):Connect(update))
+				self._updateConnections:give(part:GetPropertyChangedSignal(prop):Connect(update))
 			end
 			for _, event in pairs(groupEvents) do
-				self._updateConnections:add(self.group[event]:Connect(update))
+				self._updateConnections:give(self.group[event]:Connect(update))
 			end
 		end
 	end
@@ -141,7 +141,7 @@ function Zone:displayBounds()
 			part.CFrame = CFrame.new(boundCFrame)
 			part.Name = boundName
 			part.Parent = workspace
-			self._maid:add(part)
+			self._maid:give(part)
 		end
 	end
 end
@@ -329,8 +329,8 @@ end
 
 function Zone:destroy()
 	self:endLoop()
-	self._maid:doCleaning()
-	self._updateConnections:doCleaning()
+	self._maid:clean()
+	self._updateConnections:clean()
 	self.zoneId = nil
 end
 	

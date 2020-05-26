@@ -84,11 +84,11 @@ function Icon.new(name, imageId, order)
 	local maid = Maid.new()
 	self._maid = maid
 	self._fakeChatConnections = Maid.new()
-	self.updated = maid:add(Signal.new())
-	self.selected = maid:add(Signal.new())
-	self.deselected = maid:add(Signal.new())
-	self.endNotifications = maid:add(Signal.new())
-	maid:add(container)
+	self.updated = maid:give(Signal.new())
+	self.selected = maid:give(Signal.new())
+	self.deselected = maid:give(Signal.new())
+	self.endNotifications = maid:give(Signal.new())
+	maid:give(container)
 	
 	--[[
 	local hoverInputs = {"InputBegan", "InputEnded"}
@@ -304,8 +304,8 @@ end
 
 function Icon:destroy()
 	self:clearNotifications()
-	self._maid:doCleaning()
-	self._fakeChatConnections:doCleaning()
+	self._maid:clean()
+	self._fakeChatConnections:clean()
 end
 
 
