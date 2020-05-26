@@ -6,6 +6,10 @@
 -- @classmod Maid
 -- @see Signal
 
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
+local Promise = require(HDAdmin:WaitForChild("Promise"))
+
 local Maid = {}
 Maid.ClassName = "Maid"
 
@@ -62,6 +66,8 @@ function Maid:__newindex(index, newTask)
 			oldTask:Disconnect()
 		elseif oldTask.Destroy then
 			oldTask:Destroy()
+		elseif oldTask.destroy then
+			oldTask:destroy()
 		end
 	end
 end
@@ -77,32 +83,37 @@ function Maid:giveTask(task)
 	local taskId = #self._tasks+1
 	self[taskId] = task
 
-	if type(task) == "table" and (not task.Destroy) then
+	if type(task) == "table" and (not (task.Destroy or task.destroy)) then
 		warn("[Maid.GiveTask] - Gave table task without .Destroy\n\n" .. debug.traceback())
 	end
 
 	return taskId
 end
 
-function Maid:add(task)
-	local taskId = self:giveTask(task)
-	return task, taskId
-end
-
 function Maid:givePromise(promise)
-	if not promise:IsPending() then
+	if (promise:getStatus() ~= Promise.Status.Started) then
 		return promise
 	end
 
-	local newPromise = promise.resolved(promise)
-	local id = self:GiveTask(newPromise)
+	local newPromise = Promise.resolve(promise)
+	local id = self:giveTask(newPromise)
 
 	-- Ensure GC
-	newPromise:Finally(function()
+	newPromise:finally(function()
 		self[id] = nil
 	end)
 
-	return newPromise
+	return newPromise, id
+end
+
+function Maid:give(taskOrPromise)
+	local taskId
+	if type(taskOrPromise) == "table" and taskOrPromise.isAPromise then
+		_, taskId = self:givePromise(taskOrPromise)
+	else
+		taskId = self:giveTask(taskOrPromise)
+	end
+	return taskOrPromise, taskId
 end
 
 --- Cleans up all tasks.
@@ -128,6 +139,8 @@ function Maid:doCleaning()
 			task:Disconnect()
 		elseif task.Destroy then
 			task:Destroy()
+		elseif task.destroy then
+			task:destroy()
 		end
 		index, task = next(tasks)
 	end
@@ -136,5 +149,6 @@ end
 --- Alias for DoCleaning()
 -- @function Destroy
 Maid.destroy = Maid.doCleaning
+Maid.clean = Maid.doCleaning
 
 return Maid
