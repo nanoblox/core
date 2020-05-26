@@ -11,7 +11,7 @@ local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
 local Promise
 coroutine.wrap(function()
 	Promise = require(HDAdmin:WaitForChild("Promise"))
-end)
+end)()
 
 
 local Maid = {}
