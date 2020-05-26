@@ -131,6 +131,8 @@ function IconController:createFakeChat(theme)
 				return "No relavent key pressed"
 			elseif ChatMain.IsFocused() then
 				return "Chat bar already open"
+			elseif not icon.Enabled then
+				return "Icon disabled"
 			end
 			ChatMain:FocusChatBar(true)
 			icon:select()
