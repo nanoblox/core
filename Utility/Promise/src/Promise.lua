@@ -138,6 +138,8 @@ function Promise.new(callback, parent)
 		_parent = parent,
 
 		_consumers = setmetatable({}, MODE_KEY_METATABLE),
+		
+		isAPromise = true,
 	}
 
 	if parent and parent._status == Promise.Status.Started then
@@ -753,6 +755,8 @@ function Promise.prototype:cancel()
 
 	self:_finalize()
 end
+Promise.prototype.destroy = Promise.prototype.cancel
+
 
 --[[
 	Used to decrease the number of consumers by 1, and if there are no more,
