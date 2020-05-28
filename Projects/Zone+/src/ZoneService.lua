@@ -26,7 +26,6 @@ end
 function ZoneService:getZone(name)
 	local zone = zones[name]
 	if not zone then
-		warn(("%sFailed to get Zone '%s': zone not found."):format(errorStart, name))
 		return false
 	end
 	return zone

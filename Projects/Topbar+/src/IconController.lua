@@ -213,7 +213,6 @@ end
 function IconController:getIcon(name)
 	local iconDetails = topbarIcons[name]
 	if not iconDetails then
-		--warn(("%sFailed to get Icon '%s': icon not found."):format(errorStart, name))
 		return false
 	end
 	return iconDetails.icon
