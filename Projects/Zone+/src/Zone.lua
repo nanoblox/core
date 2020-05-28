@@ -299,6 +299,7 @@ end
 
 function Zone:endLoop()
 	self.currentLoop = nil
+	self.loopInitialized = nil
 end
 
 function Zone:getRandomPoint()
