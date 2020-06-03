@@ -1,40 +1,51 @@
 -- LOCAL
 local httpService = game:GetService("HttpService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
 local Signal = require(HDAdmin:WaitForChild("Signal"))
 local Maid = require(HDAdmin:WaitForChild("Maid"))
+local activeTables = {}
+local events = {"changed", "inserted", "removed", "paired", "concat"}
 local TableModifiers = {}
-TableModifiers.__index = TableModifiers
+setmetatable(TableModifiers, {
+	__mode = "k"}
+)
 
 
 
 -- CONSTRUCTOR
-function TableModifiers.new(eventsParent)
-	local self = {}
-	setmetatable(self, TableModifiers)
-	eventsParent = eventsParent or self
-	local differentParents = eventsParent ~= self
+function TableModifiers.apply(targetTable)
 	
-	local pathwayId = (differentParents and game:GetService("HttpService"):GenerateGUID()) or ""
-	local maid = Maid.new()
-	eventsParent[pathwayId.."Maid"] = maid
-	local events = {"changed", "inserted", "removed", "paired", "merged", "destroyed"}
+	local maid = activeTables[targetTable]
+	if activeTables[targetTable] then
+		return maid
+	end
+	maid = Maid.new()
+	
+	local eventInstances = {}
 	for _, eventName in pairs(events) do
-		eventsParent[pathwayId..eventName] = maid:give(Signal.new())
+		eventInstances[eventName] = maid:give(Signal.new())
 	end
-	if differentParents then
-		setmetatable(self, {
-			__index = function(this, index)
-				local newIndex = TableModifiers[index] or eventsParent[pathwayId..index]
-				return newIndex
-			end
-		})
-	end
+	setmetatable(targetTable, {
+		__index = function(this, index)
+			local newIndex = TableModifiers[index] or eventInstances[index]
+			return newIndex
+		end
+	})
 	
-	self._tableUpdated = false
+	targetTable._tableUpdated = false
 		
-	return self
+	return maid
+end
+
+function TableModifiers.remove(targetTable)
+	local maid = activeTables[targetTable]
+	if activeTables[targetTable] then
+		maid:clean()
+		return true
+	end
+	return false
 end
 
 
@@ -125,12 +136,12 @@ function TableModifiers:pair(stat, key, value)
 	return tab
 end
 
-function TableModifiers:merge(stat, value)
+function TableModifiers:concat(stat, value)
 	local oldValue = self[stat] or ""
 	local newValue = oldValue.. tostring(value)
 	self[stat] = newValue
 	self._tableUpdated = true
-	self.merged:Fire(stat, newValue, oldValue)
+	self.concat:Fire(stat, newValue, oldValue)
 	return newValue
 end
 
