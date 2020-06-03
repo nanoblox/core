@@ -1,7 +1,7 @@
 -- LOCAL
 local ZoneService = {}
 local Zone = require(script.Parent.Zone)
-local errorStart = "Zone+ | "
+local ERROR_START = "Zone+ | "
 local zones = {}
 
 
@@ -10,11 +10,11 @@ local zones = {}
 function ZoneService:createZone(name, group, additionalHeight)
 	local zone = zones[name]
 	if zone then
-		warn(("%sFailed to create zone '%s': a zone already exists under that name."):format(errorStart, name))
+		warn(("%sFailed to create zone '%s': a zone already exists under that name."):format(ERROR_START, name))
 		return false
 	end
 	if not group then
-		warn(("%sFailed to create zone '%s': a group of parts must be specified as the second argument to setup a zone."):format(errorStart, name))
+		warn(("%sFailed to create zone '%s': a group of parts must be specified as the second argument to setup a zone."):format(ERROR_START, name))
 		return false
 	end
 	local zone = Zone.new(group, additionalHeight)
@@ -42,7 +42,7 @@ end
 function ZoneService:removeZone(name)
 	local zone = zones[name]
 	if not zone then
-		warn(("%sFailed to remove Zone '%s': zone not found."):format(errorStart, name))
+		warn(("%sFailed to remove Zone '%s': zone not found."):format(ERROR_START, name))
 		return false
 	end
 	zone:destroy()
