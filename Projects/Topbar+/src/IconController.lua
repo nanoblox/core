@@ -5,7 +5,6 @@ local players = game:GetService("Players")
 local IconController = {}
 local Icon = require(script.Parent.Icon)
 local topbarIcons = {}
-local ERROR_START = "Topbar+ | "
 local fakeChatName = "_FakeChat"
 local function deepCopy(original)
     local copy = {}
@@ -37,15 +36,11 @@ local previousTopbarEnabled = checkTopbarEnabled()
 function IconController:createIcon(name, imageId, order)
 	
 	-- Verify data
-	local iconDetails = topbarIcons[name]
-	if iconDetails then
-		warn(("%sFailed to create Icon '%s': an icon already exists under that name."):format(ERROR_START, name))
-		return false
-	end
+	assert(not topbarIcons[name], ("icon '%s' already exists!"):format(name))
 	
 	-- Create and record icon
 	local icon = Icon.new(name, imageId, order)
-	iconDetails = {name = name, icon = icon, order = icon.order}
+	local iconDetails = {name = name, icon = icon, order = icon.order}
 	topbarIcons[name] = iconDetails
 	icon:setOrder(icon.order)
 	
@@ -228,10 +223,7 @@ end
 
 function IconController:removeIcon(name)
 	local iconDetails = topbarIcons[name]
-	if not iconDetails then
-		warn(("%sFailed to remove Icon '%s': icon not found."):format(ERROR_START, name))
-		return false
-	end
+	assert(iconDetails, ("icon '%s' not found!"):format(name))
 	local icon = iconDetails.icon
 	icon:setEnabled(false)
 	icon:deselect()

@@ -1,5 +1,4 @@
 -- LOCAL
-local ERROR_START = "DataStore+ | UserStore | "
 local User = require(script.Parent.User)
 local UserStore = {}
 UserStore.__index = UserStore
@@ -27,10 +26,7 @@ end
 -- METHODS
 function UserStore:createUser(key)
 	local key, isPlayer = getKey(key)
-	if self.users[key] then
-		warn(("%sFailed to create User '%s': that user already exists."):format(ERROR_START, key))
-		return false
-	end
+	assert(not self.users[key], ("user '%s' already exists!"):format(key))
 	local user = User.new(self.dataStoreName, key)
 	self.users[key] = user
 	user.player = isPlayer and key
@@ -161,10 +157,7 @@ end
 function UserStore:removeUser(key)
 	local key = getKey(key)
 	local user = self:getUser(key)
-	if not user then
-		warn(("%sFailed to remove User '%s': user does not exist."):format(ERROR_START, key))
-		return false
-	end
+	assert(user, ("user '%s' not found!"):format(key))
 	user:saveAsync()
 	user:destroy()
 	self.users[key] = nil
