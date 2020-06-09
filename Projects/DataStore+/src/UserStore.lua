@@ -43,9 +43,9 @@ end
 
 -- *Player key specific
 function UserStore:getUserByUserId(userId)
-	for player, user in pairs(self.users) do
-		if player.UserId == userId then
-			return self:getUser(player)
+	for key, user in pairs(self.users) do
+		if tonumber(key) == tonumber(userId) then
+			return self:getUser(user.player)
 		end
 	end
 end
@@ -76,9 +76,9 @@ end
 
 -- *Player key specific
 function UserStore:getLoadedUserByUserId(userId)
-	for player, user in pairs(self.users) do
-		if player.UserId == userId then
-			return self:getLoadedUser(player)
+	for key, user in pairs(self.users) do
+		if tonumber(key) == tonumber(userId) then
+			return self:getLoadedUser(user.player)
 		end
 	end
 end
@@ -112,6 +112,7 @@ end
 
 -- *Player key specific
 function UserStore:createLeaderstat(player, statToBind)
+	local dataTypes = {"perm", "temp"}
 	local user = self:getUser(player)
 	if not user then
 		return false
@@ -125,8 +126,14 @@ function UserStore:createLeaderstat(player, statToBind)
 	local statInstance = Instance.new("StringValue")
 	statInstance.Name = statToBind
 	statInstance.Value = "..."
+	coroutine.wrap(function()
+		user:waitUntilLoaded()
+		for _, dataName in pairs(dataTypes) do
+			statInstance.Value = user[dataName]:get(statToBind) or statInstance.Value
+		end
+	end)()
 	statInstance.Parent = leaderstats
-	for _, dataName in pairs({"temp", "perm"}) do
+	for _, dataName in pairs(dataTypes) do
 		user[dataName].changed:Connect(function(stat, value, oldValue)
 			if statInstance and statInstance.Value and stat == statToBind then
 				statInstance.Value = value
