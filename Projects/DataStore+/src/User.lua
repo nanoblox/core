@@ -38,24 +38,8 @@ function User.new(dataStoreName, key)
 	self.teleportPlayerAwayOnFail = false
 	self.autoSave = true
 	self.autoSaveInterval = 60
-	self.callInfo = {
-		load = {
-			maxRetries = 3,
-			maxCallsPerMinute = 8,
-			callCooldown = 8,
-			callsThisMinute = 0,
-			previousRefreshTick = currentTick,
-			previousCallTick = currentTick,
-		};
-		save = {
-			maxRetries = 3,
-			maxCallsPerMinute = 4,
-			callCooldown = 8,
-			callsThisMinute = 0,
-			previousRefreshTick = currentTick,
-			previousCallTick = currentTick,
-		}
-	}
+	self.maxRetries = 3
+	self.cooldown = 8
 	
 	-- Setup information
 	self.dataStoreName = dataStoreName
@@ -93,7 +77,7 @@ function User:loadAsync()
 	self.isLoaded = false
 	
 	-- Retrieve previous perm data 
-	local permData = self:protectedCall(callType, function(finalAttempt)
+	local permData = self:_protectedCall(callType, function(finalAttempt)
 		return self.dataStore:GetAsync(self.key)
 	end)
 	
@@ -123,7 +107,15 @@ function User:loadAsync()
 					end
 				end
 			else
-				self.backup:change(name, content, permData[name])
+				local oldValue = permData[name]
+				local oldValueNum = tonumber(oldValue)
+				local newValueNum = tonumber(content)
+				self.backup[name] = oldValue
+				if oldValueNum and newValueNum then
+					self.backup:increment(name, newValueNum-oldValueNum)
+				else
+					self.backup:set(name, content)
+				end
 			end
 		end
 		self.perm._backupData = nil
@@ -143,9 +135,12 @@ function User:saveAsync()
 		return false
 	end
 	
+	-- Cooldown to prevent two calls being made within 7 seconds
+	self:_applyCooldown(callType)
+	
 	-- Save data
 	local backupAction = false
-	local success = self:protectedCall(callType, function(finalAttempt)
+	local success = self:_protectedCall(callType, function(finalAttempt)
 		return self.dataStore:UpdateAsync(self.key, function(previousData)
 			local previousData = previousData or self.perm
 			if previousData._dataId == self.perm._dataId then
@@ -154,19 +149,24 @@ function User:saveAsync()
 				self.perm._tableUpdated = false
 			elseif finalAttempt then
 				-- DataIds do not match, all retries failed, force add backup data to previousData and proceed to backup action 
-				warn(string.format(self.errorMessageBase.."DataIds do not match, all retries failed. Saved backup data and and proceeding to backup action.", callType))
+				warn(string.format("%sDataIds do not match, all retries failed. Saved backup data and and proceeding to backup action.", self.errorMessageBase:format(callType)))
 				previousData._backupData = self.backup
 				backupAction = true
 				return previousData
 			else
 				-- DataIds do not match, abort save and retry
-				warn(string.format(self.errorMessageBase.."DataIds do not match, retrying save...", callType))
+				warn(string.format("%sDataIds do not match, retrying save...", self.errorMessageBase:format(callType)))
 				return nil
 			end
 			-- Success, return data to be saved
 			return self.perm
 		end)
 	end)
+	
+	-- Clear backup data
+	if success then
+		self.backup:clear()
+	end
 	
 	-- All retries failed, resort to backup action
 	if backupAction then
@@ -188,7 +188,36 @@ function User:saveAsync()
 end
 
 function User:removeAsync()
-	return self.dataStore:RemoveAsync(self.key)
+	local callType = "remove"
+	
+	-- Cooldown
+	self:_applyCooldown(callType)
+	
+	-- Remove key
+	self:_protectedCall(callType, function()
+		self.dataStore:RemoveAsync(self.key)
+	end)
+end
+
+function User:_applyCooldown(callType)
+	local currentTick = tick()
+	local requestName = "_nextRequest"..callType
+	local nextRequest = self[requestName] or currentTick
+	if currentTick < nextRequest then
+		wait(nextRequest - currentTick)
+	end
+	self[requestName] = nextRequest + self.cooldown
+end
+
+function User:_protectedCall(callType, func)
+	for i = 1, self.maxRetries do
+		local finalAttempt = i == self.maxRetries
+		local success, value = pcall(func, finalAttempt)
+		if success and (value or callType == "load") then
+			return value
+		end
+		wait(1)
+	end
 end
 
 
@@ -221,46 +250,8 @@ function User:initSaveLoop(autoSaveInterval)
 	end)()
 end
 
-function User:protectedCall(callType, func)
-	if not self.dataStore then
-		return {}
-	end
-	local callTypeInfo = self.callInfo[callType]
-	local errorMessageBaseStart = string.format(self.errorMessageBase, callType)
-	-- Call limit checks
-	local currentTick = tick()
-	if callTypeInfo.callsThisMinute > callTypeInfo.maxCallsPerMinute then
-		-- Has the max number of calls/minute been exeeded?
-		warn(string.format("%sExceeded maxCallsPerMinute (callsThisMinute = %s, maxCallsPerMinute = %s).", errorMessageBaseStart, callTypeInfo.callsThisMinute, callTypeInfo.maxCallsPerMinute))
-		return nil
-	elseif currentTick - callTypeInfo.previousCallTick < callTypeInfo.callCooldown then
-		-- Has the call been made before the cooldown? If so, delay until ready
-		repeat
-			wait(1)
-			currentTick = tick()
-		until currentTick - callTypeInfo.previousCallTick >= callTypeInfo.callCooldown
-	end
-	-- Update limit values
-	callTypeInfo.callsThisMinute = callTypeInfo.callsThisMinute + 1
-	callTypeInfo.previousCallTick = currentTick
-	if currentTick - callTypeInfo.previousRefreshTick >= 60 then
-		callTypeInfo.previousRefreshTick = currentTick
-		callTypeInfo.callsThisMinute = 0
-	end
-	-- Call function and retry if necessary
-	local data, success, errorMessage
-	for i = 1, callTypeInfo.maxRetries do
-		local finalAttempt = i == callTypeInfo.maxRetries
-		local success, errorMessage = pcall(function() data = func(finalAttempt) end)
-		if success and (data or callType == "load") then
-			break
-		elseif finalAttempt then
-			warn(errorMessageBaseStart, errorMessage)
-			return nil
-		end
-		wait(1)
-	end
-	return data
+function User:waitUntilLoaded()
+	local loaded = self.isLoaded or self.loaded:Wait()
 end
 
 function User:destroy()
