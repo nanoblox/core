@@ -150,7 +150,6 @@ end
 
 function TableModifiers:clear()
 	for k,v in pairs(self) do
-		self.changed:Fire(k, nil, v)
 		self[k] = nil
 	end
 	self.cleared:Fire()
