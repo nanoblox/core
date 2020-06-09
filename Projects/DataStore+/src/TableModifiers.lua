@@ -154,7 +154,7 @@ function TableModifiers:clear()
 	end
 	self.cleared:Fire()
 end
-
+-- test
 
 
 return TableModifiers
