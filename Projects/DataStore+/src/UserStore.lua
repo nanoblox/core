@@ -164,7 +164,6 @@ end
 function UserStore:removeUser(key)
 	local key = getKey(key)
 	local user = self:getUser(key)
-	assert(user, ("user '%s' not found!"):format(key))
 	user:saveAsync()
 	user:destroy()
 	self.users[key] = nil
