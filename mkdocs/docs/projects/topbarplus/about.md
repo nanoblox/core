@@ -51,6 +51,12 @@ shopIcon:setToggleMenu(gui.Shop) -- Set the shop menu to be toggled by the icon
 shopIcon:notify() -- Prompt a notification
 ```
 
+!!!warning
+    The topbar client (local script) has to go within StarterPlayerScripts or a gui that has ‘ResetOnSpawn’ set to false, otherwise it won’t persist when the player respawns.
+
+!!!warning
+    Likewise, you must ensure the 'toggle menu' has ``ResetOnSpawn`` set to ``false``, or that you are calling Icon:setToggleMenu(guiObject) every time the player respawns, for the menu to persist.
+
 # Themes
 Themes are easily adaptable tables of information that can be applied to icons to ehance their appearance and behaviour.
 
