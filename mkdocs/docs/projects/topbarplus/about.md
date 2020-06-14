@@ -52,10 +52,10 @@ shopIcon:notify() -- Prompt a notification
 ```
 
 !!!warning
-    The topbar client (local script) has to go within StarterPlayerScripts or a gui that has ‘ResetOnSpawn’ set to false, otherwise it won’t persist when the player respawns.
+    The topbar client (local script) has to go within StarterPlayerScripts or a ScreenGui that has ‘ResetOnSpawn’ set to false, otherwise it won’t persist when the player respawns.
 
 !!!warning
-    Likewise, if you use a 'toggle menu', you must ensure its ScreenGui has ``ResetOnSpawn`` set to ``false``, or that you are calling Icon:setToggleMenu(guiObject) every time the player respawns, for the menu to persist.
+    Likewise, if using a 'toggle menu', you must ensure its ScreenGui has ``ResetOnSpawn`` set to ``false``, or that you are calling Icon:setToggleMenu(guiObject) every time the player respawns, for the menu to persist.
 
 # Themes
 Themes are easily adaptable tables of information that can be applied to icons to ehance their appearance and behaviour.
