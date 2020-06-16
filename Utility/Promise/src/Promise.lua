@@ -1,3 +1,10 @@
+-- Promise
+-- Author: evaera
+-- Source: https://github.com/evaera/roblox-lua-promise/blob/master/lib/init.lua
+-- License: MIT (https://github.com/evaera/roblox-lua-promise/blob/master/LICENSE)
+-- Modified for use in HDAdmin
+
+
 --[[
 	Developed by evaera. Find out more:
 	https://devforum.roblox.com/t/promises-and-why-you-should-use-them/350825

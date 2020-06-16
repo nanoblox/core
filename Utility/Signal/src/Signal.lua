@@ -1,4 +1,10 @@
--- Quenty's Signal Module, modified to include Disconnect method
+-- Signal
+-- Author: Quenty
+-- Source: https://github.com/Quenty/NevermoreEngine/blob/1bed579e0fc63cf4124a1e50c2379b8a7dc9ed1d/Modules/Shared/Events/Signal.lua
+-- License: MIT (https://github.com/Quenty/NevermoreEngine/blob/version2/LICENSE.md)
+-- Modified for use in HDAdmin
+
+
 local Signal = {}
 Signal.__index = Signal
 Signal.ClassName = "Signal"

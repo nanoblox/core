@@ -1,5 +1,9 @@
--- Quenty's Maid module from the NevermoreEngine.
--- The methods have been modified to match the lua styling guide.
+-- Maid
+-- Author: Quenty
+-- Source: https://github.com/Quenty/NevermoreEngine/blob/8ef4242a880c645b2f82a706e8074e74f23aab06/Modules/Shared/Events/Maid.lua
+-- License: MIT (https://github.com/Quenty/NevermoreEngine/blob/version2/LICENSE.md)
+-- Modified for use in HDAdmin
+
 
 ---	Manages the cleaning of events and other things.
 -- Useful for encapsulating state and make deconstructors easy
