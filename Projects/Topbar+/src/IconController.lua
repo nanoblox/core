@@ -53,10 +53,8 @@ function IconController:createIcon(name, imageId, order)
 	-- Events
 	local function updateIcon()
 		local iconDetails = topbarIcons[name]
-		if not iconDetails then
-			warn(("%sFailed to update Icon '%s': icon not found."):format(ERROR_START, name))
-			return false
-		end
+		assert(iconDetails, ("Failed to update Icon '%s': icon not found."):format(name))
+
 		iconDetails.order = icon.order or 1
 		local orderedIconDetails = {}
 		for name, details in pairs(topbarIcons) do
