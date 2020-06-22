@@ -36,6 +36,18 @@
             "$path": "Utility/DirectoryService"
           }
         },
+        "Maid": {
+          "$className": "Folder",
+          "MainModule": {
+            "$path": "Utility/Maid"
+          }
+        },
+        "Promise": {
+          "$className": "Folder",
+          "MainModule": {
+            "$path": "Utility/Promise"
+          }
+        },
         "Signal": {
           "$className": "Folder",
           "MainModule": {
