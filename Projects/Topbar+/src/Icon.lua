@@ -76,6 +76,7 @@ function Icon.new(name, imageId, order)
 	self:setImageSize(20)
 	self.order = order or 1
 	self.enabled = true
+	self.rightSide = false
 	self.totalNotifications = 0
 	self.toggleFunction = function() end
 	self.hoverFunction = function() end
@@ -137,6 +138,16 @@ end
 
 function Icon:setOrder(order)
 	self.order = tonumber(order) or 1
+	self.updated:Fire()
+end
+
+function Icon:setLeft()
+	self.rightSide = false
+	self.updated:Fire()
+end
+
+function Icon:setRight()
+	self.rightSide = true
 	self.updated:Fire()
 end
 

@@ -53,29 +53,43 @@ function IconController:createIcon(name, imageId, order)
 	-- Events
 	local function updateIcon()
 		local iconDetails = topbarIcons[name]
-		if not iconDetails then
-			warn(("%sFailed to update Icon '%s': icon not found."):format(ERROR_START, name))
-			return false
-		end
+		assert(iconDetails, ("Failed to update Icon '%s': icon not found."):format(name))
+
 		iconDetails.order = icon.order or 1
 		local orderedIconDetails = {}
+		local rightOrderedIconDetails = {}
 		for name, details in pairs(topbarIcons) do
 			if details.icon.enabled == true then
-				table.insert(orderedIconDetails, details)
+				if details.icon.rightSide then
+					table.insert(rightOrderedIconDetails, details)
+				else
+					table.insert(orderedIconDetails, details)
+				end
 			end
-		end
+		end		
 		if #orderedIconDetails > 1 then
 			table.sort(orderedIconDetails, function(a,b) return a.order < b.order end)
 		end
-		local startPosition = 104
+		if #rightOrderedIconDetails > 1 then
+			table.sort(rightOrderedIconDetails, function(a,b) return a.order < b.order end)
+		end
+		local leftStartPosition, rightStartPosition = 104, -90
 		local positionIncrement = 44
 		if not starterGui:GetCoreGuiEnabled("Chat") then
-			startPosition = startPosition - positionIncrement
+			leftStartPosition = leftStartPosition - positionIncrement
+		end
+		if not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.PlayerList) and not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) and not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu) then
+			rightStartPosition = rightStartPosition + positionIncrement
 		end
 		for i, details in pairs(orderedIconDetails) do
 			local container = details.icon.objects.container
-			local iconX = startPosition + (i-1)*positionIncrement
+			local iconX = leftStartPosition + (i-1)*positionIncrement
 			container.Position = UDim2.new(0, iconX, 0, 4)
+		end
+		for i, details in pairs(rightOrderedIconDetails) do
+			local container = details.icon.objects.container
+			local iconX = rightStartPosition - (i-1)*positionIncrement
+			container.Position = UDim2.new(1, iconX, 0, 4)
 		end
 		return true
 	end
