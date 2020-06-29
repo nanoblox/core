@@ -150,7 +150,7 @@ function Icon:setRight()
 	self.rightSide = true
 	self.updated:Fire()
 end
--- test automation
+-- test automation (2)
 function Icon:setImageSize(pixelsX, pixelsY)
 	pixelsX = tonumber(pixelsX) or self.imageSize
 	if not pixelsY then
