@@ -28,6 +28,20 @@ Icon:setOrder(order)
 Sets the icons priority order, determining whether it will appear before or after other icons.
 
 --------------------
+### setLeft
+```lua
+Icon:setLeft()
+```
+Aligns the icon on the left-side of the topbar (this happens by default). The greater the ``order``, the further *rightward* the icon will appear relative to other icons set-left.
+
+--------------------
+### setRight
+```lua
+Icon:setRight()
+```
+Aligns the icon on the right-side of the topbar. The greater the ``order``, the further *leftward* the icon will appear relative to other icons set-right.
+
+--------------------
 ### setImageSize
 ```lua
 Icon:setImageSize(width, height)
