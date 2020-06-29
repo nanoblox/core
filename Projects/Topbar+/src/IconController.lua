@@ -59,13 +59,12 @@ function IconController:createIcon(name, imageId, order)
 	
 	-- Events
 	local function updateIcon()
-		local iconDetails = topbarIcons[name]
 		assert(iconDetails, ("Failed to update Icon '%s': icon not found."):format(name))
 
 		iconDetails.order = icon.order or 1
 		local orderedIconDetails = {}
 		local rightOrderedIconDetails = {}
-		for name, details in pairs(topbarIcons) do
+		for _, details in pairs(topbarIcons) do
 			if details.icon.enabled == true then
 				if details.icon.rightSide then
 					table.insert(rightOrderedIconDetails, details)
@@ -166,7 +165,7 @@ function IconController:createFakeChat(theme)
 		-- Keep when other icons selected
 		icon.deselectWhenOtherIconSelected = false
 		-- Mimic chat notifications
-		icon._fakeChatConnections:give(ChatMain.MessagesChanged:connect(function(messageCount)
+		icon._fakeChatConnections:give(ChatMain.MessagesChanged:connect(function()
 			if ChatMain:GetVisibility() == true then
 				return "ChatWindow was open"
 			end
@@ -227,7 +226,7 @@ end
 
 function IconController:setDisplayOrder(value)
 	local topbarPlusGui = getTopbarPlusGui()
-	local value = tonumber(value) or topbarPlusGui.DisplayOrder
+	value = tonumber(value) or topbarPlusGui.DisplayOrder
 	topbarPlusGui.DisplayOrder = value
 end
 
@@ -241,7 +240,7 @@ end
 
 function IconController:getAllIcons()
 	local allIcons = {}
-	for name, details in pairs(topbarIcons) do
+	for _, details in pairs(topbarIcons) do
 		table.insert(allIcons, details.icon)
 	end
 	return allIcons
@@ -265,7 +264,7 @@ end
 coroutine.wrap(function()
 	-- Mimic the enabling of the topbar when StarterGui:SetCore("TopbarEnabled", state) is called
 	local ChatMain = require(getChatMain())
-	ChatMain.CoreGuiEnabled:connect(function(newState)
+	ChatMain.CoreGuiEnabled:connect(function()
 		local topbarEnabled = checkTopbarEnabled()
 		if topbarEnabled == previousTopbarEnabled then
 			return "SetCoreGuiEnabled was called instead of SetCore"
