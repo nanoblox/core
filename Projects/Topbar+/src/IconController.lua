@@ -1,5 +1,6 @@
 -- LOCAL
 local starterGui = game:GetService("StarterGui")
+local guiService = game:GetService("GuiService")
 local userInputService = game:GetService("UserInputService")
 local players = game:GetService("Players")
 local IconController = {}
@@ -29,6 +30,12 @@ local function checkTopbarEnabled()
 	return(starterGui:GetCore("TopbarEnabled"))
 end
 local previousTopbarEnabled = checkTopbarEnabled()
+local menuOpen
+
+
+
+-- PROPERTIES
+IconController.topbarEnabled = true
 
 
 
@@ -188,7 +195,12 @@ end
 function IconController:setTopbarEnabled(newState)
 	local topbarPlusGui = getTopbarPlusGui()
 	local topbarContainer = topbarPlusGui.TopbarContainer
-	topbarContainer.Visible = newState
+	if menuOpen then
+		topbarContainer.Visible = false
+	else
+		topbarContainer.Visible = newState
+	end
+	IconController.topbarEnabled = newState
 end
 
 function IconController:setGameTheme(theme)
@@ -252,6 +264,15 @@ coroutine.wrap(function()
 		end
 	end)
 	IconController:setTopbarEnabled(checkTopbarEnabled())
+	-- Display topbar icons when the Roblox menu is opened/closed
+	guiService.MenuClosed:Connect(function()
+		menuOpen = false
+		IconController:setTopbarEnabled(IconController.topbarEnabled)
+	end)
+	guiService.MenuOpened:Connect(function()
+		menuOpen = true
+		IconController:setTopbarEnabled(IconController.topbarEnabled)
+	end)
 end)()
 
 
