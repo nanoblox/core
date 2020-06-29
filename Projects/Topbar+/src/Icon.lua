@@ -168,7 +168,7 @@ end
 
 function Icon:setBaseZIndex(baseValue)
 	local container = self.objects.container
-	local baseValue = tonumber(baseValue) or container.ZIndex
+	baseValue = tonumber(baseValue) or container.ZIndex
 	local difference = baseValue - container.ZIndex
 	if difference == 0 then
 		return "The baseValue is the same"
@@ -254,7 +254,7 @@ function Icon:applyThemeToObject(objectName, toggleStatus)
 end
 
 function Icon:applyThemeToAllObjects(...)
-	for objectName, toggleDetails in pairs(self.theme) do
+	for objectName, _ in pairs(self.theme) do
 		self:applyThemeToObject(objectName, ...)
 	end
 end
