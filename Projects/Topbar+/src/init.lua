@@ -83,7 +83,59 @@ amount.TextColor3 = Color3.fromRGB(31, 33, 35)
 amount.TextScaled = true
 amount.Parent = notification
 
+local interactionMenu = Instance.new("Frame")
+interactionMenu.Name = "InteractionMenu"
+interactionMenu.BackgroundTransparency = 1
+interactionMenu.Visible = false
+interactionMenu.ClipsDescendants = true
+interactionMenu.Parent = topbarPlusGui
 
+local background = Instance.new("Frame")
+background.Name = "Background"
+background.BackgroundColor3 = Color3.fromRGB(31, 33, 35)
+background.BackgroundTransparency = 0.3
+background.BorderSizePixel = 0
+background.ZIndex = 10
+background.AnchorPoint = Vector2.new(0.5,0.5)
+background.Position = UDim2.new(0.5,0,0.5,0)
+background.Size = UDim2.new(1,0,1,-8)
+background.Parent = interactionMenu
+
+local topRect = Instance.new("ImageLabel")
+topRect.Name = "TopRoundedRect"
+topRect.BackgroundTransparency = 1
+topRect.ImageColor3 = Color3.fromRGB(31, 33, 35)
+topRect.ImageTransparency = 0.3
+topRect.Image = "rbxasset://textures/ui/BottomRoundedRect8px.png"
+topRect.ScaleType = Enum.ScaleType.Slice
+topRect.SliceCenter = Rect.new(8,8,24,16)
+topRect.SliceScale = 0.5
+topRect.Size = UDim2.new(1,0,0,4)
+topRect.AnchorPoint = Vector2.new(0,1)
+topRect.Position = UDim2.new(0,0,0,0)
+topRect.Parent = background
+
+local bottomRect = topRect:Clone()
+bottomRect.Name = "BottomRoundedRect"
+bottomRect.Image = "rbxasset://textures/ui/TopRoundedRect8px.png"
+topRect.AnchorPoint = Vector2.new(0,0)
+topRect.Position = UDim2.new(0,0,1,0)
+bottomRect.Parent = background
+--[[
+local uiList = Instance.new("UIListLayout")
+uiList.Name = "_UIListLayout"
+uiList.SortOrder = Enum.SortOrder.LayoutOrder
+uiList.Parent = interactionMenu
+]]
+
+local uiSize = Instance.new("UISizeConstraint")
+uiSize.Name = "_UISizeConstraint"
+uiSize.MinSize = Vector2.new(140,0)
+uiSize.Parent = interactionMenu
+
+local tempFolder = Instance.new("Folder")
+tempFolder.Name = "Temp"
+tempFolder.Parent = script:WaitForChild("Icon"):WaitForChild("InteractionMenu")
 
 -- SETUP DIRECTORIES
 local projectName = "Topbar+"
