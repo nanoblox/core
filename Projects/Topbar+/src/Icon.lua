@@ -119,6 +119,20 @@ function Icon.new(name, imageId, order)
 		self:setImage(imageId)
 	end
 	
+	local iconInteract = {}
+	local interact = require(script:WaitForChild("InteractionMenu"))
+	iconInteract.new = function(...)
+		local interactionMenuReturn = interact.new(self,...)
+		self.interactionMenuReturn = interactionMenuReturn
+		return interactionMenuReturn
+	end
+	for i,v in pairs(interact) do
+		if v ~= interact.new then
+			table.insert(iconInteract,v)
+		end
+	end
+	self.interactionMenu = iconInteract
+	
 	container.Parent = topbarContainer
 	
 	return self
@@ -317,6 +331,9 @@ function Icon:destroy()
 	self:clearNotifications()
 	self._maid:clean()
 	self._fakeChatConnections:clean()
+	if self.interactionMenuReturn then
+		self.interactionMenuReturn:destroy()
+	end
 end
 
 
