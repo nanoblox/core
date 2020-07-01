@@ -1,6 +1,7 @@
 -- LOCAL
 local tweenService = game:GetService("TweenService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
+local userInputService = game:GetService("UserInputService")
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player.PlayerGui
 local topbarPlusGui = playerGui:WaitForChild("Topbar+")
@@ -106,15 +107,44 @@ function Icon.new(name, imageId, order)
 		end)
 	end
 	--]]
+	self.maxTouchTime = 0.5
 	
-	button.MouseButton1Click:Connect(function()
-		if self.toggleStatus == "selected" then
-			self:deselect()
-		else
-			self:select()
-		end
-	end)
-		
+	if userInputService.MouseEnabled or userInputService.GamepadEnabled then
+		button.MouseButton1Click:Connect(function()
+			if self.toggleStatus == "selected" then
+				self:deselect()
+			else
+				self:select()
+			end
+		end)
+	elseif userInputService.TouchEnabled then
+		button.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch then
+				local firstPosition = Vector2.new(input.Position.X,input.Position.Y)
+				local firstTime = tick()
+				input.Changed:Connect(function()
+					if input.UserInputState == Enum.UserInputState.End then
+						local currentPosition = Vector2.new(input.Position.X,input.Position.Y)
+						local currentTime = tick()
+						print(currentTime-firstTime)
+						if currentTime-firstTime <= self.maxTouchTime then
+							local magnitude = (firstPosition-currentPosition).Magnitude
+							print(magnitude)
+							if magnitude <= 32 then
+								if self.toggleStatus == "selected" then
+									self:deselect()
+								else
+									self:select()
+								end
+							end
+						end
+					end
+					input:Destroy()
+				end)
+			end
+		end)
+	end
+	
 	if imageId then
 		self:setImage(imageId)
 	end
