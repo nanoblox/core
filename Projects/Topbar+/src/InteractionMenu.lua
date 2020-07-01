@@ -16,11 +16,14 @@ function interactionMenu.new(icon,options)
 	self.icon = icon
 	self.optionTable = {}
 	self.bringBackPlayerlist = false
+	self.bringBackChat = false
 	self.settings = {
 		CanHidePlayerlist = true,
+		CanHideChat = true,
 		TweenSpeed = 0.2,
 		EasingDirection = Enum.EasingDirection.Out,
 		EasingStyle = Enum.EasingStyle.Quad,
+		ChatDefaultDisplayOrder = 6,
 	}
 	local preload = {}
 	
@@ -34,6 +37,7 @@ function interactionMenu.new(icon,options)
 			local position = Vector2.new(input.Position.X,input.Position.Y)
 			self:displayMenu(position)
 		end
+		input:Destroy()
 	end))
 	table.insert(self.constConnections,self.icon.objects.button.TouchLongPress:Connect(function(positions,state)
 		if state == Enum.UserInputState.Begin then
@@ -68,6 +72,12 @@ function interactionMenu:hideMenu()
 		self.bringBackPlayerlist = false
 	end
 	local interactionMenuContainer = self.icon.objects.container.Parent.Parent.InteractionMenu
+	if self.bringBackChat then
+		local chat = interactionMenuContainer.Parent.Parent:FindFirstChild("Chat")
+		if chat then
+			chat.DisplayOrder = self.settings.ChatDefaultDisplayOrder
+		end
+	end
 	interactionMenuContainer:TweenSize(
 		UDim2.new(0.1,0,0,0),
 		self.settings.EasingDirection,
@@ -85,6 +95,37 @@ end
 function interactionMenu:canHidePlayerlist(bool)
 	assert(typeof(bool) == "boolean","Topbar+ | Expected boolean, got "..typeof(bool))
 	self.settings.CanHidePlayerList = bool
+end
+
+function interactionMenu:canHideChat(bool)
+	assert(typeof(bool) == "boolean","Topbar+ | Expected boolean, got "..typeof(bool))
+	self.settings.CanHideChat = bool
+end
+
+function interactionMenu:setChatDefaultDisplayOrder(number)
+	assert(typeof(number) == "number","Topbar+ | Expected number, got "..typeof(number))
+	self.settings.ChatDefaultDisplayOrder = number
+end
+
+function interactionMenu:setTheme(theme)
+	--[[
+	Each icon has its own theme
+	{
+		TweenSpeed = 0.2,
+		EasingDirection = Enum.EasingDirection.Out,
+		EasingStyle = Enum.EasingStyle.Quad
+	}
+	]]
+	assert(typeof(theme) == "table","Topbar+ | Expected table, got "..typeof(theme))
+	if theme.TweenSpeed then
+		self.settings.TweenSpeed = theme.TweenSpeed
+	end
+	if theme.EasingDirection then
+		self.settings.EasingDirection = theme.EasingDirection
+	end
+	if theme.EasingStyle then
+		self.settings.EasingStyle = theme.EasingStyle
+	end
 end
 
 local function ToScale(offsetUDim2,viewportSize)
@@ -137,6 +178,12 @@ function interactionMenu:displayMenu(position)
 		self.bringBackPlayerlist = true
 	end
 	
+	local chat = interactionMenuContainer.Parent.Parent:FindFirstChild("Chat")
+	if chat and self.settings.CanHideChat and interactionMenuContainer.Parent.DisplayOrder < chat.DisplayOrder then
+		chat.DisplayOrder = interactionMenuContainer.Parent.DisplayOrder-1
+		self.bringBackChat = true
+	end
+	
 	interactionMenuContainer.Size = UDim2.new(0.1,0,0,0)
 	interactionMenuContainer.Visible = true
 	interactionMenuContainer:TweenSize(
@@ -156,11 +203,11 @@ function interactionMenu:displayMenu(position)
 		if not cancelCD and (input.UserInputType == Enum.UserInputType.MouseButton1
 		or input.UserInputType == Enum.UserInputType.MouseButton2
 		or input.UserInputType == Enum.UserInputType.MouseWheel
-		or input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.MouseButton3
 		or input.UserInputType == Enum.UserInputType.Touch)
 		then
 			local isOn = false
-			for i,v in pairs(starterGui:GetGuiObjectsAtPosition(input.Position.X,input.Position.Y)) do
+			for i,v in pairs(interactionMenuContainer.Parent.Parent:GetGuiObjectsAtPosition(input.Position.X,input.Position.Y)) do
 				if v:IsDescendantOf(interactionMenuContainer) then
 					isOn = true
 					break
@@ -170,11 +217,14 @@ function interactionMenu:displayMenu(position)
 				self:hideMenu()
 			end
 		end
+		input:Destroy()
 	end))
 	
-	table.insert(self.tempConnections,userInputService.WindowFocusReleased:Connect(function()
-		self:hideMenu()
-	end))
+	if userInputService.MouseEnabled then
+		table.insert(self.tempConnections,userInputService.WindowFocusReleased:Connect(function()
+			self:hideMenu()
+		end))
+	end
 	
 end
 
@@ -240,15 +290,17 @@ function interactionMenu:newOption(content,icon,order)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			option.event:Fire()
 			self:hideMenu()
-		end		
+		end
+		input:Destroy()	
 	end)
 	
-	optionContainer.InputEnded:Connect(function(input)
+	--[[optionContainer.InputEnded:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch then
+			print(input.Position)
 			option.event:Fire()
 			self:hideMenu()
 		end		
-	end)
+	end)]] --Didn't work as expected
 	
 	optionContainer.TouchTap:Connect(function()
 		option.event:Fire()
