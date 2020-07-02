@@ -126,10 +126,8 @@ function Icon.new(name, imageId, order)
 					if input.UserInputState == Enum.UserInputState.End then
 						local currentPosition = Vector2.new(input.Position.X,input.Position.Y)
 						local currentTime = tick()
-						print(currentTime-firstTime)
 						if currentTime-firstTime <= self.maxTouchTime then
 							local magnitude = (firstPosition-currentPosition).Magnitude
-							print(magnitude)
 							if magnitude <= 32 then
 								if self.toggleStatus == "selected" then
 									self:deselect()
@@ -149,20 +147,6 @@ function Icon.new(name, imageId, order)
 		self:setImage(imageId)
 	end
 	
-	local iconInteract = {}
-	local interact = require(script:WaitForChild("InteractionMenu"))
-	iconInteract.new = function(...)
-		local interactionMenuReturn = interact.new(self,...)
-		self.interactionMenuReturn = interactionMenuReturn
-		return interactionMenuReturn
-	end
-	for i,v in pairs(interact) do
-		if v ~= interact.new then
-			table.insert(iconInteract,v)
-		end
-	end
-	self.interactionMenu = iconInteract
-	
 	container.Parent = topbarContainer
 	
 	return self
@@ -171,6 +155,12 @@ end
 
 
 -- METHODS
+function Icon:createDropdown(options)
+	local DropdownModule = require(script.Parent:WaitForChild("Dropdown"))
+	self.dropdown = DropdownModule.new(self,options)
+	return self.dropdown
+end
+
 function Icon:setImage(imageId)
 	local textureId = (tonumber(imageId) and "http://www.roblox.com/asset/?id="..imageId) or imageId
 	self.imageId = textureId
@@ -361,8 +351,8 @@ function Icon:destroy()
 	self:clearNotifications()
 	self._maid:clean()
 	self._fakeChatConnections:clean()
-	if self.interactionMenuReturn then
-		self.interactionMenuReturn:destroy()
+	if self.dropdown then
+		self.dropdown:destroy()
 	end
 end
 
