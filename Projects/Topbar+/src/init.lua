@@ -83,12 +83,12 @@ amount.TextColor3 = Color3.fromRGB(31, 33, 35)
 amount.TextScaled = true
 amount.Parent = notification
 
-local interactionMenu = Instance.new("Frame")
-interactionMenu.Name = "InteractionMenu"
-interactionMenu.BackgroundTransparency = 1
-interactionMenu.Visible = false
-interactionMenu.ClipsDescendants = true
-interactionMenu.Parent = topbarPlusGui
+local dropdown = Instance.new("Frame")
+dropdown.Name = "Dropdown"
+dropdown.BackgroundTransparency = 1
+dropdown.Visible = false
+dropdown.ClipsDescendants = true
+dropdown.Parent = topbarPlusGui
 
 local background = Instance.new("Frame")
 background.Name = "Background"
@@ -99,7 +99,7 @@ background.ZIndex = 10
 background.AnchorPoint = Vector2.new(0.5,0.5)
 background.Position = UDim2.new(0.5,0,0.5,0)
 background.Size = UDim2.new(1,0,1,-8)
-background.Parent = interactionMenu
+background.Parent = dropdown
 
 local topRect = Instance.new("ImageLabel")
 topRect.Name = "TopRoundedRect"
@@ -121,21 +121,15 @@ bottomRect.Image = "rbxasset://textures/ui/TopRoundedRect8px.png"
 topRect.AnchorPoint = Vector2.new(0,0)
 topRect.Position = UDim2.new(0,0,1,0)
 bottomRect.Parent = background
---[[
-local uiList = Instance.new("UIListLayout")
-uiList.Name = "_UIListLayout"
-uiList.SortOrder = Enum.SortOrder.LayoutOrder
-uiList.Parent = interactionMenu
-]]
 
 local uiSize = Instance.new("UISizeConstraint")
 uiSize.Name = "_UISizeConstraint"
 uiSize.MinSize = Vector2.new(140,0)
-uiSize.Parent = interactionMenu
+uiSize.Parent = dropdown
 
 local tempFolder = Instance.new("Folder")
 tempFolder.Name = "Temp"
-tempFolder.Parent = script:WaitForChild("Icon"):WaitForChild("InteractionMenu")
+tempFolder.Parent = script:WaitForChild("Dropdown")
 
 -- SETUP DIRECTORIES
 local projectName = "Topbar+"
