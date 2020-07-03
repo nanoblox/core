@@ -2,6 +2,7 @@
 local tweenService = game:GetService("TweenService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local userInputService = game:GetService("UserInputService")
+local guiService = game:GetService("GuiService")
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player.PlayerGui
 local topbarPlusGui = playerGui:WaitForChild("Topbar+")
@@ -110,7 +111,7 @@ function Icon.new(name, imageId, order)
 	self.maxTouchTime = 0.5
 	
 	if userInputService.MouseEnabled or userInputService.GamepadEnabled then
-		button.MouseButton1Click:Connect(function()
+		button.MouseButton1Down:Connect(function()
 			if self.toggleStatus == "selected" then
 				self:deselect()
 			else
@@ -118,34 +119,53 @@ function Icon.new(name, imageId, order)
 			end
 		end)
 	elseif userInputService.TouchEnabled then
+		local inputs = {}
 		button.InputBegan:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.Touch then
-				local firstPosition = Vector2.new(input.Position.X,input.Position.Y)
-				local firstTime = tick()
-				input.Changed:Connect(function()
-					if input.UserInputState == Enum.UserInputState.End then
-						local currentPosition = Vector2.new(input.Position.X,input.Position.Y)
-						local currentTime = tick()
-						if currentTime-firstTime <= self.maxTouchTime then
-							local magnitude = (firstPosition-currentPosition).Magnitude
-							if magnitude <= 32 then
-								if self.toggleStatus == "selected" then
-									self:deselect()
-								else
-									self:select()
-								end
-							end
-						end
+				local tTime = tick()
+				table.insert(inputs,tTime)
+				delay(self.maxTouchTime,function()
+					local index = table.find(inputs,tTime)
+					if index then
+						table.remove(inputs,index)
 					end
-					input:Destroy()
 				end)
 			end
+		end)
+		button.InputEnded:Connect(function(input)
+			local check = false
+			local currentTime = tick()
+			for i,v in pairs(inputs) do
+				if currentTime-v < self.maxTouchTime then
+					check = true
+					break
+				end
+			end
+			if check then
+				if self.toggleStatus == "selected" then
+					self:deselect()
+				else
+					self:select()
+				end
+			end
+			input:Destroy()
 		end)
 	end
 	
 	if imageId then
 		self:setImage(imageId)
 	end
+	
+	--[[userInputService.InputBegan:Connect(function(input,gpe)
+		if input.KeyCode == Enum.KeyCode.ButtonA then
+			if self.toggleStatus == "selected" then
+				self:deselect()
+			else
+				self:select()
+			end
+		end
+		input:Destroy()
+	end)]]
 	
 	container.Parent = topbarContainer
 	
