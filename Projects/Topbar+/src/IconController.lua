@@ -145,8 +145,8 @@ function IconController:createIcon(name, imageId, order)
 		end
 	end)
 	
-	if IconController:isControllerMode() then
-		if IconController:isConsoleMode() then
+	if isControllerMode() then
+		if isConsoleMode() then
 			icon:setCellSize(32*3)
 		else
 			icon:setCellSize(32*1.3)
@@ -158,11 +158,11 @@ function IconController:createIcon(name, imageId, order)
 	return icon
 end
 
-function IconController:isControllerMode()
+function isControllerMode()
 	return (userInputService.GamepadEnabled and not userInputService.MouseEnabled) or (IconController.forceController and userInputService.GamepadEnabled)
 end
 
-function IconController:isConsoleMode()
+function isConsoleMode()
 	return guiService:IsTenFootInterface()
 end
 
@@ -170,7 +170,8 @@ function IconController:setTopbarEnabled(bool)
 	local topbar = getTopbarPlusGui()
 	if not topbar then return end
 	local indicator = topbar.Indicator
-	if IconController:isControllerMode() then
+	if isControllerMode() then
+		indicator.Visible = checkTopbarEnabled()
 		if bool then
 			if topbar.TopbarContainer.Visible then return end
 			if hapticService:IsVibrationSupported(Enum.UserInputType.Gamepad1) and hapticService:IsMotorSupported(Enum.UserInputType.Gamepad1,Enum.VibrationMotor.Small) then
@@ -254,18 +255,18 @@ function IconController:setTopbarEnabled(bool)
 	end
 end
 
-function IconController:setContainerMode(mode)
+function IconController:enableControllerMode(bool)
 	local topbar = getTopbarPlusGui()
 	if not topbar then return end
 	local indicator = topbar.Indicator
 	local controllerOptionIcon = IconController:getIcon("_TopbarControllerOption")
-	if mode == "controller" then
+	if bool then
 		topbar.TopbarContainer.Position = UDim2.new(0,0,0,5)
 		topbar.TopbarContainer.Visible = false
 		indicator.Position = UDim2.new(0.5,0,0,5)
 		indicator.Image = "rbxassetid://5278151556"
-		indicator.Visible = true
-		local isConsole = IconController:isConsoleMode()
+		indicator.Visible = checkTopbarEnabled()
+		local isConsole = isConsoleMode()
 		for name,details in pairs(topbarIcons) do
 			if isConsole then
 				details.icon:setCellSize(32*3)
@@ -293,17 +294,17 @@ function IconController:setContainerMode(mode)
 			end
 		end
 		topbar.TopbarContainer.Position = UDim2.new(0,0,0,0)
-		topbar.TopbarContainer.Visible = true
+		topbar.TopbarContainer.Visible = checkTopbarEnabled()
 		indicator.Visible = false
 	end
 end
 
-function IconController:updateDevice()
-	if IconController:isControllerMode() then
-		IconController:setContainerMode("controller")
+function updateDevice()
+	if isControllerMode() then
+		IconController:enableControllerMode(true)
 		return
 	end
-	IconController:setContainerMode()
+	IconController:enableControllerMode()
 end
 
 function IconController:createFakeChat(theme)
@@ -450,7 +451,11 @@ coroutine.wrap(function()
 			return "SetCoreGuiEnabled was called instead of SetCore"
 		end
 		previousTopbarEnabled = topbarEnabled
-		IconController:setTopbarEnabled(topbarEnabled)
+		if isControllerMode() then
+			IconController:setTopbarEnabled(false)
+		else
+			IconController:setTopbarEnabled(topbarEnabled)
+		end
 		local icons = IconController:getAllIcons()
 		for _, icon in pairs(icons) do
 			icon.updated:Fire()
@@ -460,13 +465,13 @@ coroutine.wrap(function()
 	-- Display topbar icons when the Roblox menu is opened/closed
 	guiService.MenuClosed:Connect(function()
 		menuOpen = false
-		if not IconController:isControllerMode() then
+		if not isControllerMode() then
 			IconController:setTopbarEnabled(IconController.topbarEnabled)
 		end
 	end)
 	guiService.MenuOpened:Connect(function()
 		menuOpen = true
-		if IconController:isControllerMode() then
+		if isControllerMode() then
 			IconController:setTopbarEnabled(false)
 		else
 			IconController:setTopbarEnabled(IconController.topbarEnabled)
@@ -475,15 +480,15 @@ coroutine.wrap(function()
 end)()
 
 --Controller
-IconController:updateDevice()
-userInputService.GamepadConnected:Connect(IconController.updateDevice)
-userInputService.GamepadDisconnected:Connect(IconController.updateDevice)
-userInputService:GetPropertyChangedSignal("MouseEnabled"):Connect(IconController.updateDevice)
+updateDevice()
+userInputService.GamepadConnected:Connect(updateDevice)
+userInputService.GamepadDisconnected:Connect(updateDevice)
+userInputService:GetPropertyChangedSignal("MouseEnabled"):Connect(updateDevice)
 userInputService.InputBegan:Connect(function(input,gpe)
 	local topbar = getTopbarPlusGui()
 	if not topbar then return end
 	if input.KeyCode == Enum.KeyCode.DPadDown then
-		if not guiService.SelectedObject then
+		if not guiService.SelectedObject and checkTopbarEnabled() then
 			IconController:setTopbarEnabled(true)
 		end
 	elseif input.KeyCode == Enum.KeyCode.ButtonB then
@@ -495,18 +500,17 @@ end)
 local controllerOptionIcon = IconController:createIcon("_TopbarControllerOption","rbxassetid://5278150942",-99)
 controllerOptionIcon:setRight()
 controllerOptionIcon.deselectWhenOtherIconSelected = false
-if IconController:isControllerMode() then
-	controllerOptionIcon:setEnabled(false)
-elseif userInputService.GamepadEnabled then
+controllerOptionIcon:setEnabled(false)
+if not isControllerMode() and userInputService.GamepadEnabled then
 	controllerOptionIcon:setEnabled(true)
 end
 controllerOptionIcon.selected:Connect(function()
 	IconController.forceController = true
-	IconController:updateDevice()
+	updateDevice()
 end)
 controllerOptionIcon.deselected:Connect(function()
 	IconController.forceController = false
-	IconController:updateDevice()
+	updateDevice()
 end)
 
 return IconController
