@@ -77,7 +77,7 @@ function Icon.new(name, imageId, order)
 	self:setImageSize(20)
 	self.order = order or 1
 	self.enabled = true
-	self.rightSide = false
+	self.alignment = "left"
 	self.totalNotifications = 0
 	self.toggleFunction = function() end
 	self.hoverFunction = function() end
@@ -176,12 +176,17 @@ function Icon:setOrder(order)
 end
 
 function Icon:setLeft()
-	self.rightSide = false
+	self.alignment = "left"
+	self.updated:Fire()
+end
+
+function Icon:setMid()
+	self.alignment = "mid"
 	self.updated:Fire()
 end
 
 function Icon:setRight()
-	self.rightSide = true
+	self.alignment = "right"
 	self.updated:Fire()
 end
 
@@ -192,6 +197,11 @@ function Icon:setImageSize(pixelsX, pixelsY)
 	end
 	self.imageSize = Vector2.new(pixelsX, pixelsY)
 	self.objects.image.Size = UDim2.new(0, pixelsX, 0, pixelsY)
+end
+
+function Icon:setCellSize(pixelsX)
+	self.objects.container.Size = UDim2.new(0, pixelsX, 0, pixelsX)
+	self.updated:Fire()
 end
 
 function Icon:setEnabled(bool)

@@ -58,44 +58,71 @@ function IconController:createIcon(name, imageId, order)
 	end
 	
 	-- Events
+	local gap = 12
+	local function getIncrement(otherIcon)
+		local container = otherIcon.objects.container
+		local sizeX = container.Size.X.Offset
+		local increment = (sizeX + gap)
+		return increment
+	end
 	local function updateIcon()
 		assert(iconDetails, ("Failed to update Icon '%s': icon not found."):format(name))
 
 		iconDetails.order = icon.order or 1
-		local orderedIconDetails = {}
-		local rightOrderedIconDetails = {}
+		local defaultIncrement = 44
+		local alignmentDetails = {
+			left = {
+				startScale = 0,
+				getStartOffset = function() 
+					local offset = 104
+					if not starterGui:GetCoreGuiEnabled("Chat") then
+						offset = offset - defaultIncrement
+					end
+					return offset
+				end,
+				records = {},
+			},
+			mid = {
+				startScale = 0.5,
+				getStartOffset = function(totalIconX) 
+					return -totalIconX/2 + (gap/2)
+				end,
+				records = {},
+			},
+			right = {
+				startScale = 1,
+				getStartOffset = function(totalIconX) 
+					local offset = -totalIconX
+					if starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.PlayerList) or starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) or starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu) then
+						offset = offset - defaultIncrement
+					end
+					return offset
+				end,
+				records = {},
+			},
+		}
 		for _, details in pairs(topbarIcons) do
 			if details.icon.enabled == true then
-				if details.icon.rightSide then
-					table.insert(rightOrderedIconDetails, details)
-				else
-					table.insert(orderedIconDetails, details)
-				end
+				table.insert(alignmentDetails[details.icon.alignment].records, details)
 			end
-		end		
-		if #orderedIconDetails > 1 then
-			table.sort(orderedIconDetails, function(a,b) return a.order < b.order end)
 		end
-		if #rightOrderedIconDetails > 1 then
-			table.sort(rightOrderedIconDetails, function(a,b) return a.order < b.order end)
-		end
-		local leftStartPosition, rightStartPosition = 104, -90
-		local positionIncrement = 44
-		if not starterGui:GetCoreGuiEnabled("Chat") then
-			leftStartPosition = leftStartPosition - positionIncrement
-		end
-		if not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.PlayerList) and not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) and not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu) then
-			rightStartPosition = rightStartPosition + positionIncrement
-		end
-		for i, details in pairs(orderedIconDetails) do
-			local container = details.icon.objects.container
-			local iconX = leftStartPosition + (i-1)*positionIncrement
-			container.Position = UDim2.new(0, iconX, 0, 4)
-		end
-		for i, details in pairs(rightOrderedIconDetails) do
-			local container = details.icon.objects.container
-			local iconX = rightStartPosition - (i-1)*positionIncrement
-			container.Position = UDim2.new(1, iconX, 0, 4)
+		for alignment, alignmentInfo in pairs(alignmentDetails) do
+			local records = alignmentInfo.records
+			if #records > 1 then
+				table.sort(records, function(a,b) return a.order < b.order end)
+			end
+			local totalIconX = 0
+			for i, details in pairs(records) do
+				local increment = getIncrement(details.icon)
+				totalIconX = totalIconX + increment
+			end
+			local offsetX = alignmentInfo.getStartOffset(totalIconX)
+			for i, details in pairs(records) do
+				local container = details.icon.objects.container
+				local increment = getIncrement(details.icon)
+				container.Position = UDim2.new(alignmentInfo.startScale, offsetX, 0, 4)
+				offsetX = offsetX + increment
+			end
 		end
 		return true
 	end
