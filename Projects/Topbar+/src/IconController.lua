@@ -38,6 +38,7 @@ local menuOpen
 
 -- PROPERTIES
 IconController.topbarEnabled = true
+IconController.forceController = false
 
 -- METHODS
 function IconController:createIcon(name, imageId, order)
@@ -58,44 +59,76 @@ function IconController:createIcon(name, imageId, order)
 	end
 	
 	-- Events
+	local gap = 12
+	local function getIncrement(otherIcon)
+		local container = otherIcon.objects.container
+		local sizeX = container.Size.X.Offset
+		local increment = (sizeX + gap)
+		return increment
+	end
 	local function updateIcon()
 		assert(iconDetails, ("Failed to update Icon '%s': icon not found."):format(name))
-		
+
 		iconDetails.order = icon.order or 1
-		local orderedIconDetails = {}
-		local rightOrderedIconDetails = {}
+		local defaultIncrement = 44
+		local alignmentDetails = {
+			left = {
+				startScale = 0,
+				getStartOffset = function() 
+					local offset = 104
+					if not starterGui:GetCoreGuiEnabled("Chat") then
+						offset = offset - defaultIncrement
+					end
+					return offset
+				end,
+				records = {},
+			},
+			mid = {
+				startScale = 0.5,
+				getStartOffset = function(totalIconX) 
+					return -totalIconX/2 + (gap/2)
+				end,
+				records = {},
+			},
+			right = {
+				startScale = 1,
+				getStartOffset = function(totalIconX) 
+					local offset = -totalIconX
+					if starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.PlayerList) or starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) or starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu) then
+						offset = offset - defaultIncrement
+					end
+					return offset
+				end,
+				records = {},
+				reverseSort = true,
+			},
+		}
 		for _, details in pairs(topbarIcons) do
 			if details.icon.enabled == true then
-				if details.icon.rightSide then
-					table.insert(rightOrderedIconDetails, details)
-				else
-					table.insert(orderedIconDetails, details)
-				end
+				table.insert(alignmentDetails[details.icon.alignment].records, details)
 			end
 		end
-		if #orderedIconDetails > 1 then
-			table.sort(orderedIconDetails, function(a,b) return a.order < b.order end)
-		end
-		if #rightOrderedIconDetails > 1 then
-			table.sort(rightOrderedIconDetails, function(a,b) return a.order < b.order end)
-		end
-		local leftStartPosition, rightStartPosition = 104, -90
-		local positionIncrement = 44
-		if not starterGui:GetCoreGuiEnabled("Chat") then
-			leftStartPosition = leftStartPosition - positionIncrement
-		end
-		if not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.PlayerList) and not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) and not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu) then
-			rightStartPosition = rightStartPosition + positionIncrement
-		end
-		for i, details in pairs(orderedIconDetails) do
-			local container = details.icon.objects.container
-			local iconX = leftStartPosition + (i-1)*positionIncrement
-			container.Position = UDim2.new(0, iconX, 0, 4)
-		end
-		for i, details in pairs(rightOrderedIconDetails) do
-			local container = details.icon.objects.container
-			local iconX = rightStartPosition - (i-1)*positionIncrement
-			container.Position = UDim2.new(1, iconX, 0, 4)
+		for alignment, alignmentInfo in pairs(alignmentDetails) do
+			local records = alignmentInfo.records
+			if #records > 1 then
+				if alignmentInfo.reverseSort then
+					table.sort(records, function(a,b) return a.order > b.order end)
+				else
+					table.sort(records, function(a,b) return a.order < b.order end)
+				end
+			end
+			local totalIconX = 0
+			for i, details in pairs(records) do
+				local increment = getIncrement(details.icon)
+				totalIconX = totalIconX + increment
+			end
+			local offsetX = alignmentInfo.getStartOffset(totalIconX)
+			for i, details in pairs(records) do
+				local container = details.icon.objects.container
+				local increment = getIncrement(details.icon)
+				container.Position = UDim2.new(alignmentInfo.startScale, offsetX, 0, 4)
+				offsetX = offsetX + increment
+			end
 		end
 		return true
 	end
@@ -112,7 +145,165 @@ function IconController:createIcon(name, imageId, order)
 		end
 	end)
 	
+	if IconController:isControllerMode() then
+		if IconController:isConsoleMode() then
+			icon:setCellSize(32*3)
+		else
+			icon:setCellSize(32*1.3)
+		end
+		icon._previousAlignment = icon.alignment
+		icon:setMid()
+	end
+
 	return icon
+end
+
+function IconController:isControllerMode()
+	return (userInputService.GamepadEnabled and not userInputService.MouseEnabled) or (IconController.forceController and userInputService.GamepadEnabled)
+end
+
+function IconController:isConsoleMode()
+	return guiService:IsTenFootInterface()
+end
+
+function IconController:setTopbarEnabled(bool)
+	local topbar = getTopbarPlusGui()
+	if not topbar then return end
+	local indicator = topbar.Indicator
+	if IconController:isControllerMode() then
+		if bool then
+			if topbar.TopbarContainer.Visible then return end
+			if hapticService:IsVibrationSupported(Enum.UserInputType.Gamepad1) and hapticService:IsMotorSupported(Enum.UserInputType.Gamepad1,Enum.VibrationMotor.Small) then
+				hapticService:SetMotor(Enum.UserInputType.Gamepad1,Enum.VibrationMotor.Small,1)
+				delay(0.2,function()
+					pcall(function()
+						hapticService:SetMotor(Enum.UserInputType.Gamepad1,Enum.VibrationMotor.Small,0)
+					end)
+				end)
+			end
+			topbar.TopbarContainer.Visible = true
+			topbar.TopbarContainer:TweenPosition(
+				UDim2.new(0,0,0,5),
+				Enum.EasingDirection.Out,
+				Enum.EasingStyle.Quad,
+				0.1,
+				true
+			)
+			guiService:AddSelectionParent("TopbarPlus",topbar.TopbarContainer)
+			guiService.CoreGuiNavigationEnabled = false
+			guiService.GuiNavigationEnabled = true
+			
+			local selectObject
+			for name,details in pairs(topbarIcons) do
+				if details.icon.objects.container.Visible then
+					if not selectObject then
+						selectObject = details
+					elseif details.order > selectObject.order then
+						selectObject = details
+					end
+				end
+			end
+			if guiService:GetEmotesMenuOpen() then
+				guiService:SetEmotesMenuOpen(false)
+			end
+			if guiService:GetInspectMenuEnabled() then
+				guiService:CloseInspectMenu()
+			end
+			delay(0.15,function()
+				guiService.SelectedObject = selectObject.icon.objects.container
+			end)
+			indicator.Image = "rbxassetid://5278151071"
+			indicator:TweenPosition(
+				UDim2.new(0.5,0,0,topbar.TopbarContainer.Size.Y.Offset+20),
+				Enum.EasingDirection.Out,
+				Enum.EasingStyle.Quad,
+				0.1,
+				true
+			)
+		else
+			if not topbar.TopbarContainer.Visible then return end
+			guiService.AutoSelectGuiEnabled = true
+			guiService:RemoveSelectionGroup("TopbarPlus")
+			topbar.TopbarContainer:TweenPosition(
+				UDim2.new(0,0,0,-topbar.TopbarContainer.Size.Y.Offset),
+				Enum.EasingDirection.Out,
+				Enum.EasingStyle.Quad,
+				0.1,
+				true,
+				function()
+					topbar.TopbarContainer.Visible = false
+				end
+			)
+			indicator.Image = "rbxassetid://5278151556"
+			indicator:TweenPosition(
+				UDim2.new(0.5,0,0,5),
+				Enum.EasingDirection.Out,
+				Enum.EasingStyle.Quad,
+				0.1,
+				true
+			)
+		end
+	else
+		local topbarContainer = topbar.TopbarContainer
+		if menuOpen then
+			topbarContainer.Visible = false
+		else
+			topbarContainer.Visible = bool
+		end
+		IconController.topbarEnabled = bool
+	end
+end
+
+function IconController:setContainerMode(mode)
+	local topbar = getTopbarPlusGui()
+	if not topbar then return end
+	local indicator = topbar.Indicator
+	local controllerOptionIcon = IconController:getIcon("_TopbarControllerOption")
+	if mode == "controller" then
+		topbar.TopbarContainer.Position = UDim2.new(0,0,0,5)
+		topbar.TopbarContainer.Visible = false
+		indicator.Position = UDim2.new(0.5,0,0,5)
+		indicator.Image = "rbxassetid://5278151556"
+		indicator.Visible = true
+		local isConsole = IconController:isConsoleMode()
+		for name,details in pairs(topbarIcons) do
+			if isConsole then
+				details.icon:setCellSize(32*3)
+			else
+				details.icon:setCellSize(32*1.3)
+			end
+			details.icon._previousAlignment = details.icon.alignment
+			details.icon:setMid()
+		end
+		if controllerOptionIcon and not userInputService.MouseEnabled then
+			controllerOptionIcon:setEnabled(false)
+		end
+	else
+		if userInputService.GamepadEnabled and controllerOptionIcon then
+			--mouse user but might want to use controller
+			controllerOptionIcon:setEnabled(true)
+		elseif controllerOptionIcon then
+			controllerOptionIcon:setEnabled(false)
+		end
+		for name,details in pairs(topbarIcons) do
+			details.icon:setCellSize(32)
+			if details.icon._previousAlignment then
+				details.icon.alignment = details.icon._previousAlignment
+				details.icon.updated:Fire()
+			end
+		end
+		topbar.TopbarContainer.Position = UDim2.new(0,0,0,0)
+		topbar.TopbarContainer.Visible = true
+		indicator.Visible = false
+	end
+end
+
+function IconController:updateDevice()
+	if IconController:isControllerMode() then
+		IconController:setContainerMode("controller")
+		return
+	end
+	IconController:setContainerMode()
 end
 
 function IconController:createFakeChat(theme)
@@ -205,17 +396,6 @@ function IconController:removeFakeChat()
 	IconController:removeIcon(fakeChatName)
 end
 
-function IconController:setTopbarEnabled(newState)
-	local topbarPlusGui = getTopbarPlusGui()
-	local topbarContainer = topbarPlusGui.TopbarContainer
-	if menuOpen then
-		topbarContainer.Visible = false
-	else
-		topbarContainer.Visible = newState
-	end
-	IconController.topbarEnabled = newState
-end
-
 function IconController:setGameTheme(theme)
 	self.gameTheme = theme
 	local icons = self:getAllIcons()
@@ -280,12 +460,51 @@ coroutine.wrap(function()
 	-- Display topbar icons when the Roblox menu is opened/closed
 	guiService.MenuClosed:Connect(function()
 		menuOpen = false
-		IconController:setTopbarEnabled(IconController.topbarEnabled)
+		if not IconController:isControllerMode() then
+			IconController:setTopbarEnabled(IconController.topbarEnabled)
+		end
 	end)
 	guiService.MenuOpened:Connect(function()
 		menuOpen = true
-		IconController:setTopbarEnabled(IconController.topbarEnabled)
+		if IconController:isControllerMode() then
+			IconController:setTopbarEnabled(false)
+		else
+			IconController:setTopbarEnabled(IconController.topbarEnabled)
+		end
 	end)
 end)()
+
+--Controller
+IconController:updateDevice()
+userInputService.GamepadConnected:Connect(IconController.updateDevice)
+userInputService.GamepadDisconnected:Connect(IconController.updateDevice)
+userInputService:GetPropertyChangedSignal("MouseEnabled"):Connect(IconController.updateDevice)
+userInputService.InputBegan:Connect(function(input,gpe)
+	local topbar = getTopbarPlusGui()
+	if not topbar then return end
+	if input.KeyCode == Enum.KeyCode.DPadDown then
+		IconController:setTopbarEnabled(true)
+	elseif input.KeyCode == Enum.KeyCode.ButtonB then
+		IconController:setTopbarEnabled(false)
+	end
+	input:Destroy()
+end)
+
+local controllerOptionIcon = IconController:createIcon("_TopbarControllerOption","rbxassetid://5278150942",-99)
+controllerOptionIcon:setRight()
+controllerOptionIcon.deselectWhenOtherIconSelected = false
+if IconController:isControllerMode() then
+	controllerOptionIcon:setEnabled(false)
+elseif userInputService.GamepadEnabled then
+	controllerOptionIcon:setEnabled(true)
+end
+controllerOptionIcon.selected:Connect(function()
+	IconController.forceController = true
+	IconController:updateDevice()
+end)
+controllerOptionIcon.deselected:Connect(function()
+	IconController.forceController = false
+	IconController:updateDevice()
+end)
 
 return IconController
