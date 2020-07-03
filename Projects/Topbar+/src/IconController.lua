@@ -99,6 +99,7 @@ function IconController:createIcon(name, imageId, order)
 					return offset
 				end,
 				records = {},
+				reverseSort = true,
 			},
 		}
 		for _, details in pairs(topbarIcons) do
@@ -109,7 +110,11 @@ function IconController:createIcon(name, imageId, order)
 		for alignment, alignmentInfo in pairs(alignmentDetails) do
 			local records = alignmentInfo.records
 			if #records > 1 then
-				table.sort(records, function(a,b) return a.order < b.order end)
+				if alignmentInfo.reverseSort then
+					table.sort(records, function(a,b) return a.order > b.order end)
+				else
+					table.sort(records, function(a,b) return a.order < b.order end)
+				end
 			end
 			local totalIconX = 0
 			for i, details in pairs(records) do
