@@ -308,15 +308,13 @@ function dropdown:newOption(optionConfig,index)
 			option.data.clicked()
 			self:hide()
 		end
-		input:Destroy()	
+		input:Destroy()
 	end)
 	
 	optionContainer.TouchTap:Connect(function()
 		option.data.clicked()
 		self:hide()
 	end)
-	
-	--controller support
 	
 	if index then
 		optionConfig.order = index
