@@ -1,6 +1,8 @@
 -- LOCAL
 local starterGui = game:GetService("StarterGui")
 local guiService = game:GetService("GuiService")
+local hapticService = game:GetService("HapticService")
+local runService = game:GetService("RunService")
 local userInputService = game:GetService("UserInputService")
 local players = game:GetService("Players")
 local IconController = {}
@@ -22,7 +24,7 @@ local function getChatMain()
 end
 local function getTopbarPlusGui()
 	local player = game:GetService("Players").LocalPlayer
-	local playerGui = player.PlayerGui
+	local playerGui = player:WaitForChild("PlayerGui")
 	local topbarPlusGui = playerGui:WaitForChild("Topbar+")
 	return topbarPlusGui
 end
@@ -36,8 +38,6 @@ local menuOpen
 
 -- PROPERTIES
 IconController.topbarEnabled = true
-
-
 
 -- METHODS
 function IconController:createIcon(name, imageId, order)
@@ -60,7 +60,7 @@ function IconController:createIcon(name, imageId, order)
 	-- Events
 	local function updateIcon()
 		assert(iconDetails, ("Failed to update Icon '%s': icon not found."):format(name))
-
+		
 		iconDetails.order = icon.order or 1
 		local orderedIconDetails = {}
 		local rightOrderedIconDetails = {}
@@ -72,7 +72,7 @@ function IconController:createIcon(name, imageId, order)
 					table.insert(orderedIconDetails, details)
 				end
 			end
-		end		
+		end
 		if #orderedIconDetails > 1 then
 			table.sort(orderedIconDetails, function(a,b) return a.order < b.order end)
 		end
@@ -287,7 +287,5 @@ coroutine.wrap(function()
 		IconController:setTopbarEnabled(IconController.topbarEnabled)
 	end)
 end)()
-
-
 
 return IconController
