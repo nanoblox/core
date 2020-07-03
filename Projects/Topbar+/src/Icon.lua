@@ -1,291 +1,381 @@
 -- LOCAL
-local starterGui = game:GetService("StarterGui")
-local guiService = game:GetService("GuiService")
-local hapticService = game:GetService("HapticService")
-local runService = game:GetService("RunService")
+local tweenService = game:GetService("TweenService")
+local replicatedStorage = game:GetService("ReplicatedStorage")
 local userInputService = game:GetService("UserInputService")
-local players = game:GetService("Players")
-local IconController = {}
-local Icon = require(script.Parent.Icon)
-local topbarIcons = {}
-local fakeChatName = "_FakeChat"
-local function deepCopy(original)
-    local copy = {}
-    for k, v in pairs(original) do
-        if type(v) == "table" then
-            v = deepCopy(v)
-        end
-        copy[k] = v
-    end
-    return copy
-end
-local function getChatMain()
-	return players.LocalPlayer.PlayerScripts:WaitForChild("ChatScript").ChatMain
-end
-local function getTopbarPlusGui()
-	local player = game:GetService("Players").LocalPlayer
-	local playerGui = player:WaitForChild("PlayerGui")
-	local topbarPlusGui = playerGui:WaitForChild("Topbar+")
-	return topbarPlusGui
-end
-local function checkTopbarEnabled()
-	return(starterGui:GetCore("TopbarEnabled"))
-end
-local previousTopbarEnabled = checkTopbarEnabled()
-local menuOpen
+local guiService = game:GetService("GuiService")
+local player = game:GetService("Players").LocalPlayer
+local playerGui = player.PlayerGui
+local topbarPlusGui = playerGui:WaitForChild("Topbar+")
+local topbarContainer = topbarPlusGui.TopbarContainer
+local iconTemplate = topbarContainer["_IconTemplate"]
+local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
+local Signal = require(HDAdmin:WaitForChild("Signal"))
+local Maid = require(HDAdmin:WaitForChild("Maid"))
+local Icon = {}
+Icon.__index = Icon
 
 
 
--- PROPERTIES
-IconController.topbarEnabled = true
+-- CONSTRUCTOR
+function Icon.new(name, imageId, order)
+	local self = {}
+	setmetatable(self, Icon)
+	
+	local container = iconTemplate:Clone()
+	container.Name = name
+	container.Visible = true
+	local button = container.IconButton
+	
+	self.objects = {
+		["container"] = container,
+		["button"] = button,
+		["image"] = button.IconImage,
+		["notification"] = button.Notification,
+		["amount"] = button.Notification.Amount
+	}
+	
+	self.theme = {
+		-- TOGGLE EFFECT
+		["toggleTweenInfo"] = TweenInfo.new(0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		
+		-- OBJECT PROPERTIES
+		["container"] = {
+			selected = {},
+			deselected = {}
+		},
+		["button"] = {
+			selected = {
+				ImageColor3 = Color3.fromRGB(245, 245, 245),
+				ImageTransparency = 0.1
+			},
+			deselected = {
+				ImageColor3 = Color3.fromRGB(0, 0, 0),
+				ImageTransparency = 0.5
+			}
+		},
+		["image"] = {
+			selected = {
+				ImageColor3 = Color3.fromRGB(57, 60, 65),
+			},
+			deselected = {
+				ImageColor3 = Color3.fromRGB(255, 255, 255),
+			}
+		},
+		["notification"] = {
+			selected = {},
+			deselected = {},
+		},
+		["amount"] = {
+			selected = {},
+			deselected = {},
+		},
+	}
+	self.toggleStatus = "deselected"
+	self:applyThemeToAllObjects()
+	
+	self.name = name
+	self.imageId = imageId or 0
+	self:setImageSize(20)
+	self.order = order or 1
+	self.enabled = true
+	self.rightSide = false
+	self.totalNotifications = 0
+	self.toggleFunction = function() end
+	self.hoverFunction = function() end
+	self.deselectWhenOtherIconSelected = true
+	
+	local maid = Maid.new()
+	self._maid = maid
+	self._fakeChatConnections = Maid.new()
+	self.updated = maid:give(Signal.new())
+	self.selected = maid:give(Signal.new())
+	self.deselected = maid:give(Signal.new())
+	self.endNotifications = maid:give(Signal.new())
+	maid:give(container)
+	
+	--[[
+	local hoverInputs = {"InputBegan", "InputEnded"}
+	local originalTransparency = button.ImageTransparency
+	self:setHoverFunction(function(inputName)
+		local hovering = inputName == "InputBegan"
+		button.ImageTransparency = (hovering and originalTransparency + 0.2) or (self.theme.button.selected.ImageTransparency or originalTransparency)
+	end)
+	for _, inputName in pairs(hoverInputs) do
+		button[inputName]:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseMovement then
+				self.hoverFunction(inputName)
+			end
+		end)
+	end
+	--]]
+	self.maxTouchTime = 0.5
+	
+	if userInputService.MouseEnabled or userInputService.GamepadEnabled then
+		button.MouseButton1Down:Connect(function()
+			if self.toggleStatus == "selected" then
+				self:deselect()
+			else
+				self:select()
+			end
+		end)
+	elseif userInputService.TouchEnabled then
+		local inputs = {}
+		button.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch then
+				local tTime = tick()
+				table.insert(inputs,tTime)
+				delay(self.maxTouchTime,function()
+					local index = table.find(inputs,tTime)
+					if index then
+						table.remove(inputs,index)
+					end
+				end)
+			end
+		end)
+		button.InputEnded:Connect(function(input)
+			local check = false
+			local currentTime = tick()
+			for i,v in pairs(inputs) do
+				if currentTime-v < self.maxTouchTime then
+					check = true
+					break
+				end
+			end
+			if check then
+				if self.toggleStatus == "selected" then
+					self:deselect()
+				else
+					self:select()
+				end
+			end
+			input:Destroy()
+		end)
+	end
+	
+	if imageId then
+		self:setImage(imageId)
+	end
+	
+	--[[userInputService.InputBegan:Connect(function(input,gpe)
+		if input.KeyCode == Enum.KeyCode.ButtonA then
+			if self.toggleStatus == "selected" then
+				self:deselect()
+			else
+				self:select()
+			end
+		end
+		input:Destroy()
+	end)]]
+	
+	container.Parent = topbarContainer
+	
+	return self
+end
+
+
 
 -- METHODS
-function IconController:createIcon(name, imageId, order)
-	
-	-- Verify data
-	assert(not topbarIcons[name], ("icon '%s' already exists!"):format(name))
-	
-	-- Create and record icon
-	local icon = Icon.new(name, imageId, order)
-	local iconDetails = {name = name, icon = icon, order = icon.order}
-	topbarIcons[name] = iconDetails
-	icon:setOrder(icon.order)
-	
-	-- Apply game theme if found
-	local gameTheme = self.gameTheme
-	if gameTheme then
-		icon:setTheme(gameTheme)
+function Icon:createDropdown(options)
+	local DropdownModule = require(script.Parent:WaitForChild("Dropdown"))
+	self.dropdown = DropdownModule.new(self,options)
+	return self.dropdown
+end
+
+function Icon:setImage(imageId)
+	local textureId = (tonumber(imageId) and "http://www.roblox.com/asset/?id="..imageId) or imageId
+	self.imageId = textureId
+	self.objects.image.Image = textureId
+	self.theme.image = self.theme.image or {}
+	self.theme.image.selected = self.theme.image.selected or {}
+	self.theme.image.selected.Image = textureId
+end
+
+function Icon:setOrder(order)
+	self.order = tonumber(order) or 1
+	self.updated:Fire()
+end
+
+function Icon:setLeft()
+	self.rightSide = false
+	self.updated:Fire()
+end
+
+function Icon:setRight()
+	self.rightSide = true
+	self.updated:Fire()
+end
+
+function Icon:setImageSize(pixelsX, pixelsY)
+	pixelsX = tonumber(pixelsX) or self.imageSize
+	if not pixelsY then
+		pixelsY = pixelsX
 	end
-	
-	-- Events
-	local function updateIcon()
-		assert(iconDetails, ("Failed to update Icon '%s': icon not found."):format(name))
+	self.imageSize = Vector2.new(pixelsX, pixelsY)
+	self.objects.image.Size = UDim2.new(0, pixelsX, 0, pixelsY)
+end
+
+function Icon:setEnabled(bool)
+	self.enabled = bool
+	self.objects.container.Visible = bool
+	self.updated:Fire()
+end
+
+function Icon:setBaseZIndex(baseValue)
+	local container = self.objects.container
+	baseValue = tonumber(baseValue) or container.ZIndex
+	local difference = baseValue - container.ZIndex
+	if difference == 0 then
+		return "The baseValue is the same"
+	end
+	for _, object in pairs(self.objects) do
+		object.ZIndex = object.ZIndex + difference
+	end
+end
+
+function Icon:setToggleMenu(guiObject)
+	if not guiObject or not guiObject:IsA("GuiObject") then
+		guiObject = nil
+	end
+	self.toggleMenu = guiObject
+end
+
+function Icon:setToggleFunction(toggleFunction)
+	if type(toggleFunction) == "function" then
+		self.toggleFunction = toggleFunction
+	end
+end
+
+function Icon:setHoverFunction(hoverFunction)
+	if type(hoverFunction) == "function" then
+		self.hoverFunction = hoverFunction
+	end
+end
+
+function Icon:setTheme(themeDetails)
+	local function parseDetails(objectName, toggleDetails)
+		local errorBaseMessage = "Topbar+ | Failed to set theme:"
+		local object = self.objects[objectName]
+		if not object then
+			if objectName == "toggleTweenInfo" then
+				self.theme.toggleTweenInfo = toggleDetails
+			else
+				warn(("%s invalid objectName '%s'"):format(errorBaseMessage, objectName))
+			end
+			return false
+		end
+		for toggleStatus, propertiesTable in pairs(toggleDetails) do
+			local originalPropertiesTable = self.theme[objectName][toggleStatus]
+			if not originalPropertiesTable then
+				warn(("%s invalid toggleStatus '%s'. Use 'selected' or 'deselected'."):format(errorBaseMessage, toggleStatus))
+				return false
+			end
+			local oppositeToggleStatus = (toggleStatus == "selected" and "deselected") or "selected"
+			local oppositeGroup = self.theme[objectName][oppositeToggleStatus]
+			local group = self.theme[objectName][toggleStatus]
+			for key, value in pairs(propertiesTable) do
+				local oppositeKey = oppositeGroup[key]
+				if not oppositeKey then
+					oppositeGroup[key] = group[key]
+				end
+				group[key] = value
+			end
+			if toggleStatus == self.toggleStatus then
+				self:applyThemeToObject(objectName, toggleStatus)
+			end
+		end
+	end
+	for objectName, toggleDetails in pairs(themeDetails) do
+		parseDetails(objectName, toggleDetails)
+	end
+end
+
+function Icon:applyThemeToObject(objectName, toggleStatus)
+	local object = self.objects[objectName]
+	if object then
+		local propertiesTable = self.theme[objectName][(toggleStatus or self.toggleStatus)]
+		local toggleTweenInfo = self.theme.toggleTweenInfo
+		local invalidProperties = {"Image"}
+		local finalPropertiesTable = {}
+		for propName, propValue in pairs(propertiesTable) do
+			if table.find(invalidProperties, propName) then
+				object[propName] = propValue
+			else
+				finalPropertiesTable[propName] = propValue
+			end
+		end
+		tweenService:Create(object, toggleTweenInfo, finalPropertiesTable):Play()
+	end
+end
+
+function Icon:applyThemeToAllObjects(...)
+	for objectName, _ in pairs(self.theme) do
+		self:applyThemeToObject(objectName, ...)
+	end
+end
+
+function Icon:select()
+	self.toggleStatus = "selected"
+	self:applyThemeToAllObjects()
+	self.toggleFunction()
+	if self.toggleMenu then
+		self.toggleMenu.Visible = true
+	end
+	self.selected:Fire()
+end
+
+function Icon:deselect()
+	self.toggleStatus = "deselected"
+	self:applyThemeToAllObjects()
+	self.toggleFunction()
+	if self.toggleMenu then
+		self.toggleMenu.Visible = false
+	end
+	self.deselected:Fire()
+end
+
+function Icon:notify(clearNoticeEvent)
+	coroutine.wrap(function()
+		if not clearNoticeEvent then
+			clearNoticeEvent = self.deselected
+		end
+		self.totalNotifications = self.totalNotifications + 1
+		self.objects.amount.Text = (self.totalNotifications < 100 and self.totalNotifications) or "99+"
+		self.objects.notification.Visible = true
 		
-		iconDetails.order = icon.order or 1
-		local orderedIconDetails = {}
-		local rightOrderedIconDetails = {}
-		for _, details in pairs(topbarIcons) do
-			if details.icon.enabled == true then
-				if details.icon.rightSide then
-					table.insert(rightOrderedIconDetails, details)
-				else
-					table.insert(orderedIconDetails, details)
-				end
-			end
+		local notifComplete = Signal.new()
+		local endEvent = self.endNotifications:Connect(function()
+			notifComplete:Fire()
+		end)
+		local customEvent = clearNoticeEvent:Connect(function()
+			notifComplete:Fire()
+		end)
+			
+		notifComplete:Wait()
+		
+		endEvent:Disconnect()
+		customEvent:Disconnect()
+		notifComplete:Disconnect()
+		
+		self.totalNotifications = self.totalNotifications - 1
+		if self.totalNotifications < 1 then
+			self.objects.notification.Visible = false
 		end
-		if #orderedIconDetails > 1 then
-			table.sort(orderedIconDetails, function(a,b) return a.order < b.order end)
-		end
-		if #rightOrderedIconDetails > 1 then
-			table.sort(rightOrderedIconDetails, function(a,b) return a.order < b.order end)
-		end
-		local leftStartPosition, rightStartPosition = 104, -90
-		local positionIncrement = 44
-		if not starterGui:GetCoreGuiEnabled("Chat") then
-			leftStartPosition = leftStartPosition - positionIncrement
-		end
-		if not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.PlayerList) and not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) and not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu) then
-			rightStartPosition = rightStartPosition + positionIncrement
-		end
-		for i, details in pairs(orderedIconDetails) do
-			local container = details.icon.objects.container
-			local iconX = leftStartPosition + (i-1)*positionIncrement
-			container.Position = UDim2.new(0, iconX, 0, 4)
-		end
-		for i, details in pairs(rightOrderedIconDetails) do
-			local container = details.icon.objects.container
-			local iconX = rightStartPosition - (i-1)*positionIncrement
-			container.Position = UDim2.new(1, iconX, 0, 4)
-		end
-		return true
-	end
-	updateIcon()
-	icon.updated:Connect(function()
-		updateIcon()
-	end)
-	icon.selected:Connect(function()
-		local allIcons = self:getAllIcons()
-		for _, otherIcon in pairs(allIcons) do
-			if icon.deselectWhenOtherIconSelected and otherIcon ~= icon and otherIcon.deselectWhenOtherIconSelected and otherIcon.toggleStatus == "selected" then
-				otherIcon:deselect()
-			end
-		end
-	end)
-	
-	return icon
+	end)()
 end
 
-function IconController:createFakeChat(theme)
-	local chatMainModule = getChatMain()
-	local ChatMain = require(chatMainModule)
-	local iconName = fakeChatName
-	local icon = self:getIcon(iconName)
-	local function displayChatBar(visibility)
-		icon.ignoreVisibilityStateChange = true
-		ChatMain.CoreGuiEnabled:fire(visibility)
-		ChatMain.IsCoreGuiEnabled = false
-		ChatMain:SetVisible(visibility)
-		icon.ignoreVisibilityStateChange = nil
-	end
-	local function setIconEnabled(visibility)
-		icon.ignoreVisibilityStateChange = true
-		ChatMain.CoreGuiEnabled:fire(visibility)
-		icon:setEnabled(visibility)
-		starterGui:SetCoreGuiEnabled("Chat", false)
-		icon:deselect()
-		icon.updated:Fire()
-		icon.ignoreVisibilityStateChange = nil
-	end
-	if not icon then
-		icon = self:createIcon(iconName, "rbxasset://textures/ui/TopBar/chatOff.png", -1)
-		-- Open chat via Slash key
-		icon._fakeChatConnections:give(userInputService.InputEnded:connect(function(inputObject, gameProcessedEvent)
-			if gameProcessedEvent then
-				return "Another menu has priority"
-			elseif not(inputObject.KeyCode == Enum.KeyCode.Slash or inputObject.KeyCode == Enum.SpecialKey.ChatHotkey) then
-				return "No relavent key pressed"
-			elseif ChatMain.IsFocused() then
-				return "Chat bar already open"
-			elseif not icon.enabled then
-				return "Icon disabled"
-			end
-			ChatMain:FocusChatBar(true)
-			icon:select()
-		end))
-		-- ChatActive
-		icon._fakeChatConnections:give(ChatMain.VisibilityStateChanged:connect(function(visibility)
-			if not icon.ignoreVisibilityStateChange then
-				if visibility == true then
-					icon:select()
-				else
-					icon:deselect()
-				end
-			end
-		end))
-		-- Keep when other icons selected
-		icon.deselectWhenOtherIconSelected = false
-		-- Mimic chat notifications
-		icon._fakeChatConnections:give(ChatMain.MessagesChanged:connect(function()
-			if ChatMain:GetVisibility() == true then
-				return "ChatWindow was open"
-			end
-			icon:notify(icon.selected)
-		end))
-		-- Mimic visibility when StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, state) is called
-		icon._fakeChatConnections:give(ChatMain.CoreGuiEnabled:connect(function(newState)
-			if icon.ignoreVisibilityStateChange then
-				return "ignoreVisibilityStateChange enabled"
-			end
-			local topbarEnabled = checkTopbarEnabled()
-			if topbarEnabled ~= previousTopbarEnabled then
-				return "SetCore was called instead of SetCoreGuiEnabled"
-			end
-			setIconEnabled(newState)
-		end))
-	end
-	theme = (theme and deepCopy(theme)) or {}
-	theme.image = theme.image or {}
-	theme.image.selected = theme.image.selected or {}
-	theme.image.selected.Image = "rbxasset://textures/ui/TopBar/chatOn.png"
-	icon:setTheme(theme)
-	icon:setImageSize(20)
-	icon:setToggleFunction(function()
-		local isSelected = icon.toggleStatus == "selected"
-		displayChatBar(isSelected)
-	end)
-	setIconEnabled(starterGui:GetCoreGuiEnabled("Chat"))
-	return icon
+function Icon:clearNotifications()
+	self.endNotifications:Fire()
 end
 
-function IconController:removeFakeChat()
-	local icon = IconController:getIcon(fakeChatName)
-	local enabled = icon.enabled
-	icon._fakeChatConnections:clean()
-	starterGui:SetCoreGuiEnabled("Chat", enabled)
-	IconController:removeIcon(fakeChatName)
-end
-
-function IconController:setTopbarEnabled(newState)
-	local topbarPlusGui = getTopbarPlusGui()
-	local topbarContainer = topbarPlusGui.TopbarContainer
-	if menuOpen then
-		topbarContainer.Visible = false
-	else
-		topbarContainer.Visible = newState
-	end
-	IconController.topbarEnabled = newState
-end
-
-function IconController:setGameTheme(theme)
-	self.gameTheme = theme
-	local icons = self:getAllIcons()
-	for _, icon in pairs(icons) do
-	    icon:setTheme(theme)
+function Icon:destroy()
+	self:clearNotifications()
+	self._maid:clean()
+	self._fakeChatConnections:clean()
+	if self.dropdown then
+		self.dropdown:destroy()
 	end
 end
 
-function IconController:setDisplayOrder(value)
-	local topbarPlusGui = getTopbarPlusGui()
-	value = tonumber(value) or topbarPlusGui.DisplayOrder
-	topbarPlusGui.DisplayOrder = value
-end
-
-function IconController:getIcon(name)
-	local iconDetails = topbarIcons[name]
-	if not iconDetails then
-		return false
-	end
-	return iconDetails.icon
-end
-
-function IconController:getAllIcons()
-	local allIcons = {}
-	for _, details in pairs(topbarIcons) do
-		table.insert(allIcons, details.icon)
-	end
-	return allIcons
-end
-
-function IconController:removeIcon(name)
-	local iconDetails = topbarIcons[name]
-	assert(iconDetails, ("icon '%s' not found!"):format(name))
-	local icon = iconDetails.icon
-	icon:setEnabled(false)
-	icon:deselect()
-	icon.updated:Fire()
-	icon:destroy()
-	topbarIcons[name] = nil
-	return true
-end
 
 
-
--- BEHAVIOUR
-coroutine.wrap(function()
-	-- Mimic the enabling of the topbar when StarterGui:SetCore("TopbarEnabled", state) is called
-	local ChatMain = require(getChatMain())
-	ChatMain.CoreGuiEnabled:connect(function()
-		local topbarEnabled = checkTopbarEnabled()
-		if topbarEnabled == previousTopbarEnabled then
-			return "SetCoreGuiEnabled was called instead of SetCore"
-		end
-		previousTopbarEnabled = topbarEnabled
-		IconController:setTopbarEnabled(topbarEnabled)
-		local icons = IconController:getAllIcons()
-		for _, icon in pairs(icons) do
-			icon.updated:Fire()
-		end
-	end)
-	IconController:setTopbarEnabled(checkTopbarEnabled())
-	-- Display topbar icons when the Roblox menu is opened/closed
-	guiService.MenuClosed:Connect(function()
-		menuOpen = false
-		IconController:setTopbarEnabled(IconController.topbarEnabled)
-	end)
-	guiService.MenuOpened:Connect(function()
-		menuOpen = true
-		IconController:setTopbarEnabled(IconController.topbarEnabled)
-	end)
-end)()
-
-return IconController
+return Icon
