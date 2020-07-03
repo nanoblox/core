@@ -116,7 +116,6 @@ function IconController:createIcon(name, imageId, order)
 					table.sort(records, function(a,b) return a.order < b.order end)
 				end
 			end
-<<<<<<< HEAD
 			local totalIconX = 0
 			for i, details in pairs(records) do
 				local increment = getIncrement(details.icon)
@@ -129,32 +128,6 @@ function IconController:createIcon(name, imageId, order)
 				container.Position = UDim2.new(alignmentInfo.startScale, offsetX, 0, 4)
 				offsetX = offsetX + increment
 			end
-=======
-		end
-		if #orderedIconDetails > 1 then
-			table.sort(orderedIconDetails, function(a,b) return a.order < b.order end)
-		end
-		if #rightOrderedIconDetails > 1 then
-			table.sort(rightOrderedIconDetails, function(a,b) return a.order < b.order end)
-		end
-		local leftStartPosition, rightStartPosition = 104, -90
-		local positionIncrement = 44
-		if not starterGui:GetCoreGuiEnabled("Chat") then
-			leftStartPosition = leftStartPosition - positionIncrement
-		end
-		if not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.PlayerList) and not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) and not starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu) then
-			rightStartPosition = rightStartPosition + positionIncrement
-		end
-		for i, details in pairs(orderedIconDetails) do
-			local container = details.icon.objects.container
-			local iconX = leftStartPosition + (i-1)*positionIncrement
-			container.Position = UDim2.new(0, iconX, 0, 4)
-		end
-		for i, details in pairs(rightOrderedIconDetails) do
-			local container = details.icon.objects.container
-			local iconX = rightStartPosition - (i-1)*positionIncrement
-			container.Position = UDim2.new(1, iconX, 0, 4)
->>>>>>> 0767a5567b0166b114ec63f3289a425c3e855eeb
 		end
 		return true
 	end
