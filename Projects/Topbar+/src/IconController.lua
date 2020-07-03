@@ -483,7 +483,9 @@ userInputService.InputBegan:Connect(function(input,gpe)
 	local topbar = getTopbarPlusGui()
 	if not topbar then return end
 	if input.KeyCode == Enum.KeyCode.DPadDown then
-		IconController:setTopbarEnabled(true)
+		if not guiService.SelectedObject then
+			IconController:setTopbarEnabled(true)
+		end
 	elseif input.KeyCode == Enum.KeyCode.ButtonB then
 		IconController:setTopbarEnabled(false)
 	end
