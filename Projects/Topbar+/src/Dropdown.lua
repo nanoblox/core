@@ -1,5 +1,6 @@
 local contentProvider = game:GetService("ContentProvider")
 local replicatedStorage = game:GetService("ReplicatedStorage")
+local runService = game:GetService("RunService")
 local userInputService = game:GetService("UserInputService")
 local starterGui = game:GetService("StarterGui")
 local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
@@ -29,8 +30,8 @@ function dropdown.new(icon,options)
 	}
 	local preload = {}
 	
-	for _,optionData in ipairs(options) do
-		local option = self:newOption(optionData)
+	for i,optionData in ipairs(options) do
+		local option = self:newOption(optionData,i)
 		table.insert(preload,option.container.Icon)
 	end
 	
@@ -51,11 +52,17 @@ function dropdown.new(icon,options)
 		contentProvider:PreloadAsync(preload)
 	end)
 	
+	self:update()
 	return self
 end
 
 function dropdown:update()
 	local dropdownContainer = self.icon.objects.container.Parent.Parent.Dropdown
+	
+	if dropdownContainer.Visible then
+		self:hide()
+	end
+	
 	if not dropdownContainer then return end
 	dropdownContainer.Background.BackgroundColor3 = self.settings.backgroundColor
 	dropdownContainer.Background.BottomRoundedRect.ImageColor3 = self.settings.backgroundColor
@@ -63,6 +70,22 @@ function dropdown:update()
 	for _,option in pairs(self.options) do
 		option.container.TextLabel.TextColor3 = self.settings.textColor
 		option.container.Icon.ImageColor3 = self.settings.imageColor
+	end
+	
+	local isIcon = false
+	for _,optionData in pairs(self.options) do
+		if optionData.container.Icon.Image ~= "" then
+			isIcon = true
+		end
+	end
+	if isIcon then
+		for _,optionData in pairs(self.options) do
+			optionData.container.TextLabel.Position = UDim2.new(0.1,25,0.5,0)
+		end
+	else
+		for _,optionData in pairs(self.options) do
+			optionData.container.TextLabel.Position = UDim2.new(0,10,0.5,0)
+		end
 	end
 end
 
@@ -108,19 +131,6 @@ function dropdown:hide()
 			end
 		end
 	)
-end
-
-function dropdown:setBehaviour(options)
-	assert(typeof(options) == "table")
-	if options.tweenSpeed then
-		self.settings.tweenSpeed = options.tweenSpeed
-	end
-	if options.easingDirection then
-		self.settings.easingDirection = options.easingDirection
-	end
-	if options.easingStyle then
-		self.settings.easingStyle = options.easingStyle
-	end
 end
 
 local function ToScale(offsetUDim2,viewportSize)
@@ -181,6 +191,17 @@ function dropdown:show(position)
 	
 	self:update()
 	
+	if not userInputService.MouseEnabled and userInputService.TouchEnabled then
+		local clickSound = dropdownContainer.Parent:FindFirstChild("ClickSound")
+		if clickSound and clickSound.IsLoaded then
+			clickSound.TimePosition = 0.1
+			clickSound.Volume = 0.5
+			clickSound:Play()
+		else
+			contentProvider:PreloadAsync({clickSound})
+		end
+	end
+	
 	dropdownContainer.Size = UDim2.new(0.1,0,0,0)
 	dropdownContainer.Visible = true
 	dropdownContainer:TweenSize(
@@ -217,7 +238,7 @@ function dropdown:show(position)
 		input:Destroy()
 	end))
 	
-	if userInputService.MouseEnabled then
+	if userInputService.MouseEnabled and not runService:IsStudio() then
 		table.insert(self.tempConnections,userInputService.WindowFocusReleased:Connect(function()
 			self:hide()
 		end))
@@ -225,8 +246,8 @@ function dropdown:show(position)
 	
 end
 
-function dropdown:newOption(optionConfig)
-	assert(not self.options[optionConfig.name])
+function dropdown:newOption(optionConfig,index)
+	assert(not self.options[optionConfig.name],"There is already an option with that name")
 	
 	local optionContainer = Instance.new("Frame")
 	optionContainer.Name = "Option"
@@ -297,6 +318,10 @@ function dropdown:newOption(optionConfig)
 	
 	--controller support
 	
+	if index then
+		optionConfig.order = index
+	end
+	
 	if not optionConfig.order then
 		option.data.order = 1
 	end
@@ -317,6 +342,7 @@ function dropdown:newOption(optionConfig)
 	self.options[optionConfig.name] = option
 	optionContainer.Parent = script.Temp
 	
+	self:update()
 	return option
 end
 
@@ -329,6 +355,7 @@ function dropdown:removeOption(name)
 	else
 		warn("Could not find an option with that name.")
 	end
+	self:update()
 end
 
 function dropdown:destroy()
