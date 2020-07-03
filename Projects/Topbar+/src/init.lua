@@ -83,6 +83,8 @@ amount.TextColor3 = Color3.fromRGB(31, 33, 35)
 amount.TextScaled = true
 amount.Parent = notification
 
+
+--CREATE DROPDOWN
 local dropdown = Instance.new("Frame")
 dropdown.Name = "Dropdown"
 dropdown.BackgroundTransparency = 1
@@ -130,6 +132,11 @@ uiSize.Parent = dropdown
 local tempFolder = Instance.new("Folder")
 tempFolder.Name = "Temp"
 tempFolder.Parent = script:WaitForChild("Dropdown")
+
+local clickSound = Instance.new("Sound")
+clickSound.Name = "ClickSound"
+clickSound.SoundId = "rbxassetid://5273899897"
+clickSound.Parent = topbarPlusGui
 
 -- SETUP DIRECTORIES
 local projectName = "Topbar+"
