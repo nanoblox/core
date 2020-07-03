@@ -73,17 +73,6 @@ function Icon.new(name, imageId, order)
 	self.toggleStatus = "deselected"
 	self:applyThemeToAllObjects()
 	
-	self.name = name
-	self.imageId = imageId or 0
-	self:setImageSize(20)
-	self.order = order or 1
-	self.enabled = true
-	self.rightSide = false
-	self.totalNotifications = 0
-	self.toggleFunction = function() end
-	self.hoverFunction = function() end
-	self.deselectWhenOtherIconSelected = true
-	
 	local maid = Maid.new()
 	self._maid = maid
 	self._fakeChatConnections = Maid.new()
@@ -92,6 +81,18 @@ function Icon.new(name, imageId, order)
 	self.deselected = maid:give(Signal.new())
 	self.endNotifications = maid:give(Signal.new())
 	maid:give(container)
+
+	self.name = name
+	self.imageId = imageId or 0
+	self:setImageSize(20)
+	self:setCellSize(32)
+	self.order = order or 1
+	self.enabled = true
+	self.alignment = "left"
+	self.totalNotifications = 0
+	self.toggleFunction = function() end
+	self.hoverFunction = function() end
+	self.deselectWhenOtherIconSelected = true
 	
 	--[[
 	local hoverInputs = {"InputBegan", "InputEnded"}
@@ -196,12 +197,17 @@ function Icon:setOrder(order)
 end
 
 function Icon:setLeft()
-	self.rightSide = false
+	self.alignment = "left"
+	self.updated:Fire()
+end
+
+function Icon:setMid()
+	self.alignment = "mid"
 	self.updated:Fire()
 end
 
 function Icon:setRight()
-	self.rightSide = true
+	self.alignment = "right"
 	self.updated:Fire()
 end
 
@@ -217,6 +223,18 @@ end
 function Icon:setEnabled(bool)
 	self.enabled = bool
 	self.objects.container.Visible = bool
+	self.updated:Fire()
+end
+
+function Icon:setCellSize(pixelsX)
+	local originalPixelsX = self.cellSize
+	pixelsX = tonumber(pixelsX) or self.cellSize
+	if originalPixelsX then
+		local differenceMultiplier = pixelsX/originalPixelsX
+		self:setImageSize(self.imageSize.X*differenceMultiplier, self.imageSize.X*differenceMultiplier)
+	end
+	self.cellSize = pixelsX
+	self.objects.container.Size = UDim2.new(0, pixelsX, 0, pixelsX)
 	self.updated:Fire()
 end
 
