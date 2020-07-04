@@ -178,7 +178,7 @@ function dropdown:show(position)
 		containerSizeY = containerSizeY + data.container.Size.Y.Offset
 	end
 	
-	if self.settings.canHidePlayerlist and self.icon.rightSide and starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.PlayerList) then
+	if self.settings.canHidePlayerlist and self.icon.alignment == "right" and starterGui:GetCoreGuiEnabled(Enum.CoreGuiType.PlayerList) then
 		starterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList,false)
 		self.bringBackPlayerlist = true
 	end
