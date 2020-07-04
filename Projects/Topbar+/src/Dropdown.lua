@@ -149,13 +149,13 @@ function dropdown:show(position)
 	
 	if workspace.CurrentCamera then
 		local viewportSize = workspace.CurrentCamera.ViewportSize
-		local position = UDim2.new(
+		local newPosition = UDim2.new(
 			0,
 			math.clamp(dropdownContainer.Position.X.Offset,0,viewportSize.X-dropdownContainer.AbsoluteSize.X-16),
 			0,
 			math.clamp(dropdownContainer.Position.Y.Offset,40,viewportSize.Y-dropdownContainer.AbsoluteSize.Y)
 		)
-		dropdownContainer.Position = ToScale(position,viewportSize)
+		dropdownContainer.Position = ToScale(newPosition,viewportSize)
 	end
 	
 	for _,option in pairs(dropdownContainer:GetChildren()) do

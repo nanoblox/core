@@ -33,6 +33,7 @@ local function checkTopbarEnabled()
 end
 local previousTopbarEnabled = checkTopbarEnabled()
 local menuOpen
+local topbarUpdating = false
 
 
 
@@ -77,6 +78,13 @@ function IconController:createIcon(name, imageId, order)
 	local function updateIcon()
 		assert(iconDetails, ("Failed to update Icon '%s': icon not found."):format(name))
 
+		if topbarUpdating then -- This prevents the topbar updating and shifting icons more than it needs to
+			return false
+		end
+		topbarUpdating = true
+		runService.Heartbeat:Wait()
+		topbarUpdating = false
+		
 		iconDetails.order = icon.order or 1
 		local defaultIncrement = 44
 		local alignmentDetails = {
@@ -140,7 +148,7 @@ function IconController:createIcon(name, imageId, order)
 		end
 		return true
 	end
-	updateIcon()
+	coroutine.wrap(function() updateIcon() end)()
 	icon.updated:Connect(function()
 		updateIcon()
 	end)
@@ -197,9 +205,7 @@ function IconController:setTopbarEnabled(bool)
 			local selectObject
 			for name,details in pairs(topbarIcons) do
 				if details.icon.objects.container.Visible then
-					if not selectObject then
-						selectObject = details
-					elseif details.order > selectObject.order then
+					if not selectObject or details.order > selectObject.order then
 						selectObject = details
 					end
 				end
@@ -260,6 +266,10 @@ function IconController:enableControllerMode(bool)
 	if not topbar then return end
 	local indicator = topbar.Indicator
 	local controllerOptionIcon = IconController:getIcon("_TopbarControllerOption")
+	local expandIconScale = {
+		console = 3,
+		other = 1.3,
+	}
 	if bool then
 		topbar.TopbarContainer.Position = UDim2.new(0,0,0,5)
 		topbar.TopbarContainer.Visible = false
@@ -268,10 +278,11 @@ function IconController:enableControllerMode(bool)
 		indicator.Visible = checkTopbarEnabled()
 		local isConsole = isConsoleMode()
 		for name,details in pairs(topbarIcons) do
+			local icon = details.icon
 			if isConsole then
-				details.icon:setCellSize(32*3)
+				details.icon:setCellSize(icon.cellSize*expandIconScale.console)
 			else
-				details.icon:setCellSize(32*1.3)
+				details.icon:setCellSize(icon.cellSize*expandIconScale.other)
 			end
 			details.icon._previousAlignment = details.icon.alignment
 			details.icon:setMid()
@@ -286,8 +297,14 @@ function IconController:enableControllerMode(bool)
 		elseif controllerOptionIcon then
 			controllerOptionIcon:setEnabled(false)
 		end
+		local isConsole = isConsoleMode()
 		for name,details in pairs(topbarIcons) do
-			details.icon:setCellSize(32)
+			local icon = details.icon
+			if isConsole then
+				details.icon:setCellSize(icon.cellSize/expandIconScale.console)
+			else
+				details.icon:setCellSize(icon.cellSize/expandIconScale.other)
+			end
 			if details.icon._previousAlignment then
 				details.icon.alignment = details.icon._previousAlignment
 				details.icon.updated:Fire()

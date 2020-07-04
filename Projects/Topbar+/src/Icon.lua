@@ -229,7 +229,6 @@ function Icon:setCellSize(pixelsX)
 	end
 	self.cellSize = pixelsX
 	self.objects.container.Size = UDim2.new(0, pixelsX, 0, pixelsX)
-	self.updated:Fire()
 end
 
 function Icon:setEnabled(bool)
