@@ -459,12 +459,22 @@ end
 
 
 -- BEHAVIOUR
+local function updateTopbar()
+	local icons = IconController:getAllIcons()
+	for i, icon in pairs(icons) do
+		if i == 1 then
+			icon.updated:Fire()
+			break
+		end
+	end
+end
 coroutine.wrap(function()
 	-- Mimic the enabling of the topbar when StarterGui:SetCore("TopbarEnabled", state) is called
 	local ChatMain = require(getChatMain())
 	ChatMain.CoreGuiEnabled:connect(function()
 		local topbarEnabled = checkTopbarEnabled()
 		if topbarEnabled == previousTopbarEnabled then
+			updateTopbar()
 			return "SetCoreGuiEnabled was called instead of SetCore"
 		end
 		previousTopbarEnabled = topbarEnabled
@@ -473,10 +483,7 @@ coroutine.wrap(function()
 		else
 			IconController:setTopbarEnabled(topbarEnabled)
 		end
-		local icons = IconController:getAllIcons()
-		for _, icon in pairs(icons) do
-			icon.updated:Fire()
-		end
+		updateTopbar()
 	end)
 	IconController:setTopbarEnabled(checkTopbarEnabled())
 	-- Display topbar icons when the Roblox menu is opened/closed
