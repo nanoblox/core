@@ -170,6 +170,7 @@ function IconController:setTopbarEnabled(bool)
 	local topbar = getTopbarPlusGui()
 	if not topbar then return end
 	local indicator = topbar.Indicator
+	local toolTip = topbar.ToolTip
 	if isControllerMode() then
 		indicator.Visible = checkTopbarEnabled()
 		if bool then
@@ -211,6 +212,7 @@ function IconController:setTopbarEnabled(bool)
 				guiService:CloseInspectMenu()
 			end
 			delay(0.15,function()
+				guiService.SelectedObject = nil
 				guiService.SelectedObject = selectObject.icon.objects.container
 			end)
 			indicator.Image = "rbxassetid://5278151071"
@@ -243,6 +245,7 @@ function IconController:setTopbarEnabled(bool)
 				0.1,
 				true
 			)
+			toolTip.Visible = false
 		end
 	else
 		local topbarContainer = topbar.TopbarContainer
@@ -259,14 +262,15 @@ function IconController:enableControllerMode(bool)
 	local topbar = getTopbarPlusGui()
 	if not topbar then return end
 	local indicator = topbar.Indicator
+	local toolTip = topbar.ToolTip
 	local controllerOptionIcon = IconController:getIcon("_TopbarControllerOption")
 	if bool then
 		topbar.TopbarContainer.Position = UDim2.new(0,0,0,5)
 		topbar.TopbarContainer.Visible = false
-		indicator.Position = UDim2.new(0.5,0,0,5)
 		indicator.Image = "rbxassetid://5278151556"
 		indicator.Visible = checkTopbarEnabled()
 		local isConsole = isConsoleMode()
+		indicator.Position = UDim2.new(0.5,0,0,5)
 		for name,details in pairs(topbarIcons) do
 			if isConsole then
 				details.icon:setCellSize(32*3)
@@ -279,6 +283,9 @@ function IconController:enableControllerMode(bool)
 		if controllerOptionIcon and not userInputService.MouseEnabled then
 			controllerOptionIcon:setEnabled(false)
 		end
+		toolTip.AnchorPoint = Vector2.new(0.5,0)
+		toolTip.Position = UDim2.new(0.5,0,0,topbar.TopbarContainer.Size.Y.Offset+60)
+		toolTip.Visible = false
 	else
 		if userInputService.GamepadEnabled and controllerOptionIcon then
 			--mouse user but might want to use controller
@@ -296,13 +303,21 @@ function IconController:enableControllerMode(bool)
 		topbar.TopbarContainer.Position = UDim2.new(0,0,0,0)
 		topbar.TopbarContainer.Visible = checkTopbarEnabled()
 		indicator.Visible = false
+		toolTip.AnchorPoint = Vector2.new(0,1)
+		toolTip.Visible = false
 	end
 end
 
 function updateDevice()
 	if isControllerMode() then
+		for _,icon in pairs(topbarIcons) do
+			icon.icon._isControllerMode = true
+		end
 		IconController:enableControllerMode(true)
 		return
+	end
+	for _,icon in pairs(topbarIcons) do
+		icon.icon._isControllerMode = false
 	end
 	IconController:enableControllerMode()
 end
@@ -501,14 +516,17 @@ local controllerOptionIcon = IconController:createIcon("_TopbarControllerOption"
 controllerOptionIcon:setRight()
 controllerOptionIcon.deselectWhenOtherIconSelected = false
 controllerOptionIcon:setEnabled(false)
+controllerOptionIcon:setTip("Controller mode")
 if not isControllerMode() and userInputService.GamepadEnabled then
 	controllerOptionIcon:setEnabled(true)
 end
 controllerOptionIcon.selected:Connect(function()
+	controllerOptionIcon:setTip("Normal mode")
 	IconController.forceController = true
 	updateDevice()
 end)
 controllerOptionIcon.deselected:Connect(function()
+	controllerOptionIcon:setTip("Controller mode")
 	IconController.forceController = false
 	updateDevice()
 end)
