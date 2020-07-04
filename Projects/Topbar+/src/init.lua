@@ -138,6 +138,17 @@ clickSound.Name = "ClickSound"
 clickSound.SoundId = "rbxassetid://5273899897"
 clickSound.Parent = topbarPlusGui
 
+local indicator = Instance.new("ImageLabel")
+indicator.Name = "Indicator"
+indicator.BackgroundTransparency = 1
+indicator.Image = "rbxassetid://5278151556"
+indicator.Size = UDim2.new(0,32,0,32)
+indicator.AnchorPoint = Vector2.new(0.5,0)
+indicator.Position = UDim2.new(0.5,0,0,5)
+indicator.ScaleType = Enum.ScaleType.Fit
+indicator.Visible = false
+indicator.Parent = topbarPlusGui
+
 -- SETUP DIRECTORIES
 local projectName = "Topbar+"
 DirectoryService:createDirectory("ReplicatedStorage.HDAdmin."..projectName, script:GetChildren())
