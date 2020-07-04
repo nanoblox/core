@@ -41,6 +41,14 @@ IconController.topbarEnabled = true
 IconController.forceController = false
 
 -- METHODS
+local function isControllerMode()
+	return (userInputService.GamepadEnabled and not userInputService.MouseEnabled) or (IconController.forceController and userInputService.GamepadEnabled)
+end
+
+local function isConsoleMode()
+	return guiService:IsTenFootInterface()
+end
+
 function IconController:createIcon(name, imageId, order)
 	
 	-- Verify data
@@ -156,14 +164,6 @@ function IconController:createIcon(name, imageId, order)
 	end
 
 	return icon
-end
-
-function isControllerMode()
-	return (userInputService.GamepadEnabled and not userInputService.MouseEnabled) or (IconController.forceController and userInputService.GamepadEnabled)
-end
-
-function isConsoleMode()
-	return guiService:IsTenFootInterface()
 end
 
 function IconController:setTopbarEnabled(bool)
