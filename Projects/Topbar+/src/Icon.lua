@@ -2,6 +2,7 @@
 local tweenService = game:GetService("TweenService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local userInputService = game:GetService("UserInputService")
+local textService = game:GetService("TextService")
 local guiService = game:GetService("GuiService")
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player.PlayerGui
@@ -83,6 +84,7 @@ function Icon.new(name, imageId, order)
 	maid:give(container)
 
 	self.name = name
+	self.tip = ""
 	self.imageId = imageId or 0
 	self:setImageSize(20)
 	self:setCellSize(32)
@@ -110,6 +112,7 @@ function Icon.new(name, imageId, order)
 	end
 	--]]
 	self.maxTouchTime = 0.5
+	self._isControllerMode = false
 	
 	if userInputService.MouseEnabled or userInputService.GamepadEnabled then
 		button.MouseButton1Down:Connect(function()
@@ -157,16 +160,60 @@ function Icon.new(name, imageId, order)
 		self:setImage(imageId)
 	end
 	
-	--[[userInputService.InputBegan:Connect(function(input,gpe)
-		if input.KeyCode == Enum.KeyCode.ButtonA then
-			if self.toggleStatus == "selected" then
-				self:deselect()
+	self._hoverFunctions = {
+		enter = function(x,y)
+			if self.tip and self.tip ~= "" then
+				showToolTip(self.tip,Vector2.new(x,y),self._isControllerMode)
+				xpcall(function()
+					self.hoverFunction(true)
+				end,function(err)
+					warn("Hover function error: "..err)
+				end)
+				if self._mouseHoverTrack and self._mouseHoverTrack.Connected then
+					self._mouseHoverTrack:Disconnect()
+					self._mouseHoverTrack = nil
+				end
+				if self._isControllerMode then
+					local tempConnection
+					tempConnection = guiService:GetPropertyChangedSignal("SelectedObject"):Connect(function()
+						if tempConnection and tempConnection.Connected then
+							tempConnection:Disconnect()
+						end
+						xpcall(function()
+							self.hoverFunction(false)
+						end,function(err)
+							warn("Hover function error: "..err)
+						end)
+					end)
+				else
+					self._mouseHoverTrack = button.MouseMoved:Connect(setToolTipPosition)
+				end
 			else
-				self:select()
+				topbarPlusGui.ToolTip.Visible = false
 			end
+		end,
+		leave = function(x,y)
+			if self._mouseHoverTrack and self._mouseHoverTrack.Connected then
+				self._mouseHoverTrack:Disconnect()
+				self._mouseHoverTrack = nil
+			end
+			hideToolTip()
+			xpcall(function()
+				self.hoverFunction(true)
+			end,function(err)
+				warn("Hover function error: "..err)
+			end)
+		end,
+	}
+	
+	maid:give(button.MouseEnter:Connect(self._hoverFunctions.enter))
+	maid:give(button.MouseLeave:Connect(self._hoverFunctions.leave))
+	maid:give(guiService:GetPropertyChangedSignal("SelectedObject"):Connect(function()
+		if guiService.SelectedObject == self.objects.button then
+			self._hoverFunctions.enter()
 		end
-		input:Destroy()
-	end)]]
+	end))
+	
 	
 	container.Parent = topbarContainer
 	
@@ -176,6 +223,46 @@ end
 
 
 -- METHODS
+function setToolTipPosition(x,y)
+	local tipContainer = topbarPlusGui.ToolTip
+	
+	local camera = workspace.CurrentCamera
+	if camera then
+		local viewportSize = camera.ViewportSize
+		local posX = math.clamp(x,5,viewportSize.X-tipContainer.Size.X.Offset-53)
+		local posY = math.clamp(y,tipContainer.Size.Y.Offset+5,viewportSize.Y)
+		x = posX
+		y = posY
+	end
+	
+	tipContainer.Position = UDim2.new(0,x,0,y)
+end
+
+function showToolTip(tip,position,controllerMode)
+	local tipContainer = topbarPlusGui.ToolTip
+	local textSize = textService:GetTextSize(tip,12,Enum.Font.GothamSemibold,Vector2.new(1000,20-6))
+	tipContainer.Size = UDim2.new(0,textSize.X+6,0,20)
+	if not controllerMode then
+		setToolTipPosition(position.X,position.Y)
+	end
+	tipContainer.TextLabel.Text = tip
+	tipContainer.Visible = true
+end
+
+function hideToolTip()
+	local tipContainer = topbarPlusGui.ToolTip
+	tipContainer.Visible = false
+end
+
+function Icon:setTip(tip)
+	if tip then
+		assert(typeof(tip) == "string","Expected string, got "..typeof(tip))
+		self.tip = tip
+	else
+		self.tip = ""
+	end
+end
+
 function Icon:createDropdown(options)
 	local DropdownModule = require(script.Parent:WaitForChild("Dropdown"))
 	self.dropdown = DropdownModule.new(self,options)
