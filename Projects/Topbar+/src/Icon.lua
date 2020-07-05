@@ -267,9 +267,19 @@ function Icon:setTip(tip)
 end
 
 function Icon:createDropdown(options)
+	if self.dropdown then
+		self:destroyDropdown()
+	end
 	local DropdownModule = require(script.Parent:WaitForChild("Dropdown"))
 	self.dropdown = DropdownModule.new(self,options)
 	return self.dropdown
+end
+
+function Icon:destroyDropdown()
+	if self.dropdown then
+		self.dropdown:destroy()
+		self.dropdown = nil
+	end
 end
 
 function Icon:setImage(imageId)
