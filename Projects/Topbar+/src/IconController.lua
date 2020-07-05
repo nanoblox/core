@@ -31,6 +31,7 @@ end
 local function checkTopbarEnabled()
 	return(starterGui:GetCore("TopbarEnabled"))
 end
+local forceTopbarDisabled = false
 local previousTopbarEnabled = checkTopbarEnabled()
 local menuOpen
 
@@ -166,64 +167,80 @@ function IconController:createIcon(name, imageId, order)
 	return icon
 end
 
-function IconController:setTopbarEnabled(bool)
+function IconController:setTopbarEnabled(bool,forceBool)
+	if forceBool == nil then
+		forceBool = true
+	end
 	local topbar = getTopbarPlusGui()
 	if not topbar then return end
 	local indicator = topbar.Indicator
 	local toolTip = topbar.ToolTip
+	if forceBool and not bool then
+		forceTopbarDisabled = true
+	elseif forceBool and bool then
+		forceTopbarDisabled = false
+	end
 	if isControllerMode() then
-		indicator.Visible = checkTopbarEnabled()
 		if bool then
-			if topbar.TopbarContainer.Visible then return end
-			if hapticService:IsVibrationSupported(Enum.UserInputType.Gamepad1) and hapticService:IsMotorSupported(Enum.UserInputType.Gamepad1,Enum.VibrationMotor.Small) then
-				hapticService:SetMotor(Enum.UserInputType.Gamepad1,Enum.VibrationMotor.Small,1)
-				delay(0.2,function()
-					pcall(function()
-						hapticService:SetMotor(Enum.UserInputType.Gamepad1,Enum.VibrationMotor.Small,0)
+			if topbar.TopbarContainer.Visible or forceTopbarDisabled or menuOpen or not checkTopbarEnabled() then return end
+			if forceBool then
+				indicator.Visible = checkTopbarEnabled()
+			else
+				if hapticService:IsVibrationSupported(Enum.UserInputType.Gamepad1) and hapticService:IsMotorSupported(Enum.UserInputType.Gamepad1,Enum.VibrationMotor.Small) then
+					hapticService:SetMotor(Enum.UserInputType.Gamepad1,Enum.VibrationMotor.Small,1)
+					delay(0.2,function()
+						pcall(function()
+							hapticService:SetMotor(Enum.UserInputType.Gamepad1,Enum.VibrationMotor.Small,0)
+						end)
 					end)
-				end)
-			end
-			topbar.TopbarContainer.Visible = true
-			topbar.TopbarContainer:TweenPosition(
-				UDim2.new(0,0,0,5),
-				Enum.EasingDirection.Out,
-				Enum.EasingStyle.Quad,
-				0.1,
-				true
-			)
-			guiService:AddSelectionParent("TopbarPlus",topbar.TopbarContainer)
-			guiService.CoreGuiNavigationEnabled = false
-			guiService.GuiNavigationEnabled = true
-			
-			local selectObject
-			for name,details in pairs(topbarIcons) do
-				if details.icon.objects.container.Visible then
-					if not selectObject then
-						selectObject = details
-					elseif details.order > selectObject.order then
-						selectObject = details
+				end
+				topbar.TopbarContainer.Visible = true
+				topbar.TopbarContainer:TweenPosition(
+					UDim2.new(0,0,0,5),
+					Enum.EasingDirection.Out,
+					Enum.EasingStyle.Quad,
+					0.1,
+					true
+				)
+				guiService:AddSelectionParent("TopbarPlus",topbar.TopbarContainer)
+				guiService.CoreGuiNavigationEnabled = false
+				guiService.GuiNavigationEnabled = true
+				
+				local selectObject
+				for name,details in pairs(topbarIcons) do
+					if details.icon.objects.container.Visible then
+						if not selectObject then
+							selectObject = details
+						elseif details.order > selectObject.order then
+							selectObject = details
+						end
 					end
 				end
+				if guiService:GetEmotesMenuOpen() then
+					guiService:SetEmotesMenuOpen(false)
+				end
+				if guiService:GetInspectMenuEnabled() then
+					guiService:CloseInspectMenu()
+				end
+				delay(0.15,function()
+					guiService.SelectedObject = nil
+					guiService.SelectedObject = selectObject.icon.objects.container
+				end)
+				indicator.Image = "rbxassetid://5278151071"
+				indicator:TweenPosition(
+					UDim2.new(0.5,0,0,topbar.TopbarContainer.Size.Y.Offset+20),
+					Enum.EasingDirection.Out,
+					Enum.EasingStyle.Quad,
+					0.1,
+					true
+				)
 			end
-			if guiService:GetEmotesMenuOpen() then
-				guiService:SetEmotesMenuOpen(false)
-			end
-			if guiService:GetInspectMenuEnabled() then
-				guiService:CloseInspectMenu()
-			end
-			delay(0.15,function()
-				guiService.SelectedObject = nil
-				guiService.SelectedObject = selectObject.icon.objects.container
-			end)
-			indicator.Image = "rbxassetid://5278151071"
-			indicator:TweenPosition(
-				UDim2.new(0.5,0,0,topbar.TopbarContainer.Size.Y.Offset+20),
-				Enum.EasingDirection.Out,
-				Enum.EasingStyle.Quad,
-				0.1,
-				true
-			)
 		else
+			if forceBool then
+				indicator.Visible = false
+			else
+				indicator.Visible = checkTopbarEnabled()
+			end
 			if not topbar.TopbarContainer.Visible then return end
 			guiService.AutoSelectGuiEnabled = true
 			guiService:RemoveSelectionGroup("TopbarPlus")
@@ -251,10 +268,13 @@ function IconController:setTopbarEnabled(bool)
 		local topbarContainer = topbar.TopbarContainer
 		if menuOpen then
 			topbarContainer.Visible = false
-		else
+		elseif checkTopbarEnabled() then
+			print(menuOpen)
+			print(checkTopbarEnabled())
 			topbarContainer.Visible = bool
+		else
+			topbarContainer.Visible = false
 		end
-		IconController.topbarEnabled = bool
 	end
 end
 
@@ -467,32 +487,34 @@ coroutine.wrap(function()
 		end
 		previousTopbarEnabled = topbarEnabled
 		if isControllerMode() then
-			IconController:setTopbarEnabled(false)
+			IconController:setTopbarEnabled(false,false)
 		else
-			IconController:setTopbarEnabled(topbarEnabled)
+			IconController:setTopbarEnabled(topbarEnabled,false)
 		end
 		local icons = IconController:getAllIcons()
 		for _, icon in pairs(icons) do
 			icon.updated:Fire()
 		end
 	end)
-	IconController:setTopbarEnabled(checkTopbarEnabled())
-	-- Display topbar icons when the Roblox menu is opened/closed
-	guiService.MenuClosed:Connect(function()
-		menuOpen = false
-		if not isControllerMode() then
-			IconController:setTopbarEnabled(IconController.topbarEnabled)
-		end
-	end)
-	guiService.MenuOpened:Connect(function()
-		menuOpen = true
-		if isControllerMode() then
-			IconController:setTopbarEnabled(false)
-		else
-			IconController:setTopbarEnabled(IconController.topbarEnabled)
-		end
-	end)
+	IconController:setTopbarEnabled(checkTopbarEnabled(),false)
 end)()
+
+guiService.MenuClosed:Connect(function()
+	menuOpen = false
+	print("menuOpen: ",menuOpen)
+	if not isControllerMode() then
+		IconController:setTopbarEnabled(IconController.topbarEnabled,false)
+	end
+end)
+guiService.MenuOpened:Connect(function()
+	menuOpen = true
+	print("menuOpen: ",menuOpen)
+	if isControllerMode() then
+		IconController:setTopbarEnabled(false,false)
+	else
+		IconController:setTopbarEnabled(IconController.topbarEnabled,false)
+	end
+end)
 
 --Controller
 updateDevice()
@@ -504,10 +526,10 @@ userInputService.InputBegan:Connect(function(input,gpe)
 	if not topbar then return end
 	if input.KeyCode == Enum.KeyCode.DPadDown then
 		if not guiService.SelectedObject and checkTopbarEnabled() then
-			IconController:setTopbarEnabled(true)
+			IconController:setTopbarEnabled(true,false)
 		end
 	elseif input.KeyCode == Enum.KeyCode.ButtonB then
-		IconController:setTopbarEnabled(false)
+		IconController:setTopbarEnabled(false,false)
 	end
 	input:Destroy()
 end)
