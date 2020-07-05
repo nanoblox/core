@@ -83,14 +83,6 @@ function Icon.new(name, imageId, order)
 	self.endNotifications = maid:give(Signal.new())
 	maid:give(container)
 	
-	self.isSelected = false
-	self.selected:Connect(function()
-		self.isSelected = true
-	end)
-	self.deselected:Connect(function()
-		self.isSelected = false
-	end)
-	
 	self.name = name
 	self.tip = ""
 	self.imageId = imageId or 0
@@ -173,7 +165,7 @@ function Icon.new(name, imageId, order)
 	
 	self._hoverFunctions = {
 		enter = function(x,y)
-			if not self.isSelected and self.tip and self.tip ~= "" then
+			if self.toggleStatus == "deselected" and self.tip and self.tip ~= "" then
 				showToolTip(self.tip,Vector2.new(x,y),self._isControllerMode)
 				xpcall(function()
 					self.hoverFunction(true)
@@ -384,8 +376,8 @@ function Icon:setTheme(themeDetails)
 		if not object then
 			if objectName == "toggleTweenInfo" then
 				self.theme.toggleTweenInfo = toggleDetails
-			else
-				warn(("%s invalid objectName '%s'"):format(errorBaseMessage, objectName))
+			--[[else
+				warn(("%s invalid objectName '%s'"):format(errorBaseMessage, objectName))]]
 			end
 			return false
 		end
