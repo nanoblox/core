@@ -2,6 +2,7 @@
 local players = game:GetService("Players")
 local httpService = game:GetService("HttpService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
+local runService = game:GetService("RunService")
 local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
 local Signal = require(HDAdmin:WaitForChild("Signal"))
 local Maid = require(HDAdmin:WaitForChild("Maid"))
@@ -238,6 +239,8 @@ end
 function Zone:getPlayer(player)
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	local newPreviousPlayers = {}
+	local oldPreviousPlayers = self.previousPlayers
 	if hrp then
 		local charOffset = hrp.Size.Y * -1.4
 		local hum = char and char:FindFirstChild("Humanoid");
@@ -246,6 +249,19 @@ function Zone:getPlayer(player)
 		end
 		local origin = hrp.Position + Vector3.new(0, charOffset, 0)
 		local hitValidPart = self:castRay(origin, self.groupParts)
+		if hitValidPart then
+			if not oldPreviousPlayers[player] then
+				self.playerAdded:Fire(player)
+			end
+			newPreviousPlayers[player] = true
+			self.previousPlayers = newPreviousPlayers
+		else
+			if oldPreviousPlayers[player] then
+				self.playerRemoving:Fire(player)
+			end
+			newPreviousPlayers[player] = false
+			self.previousPlayers = newPreviousPlayers
+		end
 		return hitValidPart
 	end
 	return false
@@ -282,7 +298,7 @@ function Zone:getPlayers()
 	return playersInZone
 end
 
-function Zone:initLoop(loopDelay)
+function Zone:initLoop(loopDelay,localPlayerOnly)
 	loopDelay = tonumber(loopDelay) or 0.5
 	local loopId = httpService:GenerateGUID(false)
 	self.currentLoop = loopId
@@ -290,7 +306,11 @@ function Zone:initLoop(loopDelay)
 		self.loopInitialized = true
 		coroutine.wrap(function()
 			while self.currentLoop == loopId do
-				self:getPlayers()
+				if localPlayerOnly and runService:IsClient() then
+					self:getPlayer(players.LocalPlayer)
+				else
+					self:getPlayers()
+				end
 				wait(loopDelay)
 			end
 		end)()
