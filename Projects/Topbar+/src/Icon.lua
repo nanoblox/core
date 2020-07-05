@@ -119,6 +119,9 @@ function Icon.new(name, imageId, order)
 			if self.toggleStatus == "selected" then
 				self:deselect()
 			else
+				if not self._isControllerMode then
+					topbarPlusGui.ToolTip.Visible = false
+				end
 				self:select()
 			end
 		end)
