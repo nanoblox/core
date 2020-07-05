@@ -82,7 +82,15 @@ function Icon.new(name, imageId, order)
 	self.deselected = maid:give(Signal.new())
 	self.endNotifications = maid:give(Signal.new())
 	maid:give(container)
-
+	
+	self.isSelected = false
+	self.selected:Connect(function()
+		self.isSelected = true
+	end)
+	self.deselected:Connect(function()
+		self.isSelected = false
+	end)
+	
 	self.name = name
 	self.tip = ""
 	self.imageId = imageId or 0
@@ -165,7 +173,7 @@ function Icon.new(name, imageId, order)
 	
 	self._hoverFunctions = {
 		enter = function(x,y)
-			if self.tip and self.tip ~= "" then
+			if not self.isSelected and self.tip and self.tip ~= "" then
 				showToolTip(self.tip,Vector2.new(x,y),self._isControllerMode)
 				xpcall(function()
 					self.hoverFunction(true)
