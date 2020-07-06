@@ -1,6 +1,8 @@
 -- LOCAL
 local players = game:GetService("Players")
 local httpService = game:GetService("HttpService")
+local runService = game:GetService("RunService")
+local localPlayer = runService:IsClient() and players.LocalPlayer
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
 local Signal = require(HDAdmin:WaitForChild("Signal"))
@@ -73,7 +75,7 @@ function Zone:update()
 	end
 	
 	local scanned = {}
-	local function getTouchingParts(part)
+	local function getTouchingParts(part) -- This is to create clusters for getRandomPoint, *not* player detection
 		local connection = part.Touched:Connect(function() end)
 		local results = part:GetTouchingParts()
 		connection:Disconnect()
@@ -238,63 +240,79 @@ end
 function Zone:getPlayer(player)
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
-	if hrp then
-		local charOffset = hrp.Size.Y * -1.4
-		local hum = char and char:FindFirstChild("Humanoid");
-		if hum and hum:IsA("Humanoid") then
-			charOffset = -hrp.Size.Y/2 - hum.HipHeight + 0.5
-		end
-		local origin = hrp.Position + Vector3.new(0, charOffset, 0)
-		local hitValidPart = self:castRay(origin, self.groupParts)
-		return hitValidPart
+	if not hrp then
+		return false
 	end
-	return false
+	local charOffset = hrp.Size.Y * -1.4
+	local hum = char and char:FindFirstChild("Humanoid");
+	if hum and hum:IsA("Humanoid") then
+		charOffset = -hrp.Size.Y/2 - hum.HipHeight + 0.5
+	end
+	local origin = hrp.Position + Vector3.new(0, charOffset, 0)
+	local hitValidPart = self:castRay(origin, self.groupParts)
+	local originallyInZone = self.previousPlayers[player]
+	local nowInZone = false
+	if hitValidPart then
+		-- Player entered zone
+		if not originallyInZone then
+			self.previousPlayers[player] = true
+			self.playerAdded:Fire(player)
+		end
+		nowInZone = true
+	end
+	if originallyInZone and not nowInZone then
+		-- Player exited zone
+		self.previousPlayers[player] = nil
+		self.playerRemoving:Fire(player)
+	end
+	return hitValidPart
 end
 
 function Zone:getPlayers()
 	local playersInRegion = self:getPlayersInRegion()
 	local playersInZone = {}
-	local newPreviousPlayers = {}
-	local oldPreviousPlayers = self.previousPlayers
-	local playersAdded = {}
-	-- Check for players in zone
+	local playersScanned = {}
 	for _, player in pairs(playersInRegion) do
+		playersScanned[player] = true
 		if self:getPlayer(player) then
-			if not oldPreviousPlayers[player] then
-				table.insert(playersAdded, player)
-			end
-			newPreviousPlayers[player] = true
 			table.insert(playersInZone, player)
 		end
 	end
-	-- Update record of players before firing events otherwise the recursive monster will visit in your sleep
-	self.previousPlayers = newPreviousPlayers
-	-- Fire PlayerAdded event if necessary
-	for _, player in pairs(playersAdded) do
-		self.playerAdded:Fire(player)
-	end
-	-- Check if any players left zone
-	for player, _ in pairs(oldPreviousPlayers) do
-		if not newPreviousPlayers[player] then
-			self.playerRemoving:Fire(player)
+	for player, bool in pairs(self.previousPlayers) do
+		if not playersScanned[player] then -- This fires and removes players not registered in region check
+			self:getPlayer(player)
 		end
-	end 
+	end
 	return playersInZone
 end
 
-function Zone:initLoop(loopDelay)
+function Zone:initLoop(loopDelay, limitToLocalPlayer)
 	loopDelay = tonumber(loopDelay) or 0.5
 	local loopId = httpService:GenerateGUID(false)
 	self.currentLoop = loopId
 	if not self.loopInitialized then
 		self.loopInitialized = true
 		coroutine.wrap(function()
+			local nextUpdate = tick()
 			while self.currentLoop == loopId do
-				self:getPlayers()
-				wait(loopDelay)
+				local thisTick = tick()
+				if thisTick >= nextUpdate then
+					nextUpdate = thisTick + loopDelay
+					if limitToLocalPlayer and localPlayer then
+						print("IS CLIENT!")
+						self:getPlayer(localPlayer)
+					else
+						self:getPlayers()
+					end
+				end
+				runService.Heartbeat:Wait()
 			end
 		end)()
 	end
+end
+
+function Zone:initClientLoop(loopDelay)
+	self:initLoop(loopDelay, true)
 end
 
 function Zone:endLoop()
