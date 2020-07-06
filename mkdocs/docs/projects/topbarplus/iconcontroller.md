@@ -8,6 +8,23 @@ IconController:createIcon(name, imageId, order)
 Creates, stores and returns an icon, where ``name`` is a unique string identifying the icon, ``imageId`` an int representing the icons image, and ``order``, a number defining how the icon should be positioned in relation to neighbouring icons, greater values being shifted rightward.
 
 --------------------
+### setTopbarEnabled
+```lua
+IconController:setTopbarEnabled(bool,forceBool)
+```
+When set to false, hides all icons created with Topbar+. This can also be achieved by doing ``starterGui:SetCore("TopbarEnabled", bool)``.
+``forceBool`` forces topbar into going into the passed ``bool`` state, this does only affect the topbar when in controller mode.
+If in controller mode and ``forceBool`` is ``false`` then it will make the topbar move into/out of the screen, instead of making the topbar invisible.
+``forceBool`` defaults to true.
+
+--------------------
+### enableControllerMode
+```lua
+IconController:enableControllerMode(bool)
+```
+Used internally to enable/disable controller mode, but may be used to force a player into using controller mode.
+
+--------------------
 ### createFakeChat
 ```lua
 IconController:createFakeChat(theme)
@@ -20,13 +37,6 @@ Disables the default core chat icon, and creates and returns a new icon imitatin
 IconController:removeFakeChat()
 ```
 Destroys and removes references of the fake chat icon.
-
---------------------
-### setTopbarEnabled
-```lua
-IconController:setTopbarEnabled(bool)
-```
-When set to false, hides all icons created with Topbar+. This can also be achieved by doing ``StarterGui:SetCore("TopbarEnabled", bool)``.
 
 --------------------
 ### setGameTheme

@@ -44,6 +44,10 @@ iconButton.ImageColor3 = Color3.fromRGB(0, 0, 0)
 iconButton.ScaleType = Enum.ScaleType.Stretch
 iconButton.Parent = iconContainer
 
+local gradient = Instance.new("UIGradient")
+gradient.Enabled = false
+gradient.Parent = iconButton
+
 local iconImage = Instance.new("ImageLabel")
 iconImage.BackgroundTransparency = 1
 iconImage.Name = "IconImage"

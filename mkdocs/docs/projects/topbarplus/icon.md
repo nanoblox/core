@@ -14,6 +14,27 @@ Constructs a new icon where ``name`` is a unique string identifying the icon, ``
 
 # Methods
 --------------------
+### setTip
+```lua
+Icon:setTip(tip)
+```
+Sets the tip that is shown when hovering over the icon, ``nil`` or "" will result in no tip shown.
+
+--------------------
+### createDropdown
+```lua
+Icon:createDropdown(options)
+```
+Creates a dropdown that will be shown when the icon is right-clicked or long-pressed on mobile. Returns the dropdown created. If there already is a ``Icon.dropdown``, ``Icon:destroyDropdown()`` will be called before creating a new one.
+
+--------------------
+### destroyDropdown
+```lua
+Icon:destroyDropdown()
+```
+Destroys the dropdown and disconnects all connections to the ``Icon.dropdown``
+
+--------------------
 ### setImage
 ```lua
 Icon:setImage(imageId)
@@ -42,6 +63,13 @@ Icon:setRight()
 Aligns the icon on the right-side of the topbar. The greater the ``order``, the further *leftward* the icon will appear relative to other icons set-right.
 
 --------------------
+### setMid
+```lua
+Icon:setMid()
+```
+Aligns the icon in the middle of the topbar. The greater the ``order``, the further *rightward* the icon will appear relative to other icons set-middle.
+
+--------------------
 ### setImageSize
 ```lua
 Icon:setImageSize(width, height)
@@ -54,6 +82,14 @@ Sets the image size in pixels. Height will equal width if not specified.
 Icon:setEnabled(bool)
 ```
 Sets the icons visibility.
+
+--------------------
+### setCellSize
+```lua
+Icon:setCellSize(pixels)
+```
+Changes the size of the icon, the icon will be sized in an aspect ratio of 1:1, meaning it will be the same width and height as the argument ``pixels``.
+Default is 32px.
 
 --------------------
 ### setBaseZIndex
@@ -83,9 +119,7 @@ Sets a function that is called every time the icon is selected and deselected.
 ```lua
 Icon:setHoverFunction(hoverFunction)
 ```
-Sets a function that is called when the icon is (un)highlighted
-!!! warning
-    This method is likely to change. It's recommended not to use for the time being.
+Whenver the icon gets highlighted or unhighlighted, the function set is called and a boolean is passed telling if the icon got highlighted or unhighlighted.
 
 --------------------
 ### setTheme
@@ -93,6 +127,20 @@ Sets a function that is called when the icon is (un)highlighted
 Icon:setTheme(themeDetails)
 ```
 Applies the specified theme to the icon. See ``Icon.theme`` for details on creating a theme.
+
+--------------------
+### applyThemeToObject
+```lua
+Icon:applyThemeToObject(objectName, toggleStatus)
+```
+Used internally to apply the theme set to the object, in ``Icon.objects``, with the name passed.
+
+--------------------
+### applyThemeToAllObjects
+```lua
+Icon:applyThemeToAllObjects()
+```
+Used internally to apply the set theme to all objects.
 
 --------------------
 ### select
@@ -211,6 +259,7 @@ A dictionary of instances that make up the icon.
 | **image**           | *ImageLabel*     | The icon image.                                |
 | **notification**    | *ImageLabel*     | The notification container and background.     |
 | **amount**          | *TextLabel*      | The notification amount text.                  |
+| **gradient**        | *UIGradient*     | The gradient used to make the icon look fancy. |
 
 
 
@@ -230,6 +279,7 @@ A dictionary describing the icons theme. To change, use ``Icon:setTheme()``.
 | **image**           | *ToggleDetails*  | (See below)                                    |
 | **notification**    | *ToggleDetails*  | (See below)                                    |
 | **amount**          | *ToggleDetails*  | (See below)                                    |
+| **gradient**        | *ToggleDetails*  | (See below)                                    |
 
 ***ToggleDetails***
 
@@ -284,6 +334,10 @@ defaultThemeDetails = {
         selected = {},
         deselected = {},
     },
+    ["gradient"] = {
+        selected = {},
+        deselected = {},
+    },
 }
 ```
 
@@ -306,6 +360,14 @@ Icon.name
 The icon creation name.
 
 --------------------
+### tip
+*(read only)*
+```lua
+Icon.tip
+```
+The tip shown when the icon is highlighted (mouse hovering over the icon or gamepad selection has the icon selected).
+
+--------------------
 ### imageId
 *(read only)*
 ```lua
@@ -320,6 +382,7 @@ The icons imageId. To change, use ``Icon:setImage()``.
 Icon.imageSize
 ```
 A Vector2 representing the images size. To change, use ``Icon:setImageSize()``.
+Default: 20px
 
 --------------------
 ### order
@@ -336,6 +399,14 @@ The icons order. This determines whether the icon comes before or after other ic
 Icon.order
 ```
 A bool describing whether the icon is enabled or not. To change, use ``Icon:setEnabled()``.
+
+--------------------
+### alignment
+*(read only)*
+```lua
+Icon.alignment
+```
+A string describing the alignment of the icon, there are three alignments: ``left``, ``mid``, ``right``
 
 --------------------
 ### totalNotifications

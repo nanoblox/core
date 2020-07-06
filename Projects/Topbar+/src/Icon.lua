@@ -1,6 +1,7 @@
 -- LOCAL
 local tweenService = game:GetService("TweenService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
+local debris = game:GetService("Debris")
 local userInputService = game:GetService("UserInputService")
 local textService = game:GetService("TextService")
 local guiService = game:GetService("GuiService")
@@ -32,7 +33,8 @@ function Icon.new(name, imageId, order)
 		["button"] = button,
 		["image"] = button.IconImage,
 		["notification"] = button.Notification,
-		["amount"] = button.Notification.Amount
+		["amount"] = button.Notification.Amount,
+		["gradient"] = button.UIGradient
 	}
 	
 	self.theme = {
@@ -70,6 +72,10 @@ function Icon.new(name, imageId, order)
 			selected = {},
 			deselected = {},
 		},
+		["gradient"] = {
+			selected = {},
+			deselected = {},
+		}
 	}
 	self.toggleStatus = "deselected"
 	self:applyThemeToAllObjects()
@@ -82,7 +88,7 @@ function Icon.new(name, imageId, order)
 	self.deselected = maid:give(Signal.new())
 	self.endNotifications = maid:give(Signal.new())
 	maid:give(container)
-
+	
 	self.name = name
 	self.tip = ""
 	self.imageId = imageId or 0
@@ -165,7 +171,7 @@ function Icon.new(name, imageId, order)
 	
 	self._hoverFunctions = {
 		enter = function(x,y)
-			if self.tip and self.tip ~= "" then
+			if self.toggleStatus == "deselected" and self.tip and self.tip ~= "" then
 				showToolTip(self.tip,Vector2.new(x,y),self._isControllerMode)
 				xpcall(function()
 					self.hoverFunction(true)
@@ -267,9 +273,19 @@ function Icon:setTip(tip)
 end
 
 function Icon:createDropdown(options)
+	if self.dropdown then
+		self:destroyDropdown()
+	end
 	local DropdownModule = require(script.Parent:WaitForChild("Dropdown"))
 	self.dropdown = DropdownModule.new(self,options)
 	return self.dropdown
+end
+
+function Icon:destroyDropdown()
+	if self.dropdown then
+		self.dropdown:destroy()
+		self.dropdown = nil
+	end
 end
 
 function Icon:setImage(imageId)
@@ -360,6 +376,7 @@ function Icon:setHoverFunction(hoverFunction)
 end
 
 function Icon:setTheme(themeDetails)
+	local gradientEnabled = false
 	local function parseDetails(objectName, toggleDetails)
 		local errorBaseMessage = "Topbar+ | Failed to set theme:"
 		local object = self.objects[objectName]
@@ -381,6 +398,9 @@ function Icon:setTheme(themeDetails)
 			local oppositeGroup = self.theme[objectName][oppositeToggleStatus]
 			local group = self.theme[objectName][toggleStatus]
 			for key, value in pairs(propertiesTable) do
+				if objectName == "gradient" then
+					gradientEnabled = true
+				end
 				local oppositeKey = oppositeGroup[key]
 				if not oppositeKey then
 					oppositeGroup[key] = group[key]
@@ -395,6 +415,7 @@ function Icon:setTheme(themeDetails)
 	for objectName, toggleDetails in pairs(themeDetails) do
 		parseDetails(objectName, toggleDetails)
 	end
+	self.objects.gradient.Enabled = gradientEnabled
 end
 
 function Icon:applyThemeToObject(objectName, toggleStatus)
@@ -402,16 +423,22 @@ function Icon:applyThemeToObject(objectName, toggleStatus)
 	if object then
 		local propertiesTable = self.theme[objectName][(toggleStatus or self.toggleStatus)]
 		local toggleTweenInfo = self.theme.toggleTweenInfo
-		local invalidProperties = {"Image"}
+		local invalidProperties = {"Image","Color","NumberSequence"}
 		local finalPropertiesTable = {}
+		local noTweenTable = {}
 		for propName, propValue in pairs(propertiesTable) do
+			if propName == "Transparency" and object:IsA("UIGradient") then
+				object[propName] = propValue
+				continue
+			end
 			if table.find(invalidProperties, propName) then
 				object[propName] = propValue
 			else
 				finalPropertiesTable[propName] = propValue
 			end
 		end
-		tweenService:Create(object, toggleTweenInfo, finalPropertiesTable):Play()
+		local tween = tweenService:Create(object, toggleTweenInfo, finalPropertiesTable):Play()
+		debris:AddItem(tween,toggleTweenInfo.Time)
 	end
 end
 
