@@ -50,6 +50,26 @@ local function isConsoleMode()
 	return guiService:IsTenFootInterface()
 end
 
+local function getScaleMultiplier()
+	if isConsoleMode() then
+		return 3
+	else
+		return 1.3
+	end
+end
+
+local function updateIconCellSize(icon, controllerEnabled)
+	if not controllerEnabled then
+		icon:setCellSize(icon._originalCellSize)
+		icon._originalCellSize = nil
+		return
+	end
+	local cellSize = icon._originalCellSize or icon.cellSize
+	icon._originalCellSize = cellSize
+	local scaleMultiplier = getScaleMultiplier()
+	icon:setCellSize(cellSize*scaleMultiplier)
+end
+
 function IconController:createIcon(name, imageId, order)
 	
 	-- Verify data
@@ -162,11 +182,7 @@ function IconController:createIcon(name, imageId, order)
 	end)
 	
 	if isControllerMode() then
-		if isConsoleMode() then
-			icon:setCellSize(32*3)
-		else
-			icon:setCellSize(32*1.3)
-		end
+		updateIconCellSize(icon, true)
 		icon._previousAlignment = icon.alignment
 		icon:setMid()
 	end
@@ -203,11 +219,19 @@ function IconController:setTopbarEnabled(bool)
 			guiService.GuiNavigationEnabled = true
 			
 			local selectObject
+			local targetOffset = 0
+			runService.Heartbeat:Wait()
+			local indicatorSizeTrip = 50 --indicator.AbsoluteSize.Y * 2
 			for name,details in pairs(topbarIcons) do
-				if details.icon.objects.container.Visible then
+				local container = details.icon.objects.container
+				if container.Visible then
 					if not selectObject or details.order > selectObject.order then
 						selectObject = details
 					end
+				end
+				local newTargetOffset = -27 + container.AbsoluteSize.Y + indicatorSizeTrip
+				if newTargetOffset > targetOffset then
+					targetOffset = newTargetOffset
 				end
 			end
 			if guiService:GetEmotesMenuOpen() then
@@ -221,7 +245,7 @@ function IconController:setTopbarEnabled(bool)
 			end)
 			indicator.Image = "rbxassetid://5278151071"
 			indicator:TweenPosition(
-				UDim2.new(0.5,0,0,topbar.TopbarContainer.Size.Y.Offset+20),
+				UDim2.new(0.5,0,0,targetOffset),
 				Enum.EasingDirection.Out,
 				Enum.EasingStyle.Quad,
 				0.1,
@@ -266,24 +290,18 @@ function IconController:enableControllerMode(bool)
 	if not topbar then return end
 	local indicator = topbar.Indicator
 	local controllerOptionIcon = IconController:getIcon("_TopbarControllerOption")
-	local expandIconScale = {
-		console = 3,
-		other = 1.3,
-	}
 	if bool then
 		topbar.TopbarContainer.Position = UDim2.new(0,0,0,5)
 		topbar.TopbarContainer.Visible = false
+		local scaleMultiplier = getScaleMultiplier()
 		indicator.Position = UDim2.new(0.5,0,0,5)
+		indicator.Size = UDim2.new(0, 18*scaleMultiplier, 0, 18*scaleMultiplier)
 		indicator.Image = "rbxassetid://5278151556"
 		indicator.Visible = checkTopbarEnabled()
 		local isConsole = isConsoleMode()
 		for name,details in pairs(topbarIcons) do
 			local icon = details.icon
-			if isConsole then
-				details.icon:setCellSize(icon.cellSize*expandIconScale.console)
-			else
-				details.icon:setCellSize(icon.cellSize*expandIconScale.other)
-			end
+			updateIconCellSize(icon, true)
 			details.icon._previousAlignment = details.icon.alignment
 			details.icon:setMid()
 		end
@@ -300,11 +318,7 @@ function IconController:enableControllerMode(bool)
 		local isConsole = isConsoleMode()
 		for name,details in pairs(topbarIcons) do
 			local icon = details.icon
-			if isConsole then
-				details.icon:setCellSize(icon.cellSize/expandIconScale.console)
-			else
-				details.icon:setCellSize(icon.cellSize/expandIconScale.other)
-			end
+			updateIconCellSize(icon, false)
 			if details.icon._previousAlignment then
 				details.icon.alignment = details.icon._previousAlignment
 				details.icon.updated:Fire()

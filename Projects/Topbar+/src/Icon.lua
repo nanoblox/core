@@ -178,7 +178,7 @@ end
 -- METHODS
 function Icon:createDropdown(options)
 	local DropdownModule = require(script.Parent:WaitForChild("Dropdown"))
-	self.dropdown = DropdownModule.new(self,options)
+	self.dropdown = self._maid:give(DropdownModule.new(self,options))
 	return self.dropdown
 end
 
@@ -400,9 +400,6 @@ function Icon:destroy()
 	self:clearNotifications()
 	self._maid:clean()
 	self._fakeChatConnections:clean()
-	if self.dropdown then
-		self.dropdown:destroy()
-	end
 end
 
 
