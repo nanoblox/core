@@ -307,6 +307,8 @@ function IconController:enableControllerMode(bool)
 		end
 		if controllerOptionIcon and not userInputService.MouseEnabled then
 			controllerOptionIcon:setEnabled(false)
+		else
+			controllerOptionIcon:setEnabled(true)
 		end
 		toolTip.AnchorPoint = Vector2.new(0.5,0)
 		toolTip.Position = UDim2.new(0.5,0,0,topbar.TopbarContainer.Size.Y.Offset+60)
