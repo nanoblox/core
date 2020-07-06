@@ -299,7 +299,6 @@ function Zone:initLoop(loopDelay, limitToLocalPlayer)
 				if thisTick >= nextUpdate then
 					nextUpdate = thisTick + loopDelay
 					if limitToLocalPlayer and localPlayer then
-						print("IS CLIENT!")
 						self:getPlayer(localPlayer)
 					else
 						self:getPlayers()
