@@ -383,8 +383,8 @@ function Icon:setTheme(themeDetails)
 		if not object then
 			if objectName == "toggleTweenInfo" then
 				self.theme.toggleTweenInfo = toggleDetails
-			else
-				warn(("%s invalid objectName '%s'"):format(errorBaseMessage, objectName))
+			--[[else
+				warn(("%s invalid objectName '%s'"):format(errorBaseMessage, objectName))]]
 			end
 			return false
 		end
