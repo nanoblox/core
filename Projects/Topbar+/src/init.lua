@@ -44,6 +44,10 @@ iconButton.ImageColor3 = Color3.fromRGB(0, 0, 0)
 iconButton.ScaleType = Enum.ScaleType.Stretch
 iconButton.Parent = iconContainer
 
+local gradient = Instance.new("UIGradient")
+gradient.Enabled = false
+gradient.Parent = iconButton
+
 local iconImage = Instance.new("ImageLabel")
 iconImage.BackgroundTransparency = 1
 iconImage.Name = "IconImage"
@@ -148,6 +152,60 @@ indicator.Position = UDim2.new(0.5,0,0,5)
 indicator.ScaleType = Enum.ScaleType.Fit
 indicator.Visible = false
 indicator.Parent = topbarPlusGui
+
+
+--TOOL TIP
+local toolTip = Instance.new("Frame")
+toolTip.Name = "ToolTip"
+toolTip.BackgroundTransparency = 1
+toolTip.AnchorPoint = Vector2.new(0,1)
+toolTip.ClipsDescendants = true
+toolTip.ZIndex = 100
+toolTip.Visible = false
+toolTip.Parent = topbarPlusGui
+
+local toolTipBackground = Instance.new("Frame")
+toolTipBackground.Name = "Background"
+toolTipBackground.BackgroundTransparency = 0.1
+toolTipBackground.BorderSizePixel = 0
+toolTipBackground.BackgroundColor3 = Color3.new(1,1,1)
+toolTipBackground.AnchorPoint = Vector2.new(0.5,0.5)
+toolTipBackground.Position = UDim2.new(0.5,0,0.5,0)
+toolTipBackground.Size = UDim2.new(1,0,1,-8)
+toolTipBackground.ZIndex = 101
+toolTipBackground.Parent = toolTip
+
+local topRect = Instance.new("ImageLabel")
+topRect.Name = "TopRoundedRect"
+topRect.BackgroundTransparency = 1
+topRect.ImageColor3 = Color3.new(1,1,1)
+topRect.ImageTransparency = 0.1
+topRect.Image = "rbxasset://textures/ui/BottomRoundedRect8px.png"
+topRect.ScaleType = Enum.ScaleType.Slice
+topRect.SliceCenter = Rect.new(8,8,24,16)
+topRect.SliceScale = 0.5
+topRect.Size = UDim2.new(1,0,0,4)
+topRect.AnchorPoint = Vector2.new(0,1)
+topRect.Position = UDim2.new(0,0,0,0)
+topRect.ZIndex = 101
+topRect.Parent = toolTipBackground
+
+local bottomRect = topRect:Clone()
+bottomRect.Name = "BottomRoundedRect"
+bottomRect.Image = "rbxasset://textures/ui/TopRoundedRect8px.png"
+topRect.AnchorPoint = Vector2.new(0,0)
+topRect.Position = UDim2.new(0,0,1,0)
+bottomRect.Parent = toolTipBackground
+
+local toolTipText = Instance.new("TextLabel")
+toolTipText.BackgroundTransparency = 1
+toolTipText.Font = Enum.Font.GothamSemibold
+toolTipText.TextScaled = false
+toolTipText.TextSize = 12
+toolTipText.Position = UDim2.new(0,3,0,3)
+toolTipText.Size = UDim2.new(1,-6,1,-6)
+toolTipText.ZIndex = 102
+toolTipText.Parent = toolTip
 
 -- SETUP DIRECTORIES
 local projectName = "Topbar+"

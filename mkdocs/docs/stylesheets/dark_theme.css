@@ -21,9 +21,15 @@ body {
 }
 
 /* code blocks */
+
+.md-typeset details {
+  color: #ffffff;
+  background-color: #000000;
+}
+
 .md-typeset pre {
   color: #f8f8f2;
-  background-color: #2b2c2f;
+  background-color: #000000;
 }
 
 .md-typeset code {

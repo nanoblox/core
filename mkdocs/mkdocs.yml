@@ -37,6 +37,7 @@ nav:
                 About: projects\topbarplus\about.md
                 IconController: projects\topbarplus\iconcontroller.md
                 Icon: projects\topbarplus\icon.md
+                Dropdown: projects\topbarplus\dropdown.md
             - Zone+:
                 About: projects\zoneplus\about.md
                 ZoneService: projects\zoneplus\zoneservice.md
