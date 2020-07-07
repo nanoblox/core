@@ -352,7 +352,7 @@ defaultThemeDetails = {
 
 --------------------
 ### toggleStatus
-*(read only)*
+{read-only}{static}
 ```lua
 Icon.toggleStatus
 ```
@@ -360,7 +360,7 @@ A string describing the toggle status: "selected" or "deselected". To change, us
 
 --------------------
 ### name
-*(read only)*
+{read-only}{static}{server-only}{client-only}{deprecated}
 ```lua
 Icon.name
 ```
@@ -368,7 +368,7 @@ The icon creation name.
 
 --------------------
 ### tip
-*(read only)*
+{read-only}
 ```lua
 Icon.tip
 ```
@@ -432,7 +432,7 @@ Icon.totalNotifications
 An int representing the amount of active notifications.
 
 --------------------
-### toggleMenu 
+### toggleMenu
 *(read only)*
 ```lua
 Icon.toggleFunction 
