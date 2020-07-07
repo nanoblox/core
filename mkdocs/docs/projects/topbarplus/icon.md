@@ -351,7 +351,7 @@ defaultThemeDetails = {
 
 
 --------------------
-### toggleStatus{static}
+### toggleStatus {static}
 ```lua
 Icon.toggleStatus
 ```
