@@ -21,6 +21,13 @@ Icon:setTip(tip)
 Sets a tip that is displayed when hovering over the icon. Setting a tip to ``nil`` or ``""`` will remove the tip.
 
 --------------------
+### setControllerTip
+```lua
+Icon:setControllerTip(tip)
+```
+Overrides the normal tip, if the player is in controller mode.
+
+--------------------
 ### createDropdown
 ```lua
 Icon:createDropdown(options)
@@ -353,7 +360,7 @@ defaultThemeDetails = {
 
 --------------------
 ### toggleStatus
-*(read only)*
+{read-only}{static}
 ```lua
 Icon.toggleStatus
 ```
@@ -361,7 +368,7 @@ A string describing the toggle status: "selected" or "deselected". To change, us
 
 --------------------
 ### name
-*(read only)*
+{read-only}{static}{server-only}{client-only}{deprecated}
 ```lua
 Icon.name
 ```
@@ -369,11 +376,19 @@ The icon creation name.
 
 --------------------
 ### tip
-*(read only)*
+{read-only}
 ```lua
 Icon.tip
 ```
 The tip shown when the icon is highlighted (mouse hovering over the icon or gamepad selection has the icon selected).
+
+--------------------
+### controllerTip
+*(read only)*
+```lua
+Icon.controllerTip
+```
+The controller tip that overrides the normal tip when the player is in controller mode.
 
 --------------------
 ### imageId
@@ -425,7 +440,7 @@ Icon.totalNotifications
 An int representing the amount of active notifications.
 
 --------------------
-### toggleMenu 
+### toggleMenu
 *(read only)*
 ```lua
 Icon.toggleFunction 

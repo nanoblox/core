@@ -55,8 +55,12 @@ theme:
     - lua
 
 extra_css:
+  - stylesheets/tags.css
   - stylesheets/dark_theme.css
   - stylesheets/monokai.css
+
+extra_javascript:
+  - javascripts/tags.js
 
 markdown_extensions:
   - admonition
