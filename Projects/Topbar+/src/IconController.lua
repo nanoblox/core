@@ -442,6 +442,9 @@ function IconController:createFakeChat(theme)
 			if topbarEnabled ~= previousTopbarEnabled then
 				return "SetCore was called instead of SetCoreGuiEnabled"
 			end
+			if not icon.enabled and userInputService:IsKeyDown(Enum.KeyCode.LeftShift) and userInputService:IsKeyDown(Enum.KeyCode.P) then
+				icon:setEnabled(true)
+			end
 			setIconEnabled(newState)
 		end))
 	end
