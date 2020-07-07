@@ -444,8 +444,9 @@ function IconController:createFakeChat(theme)
 			end
 			if not icon.enabled and userInputService:IsKeyDown(Enum.KeyCode.LeftShift) and userInputService:IsKeyDown(Enum.KeyCode.P) then
 				icon:setEnabled(true)
+			else
+				setIconEnabled(newState)
 			end
-			setIconEnabled(newState)
 		end))
 	end
 	theme = (theme and deepCopy(theme)) or {}
