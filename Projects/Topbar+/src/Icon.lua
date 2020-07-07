@@ -91,6 +91,7 @@ function Icon.new(name, imageId, order)
 	
 	self.name = name
 	self.tip = ""
+	self.controllerTip = ""
 	self.imageId = imageId or 0
 	self:setImageSize(20)
 	self:setCellSize(32)
@@ -171,8 +172,12 @@ function Icon.new(name, imageId, order)
 	
 	self._hoverFunctions = {
 		enter = function(x,y)
-			if self.toggleStatus == "deselected" and self.tip and self.tip ~= "" then
-				showToolTip(self.tip,Vector2.new(x,y),self._isControllerMode)
+			local tip = self.tip
+			if self._isControllerMode and self.controllerTip and self.controllerTip ~= "" then
+				tip = self.controllerTip
+			end
+			if self.toggleStatus == "deselected" and tip and tip ~= "" then
+				showToolTip(tip,Vector2.new(x,y),self._isControllerMode)
 				xpcall(function()
 					self.hoverFunction(true)
 				end,function(err)
@@ -269,6 +274,15 @@ function Icon:setTip(tip)
 		self.tip = tip
 	else
 		self.tip = ""
+	end
+end
+
+function Icon:setControllerTip(tip)
+	if tip then
+		assert(typeof(tip) == "string","Expected string, got "..typeof(tip))
+		self.controllerTip = tip
+	else
+		self.controllerTip = ""
 	end
 end
 
@@ -383,8 +397,8 @@ function Icon:setTheme(themeDetails)
 		if not object then
 			if objectName == "toggleTweenInfo" then
 				self.theme.toggleTweenInfo = toggleDetails
-			--[[else
-				warn(("%s invalid objectName '%s'"):format(errorBaseMessage, objectName))]]
+			else
+				warn(("%s invalid objectName '%s'"):format(errorBaseMessage, objectName))
 			end
 			return false
 		end

@@ -21,6 +21,13 @@ Icon:setTip(tip)
 Sets the tip that is shown when hovering over the icon, ``nil`` or "" will result in no tip shown.
 
 --------------------
+### setControllerTip
+```lua
+Icon:setControllerTip(tip)
+```
+Overrides the normal tip, if the player is in controller mode.
+
+--------------------
 ### createDropdown
 ```lua
 Icon:createDropdown(options)
@@ -366,6 +373,14 @@ The icon creation name.
 Icon.tip
 ```
 The tip shown when the icon is highlighted (mouse hovering over the icon or gamepad selection has the icon selected).
+
+--------------------
+### controllerTip
+*(read only)*
+```lua
+Icon.controllerTip
+```
+The controller tip that overrides the normal tip when the player is in controller mode.
 
 --------------------
 ### imageId
