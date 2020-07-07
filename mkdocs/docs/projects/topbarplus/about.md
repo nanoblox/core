@@ -321,3 +321,41 @@ local theme = {
 </details>
 
 <a><img src="https://i.imgur.com/zTf9IFa.png" width="100%"/></a>
+
+
+
+
+
+
+
+
+
+
+```lua
+icon:createDropdown({
+	{
+		name = "About",
+		icon = "http://www.roblox.com/asset/?id=4943948171",
+		clicked = function()
+			print("Navigate to About")
+		end,
+		events = {}
+	},
+	{
+		name = "Commands",
+		icon = "http://www.roblox.com/asset/?id=4943948171",
+		clicked = function()
+			print("Navigate to Commands")
+		end,
+		events = {}
+	},
+	{
+		name = "Roles",
+		icon = "http://www.roblox.com/asset/?id=4943948171",
+		clicked = function()
+			print("Navigate to Roles")
+		end,
+		events = {}
+	},
+})
+```

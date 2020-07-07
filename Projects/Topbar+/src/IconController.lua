@@ -143,7 +143,7 @@ function IconController:createIcon(name, imageId, order)
 					return offset
 				end,
 				records = {},
-				reverseSort = true,
+				--reverseSort = true,
 			},
 		}
 		for _, details in pairs(topbarIcons) do
@@ -449,7 +449,7 @@ function IconController:createFakeChat(theme)
 			end
 		end))
 	end
-	theme = (theme and deepCopy(theme)) or {}
+	theme = (theme and deepCopy(theme)) or (self.gameTheme and deepCopy(self.gameTheme)) or {}
 	theme.image = theme.image or {}
 	theme.image.selected = theme.image.selected or {}
 	theme.image.selected.Image = "rbxasset://textures/ui/TopBar/chatOn.png"
@@ -568,6 +568,7 @@ userInputService:GetPropertyChangedSignal("MouseEnabled"):Connect(updateDevice)
 userInputService.InputBegan:Connect(function(input,gpe)
 	local topbar = getTopbarPlusGui()
 	if not topbar then return end
+	if not isControllerMode() then return end
 	if input.KeyCode == Enum.KeyCode.DPadDown then
 		if not guiService.SelectedObject and checkTopbarEnabled() then
 			IconController:setTopbarEnabled(true,false)
@@ -578,7 +579,7 @@ userInputService.InputBegan:Connect(function(input,gpe)
 	input:Destroy()
 end)
 
-local controllerOptionIcon = IconController:createIcon("_TopbarControllerOption","rbxassetid://5278150942",-99)
+local controllerOptionIcon = IconController:createIcon("_TopbarControllerOption","rbxassetid://5278150942", 100)
 controllerOptionIcon:setRight()
 controllerOptionIcon.deselectWhenOtherIconSelected = false
 controllerOptionIcon:setEnabled(false)

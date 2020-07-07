@@ -18,21 +18,23 @@ Constructs a new icon where ``name`` is a unique string identifying the icon, ``
 ```lua
 Icon:setTip(tip)
 ```
-Sets the tip that is shown when hovering over the icon, ``nil`` or "" will result in no tip shown.
+Sets a tip that is displayed when hovering over the icon. Setting a tip to ``nil`` or ``""`` will remove the tip.
 
 --------------------
 ### createDropdown
 ```lua
 Icon:createDropdown(options)
 ```
-Creates a dropdown that will be shown when the icon is right-clicked or long-pressed on mobile. Returns the dropdown created. If there already is a ``Icon.dropdown``, ``Icon:removeDropdown()`` will be called before creating a new one.
+Creates a dropdown that will be shown when the icon is right-clicked or long-pressed on mobile. Returns the dropdown created. If there already is an ``Icon.dropdown``, ``Icon:removeDropdown()`` will be called before creating a new one.
+
+See ``Dropdown.options`` for more details, and ``About`` for an example.
 
 --------------------
 ### removeDropdown
 ```lua
 Icon:removeDropdown()
 ```
-Destroys the dropdown and removes all references of ``Icon.dropdown``.
+Destroys and removes all references of ``Icon.dropdown``.
 
 --------------------
 ### setImage
@@ -53,14 +55,21 @@ Sets the icons priority order, determining whether it will appear before or afte
 ```lua
 Icon:setLeft()
 ```
-Aligns the icon on the left-side of the topbar (this happens by default). The greater the ``order``, the further *rightward* the icon will appear relative to other icons set-left.
+Aligns the icon on the left-side of the topbar (this happens by default). The greater the ``order``, the further rightward the icon will appear relative to other icons set-left.
+
+--------------------
+### setMid
+```lua
+Icon:setMid()
+```
+Aligns the icon in the middle of the topbar. The greater the ``order``, the further rightward the icon will appear relative to other icons set-mid.
 
 --------------------
 ### setRight
 ```lua
 Icon:setRight()
 ```
-Aligns the icon on the right-side of the topbar. The greater the ``order``, the further *leftward* the icon will appear relative to other icons set-right.
+Aligns the icon on the right-side of the topbar, next to the leaderboard/emotes/inventory toggle. The greater the ``order``, the further rightward the icon will appear relative to other icons set-right.
 
 --------------------
 ### setMid
@@ -88,8 +97,7 @@ Sets the icons visibility.
 ```lua
 Icon:setCellSize(pixels)
 ```
-Changes the size of the icon, the icon will be sized in an aspect ratio of 1:1, meaning it will be the same width and height as the argument ``pixels``.
-Default is 32px.
+Changes the container size of icon to be ``X pixels`` by ``Y pixels``. Defaults to 32.
 
 --------------------
 ### setBaseZIndex

@@ -1,17 +1,20 @@
 # Methods
 --------------------
+### set
+```lua
+Dropdown:set(setting, value)
+```
+Sets the specified setting to the given value. For example:
+```lua
+dropdown:set("backgroundColor", Color3.fromRGB(100, 100, 100))
+```
+
+--------------------
 ### update
 ```lua
 Dropdown:update()
 ```
-Forces the dropdown to update colors, text alignment. If the dropdown is visible when this is called, the dropdown will be hidden.
-
---------------------
-### set
-```lua
-Dropdown:set(setting,value)
-```
-Sets the specified setting to the passed value.
+Forces the dropdown to update colors and text alignment. If the dropdown is visible when this is called, the dropdown will be hidden.
 
 --------------------
 ### isOpen
@@ -32,34 +35,21 @@ Hides the dropdown.
 ```lua
 Dropdown:show(position)
 ```
-Shows the dropdown at the passed Vector2 position, if ``position`` is nil the dropdown will be displayed automatically at the icon.
+Displays the dropdown at the passed Vector2 position. If ``position`` is not defined, the dropdown will appear automatically at the icon.
 
 --------------------
-### newOption
+### createOption
 ```lua
-Dropdown:newOption(config)
+Dropdown:createOption(option)
 ```
-Creates a new option in the dropdown.
-
-Example of how an option could be set up:
-```lua
-    local config = {
-        name = "My option",
-        icon = "http://www.roblox.com/asset/?id=4943948171",
-        order = 2,
-        clicked = function()
-            print("🍕+🍍=😍")
-        end,
-        events = {myIcon.selected}
-    }
-```
+Creates an option menu based on the given ``option`` details.
 
 --------------------
 ### removeOption
 ```lua
-Dropdown:removeOption(name)
+Dropdown:removeOption(nameOrIndex)
 ```
-Destroys the option with the name passed.
+Destroys an option with the given name or index.
 
 --------------------
 ### destroy
@@ -93,8 +83,14 @@ The icon the dropdown is associated with.
 ```lua
 Dropdown.theme
 ```
-Not to be confused with ``Dropdown.settings``
-An array with the dropdown's options, use ``Dropdown:newOption()`` to create a new one.
+An array containing dictionaries that describe an option:
+
+| Key                 | Value            | Desc                                           |
+| :--------------     |:--------------   | :----------------------------------------------|
+| **name** | *String*      | The option name that will appear in the dropdown. |
+| **icon**       | *String*  | *(Optional)* An image that appears to the left of the name                                |
+| **clicked**          | *Function*  | A function called when the option is pressed                                  |
+| **events**           | *Array*  | An array of ``signals`` or ``events`` that bind to ``Icon:notify()`` to create a notification prompt to the right of the option name                                    |
 
 --------------------
 ### settings
@@ -102,4 +98,16 @@ An array with the dropdown's options, use ``Dropdown:newOption()`` to create a n
 ```lua
 Dropdown.settings
 ```
-A dictionary with the dropdown's settings, use ``Dropdown:set()`` to change.
+A dictionary containing the dropdowns settings. Use ``Dropdown:set()`` to change a setting.
+
+| Key                 | Value            | Desc                                           |
+| :--------------     |:--------------   | :----------------------------------------------|
+| **canHidePlayerlist** | *Bool*      | Hides the playerlist if overlapping the dropdown |
+| **canHideChat**       | *Bool*  | Hides the chat if overlapping the dropdown |
+| **chatDefaultDisplayOrder**          | *Int*  | Forces the chats DisplayOrder to this value                                    |
+| **tweenSpeed**          | *Float*  | How fast the dropdown appears/disppear |
+| **easingDirection**           | *Enum.EasingDirection*  | Affects how the dropdown appears/disppears |
+| **easingStyle**    | *Enum.EasingStyle*  | Affects how the dropdown appears/disppears |
+| **backgroundColor**        | *Color3*  | The background color of dropdown options |
+| **textColor**          | *Color3*  | The name color of dropdown options |
+| **imageColor**        | *Color3*  | The icon color of dropdown options |

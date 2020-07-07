@@ -488,12 +488,11 @@ function Icon:notify(clearNoticeEvent)
 		self.objects.notification.Visible = true
 		
 		local dropdown = self.dropdown
-		local dNotice
+		local promptedOptions = {}
 		if dropdown then
 			for i, option in pairs(dropdown.options) do
 				if table.find(option.events, clearNoticeEvent) then
-					local oNotice = self.objects.notification
-					dNotice = dropdown.notice
+					local dNotice = option.notice
 					if not dNotice then
 						dNotice = self.objects.notification:Clone()
 						dNotice.Position = UDim2.new(0.8, 0, 0.175, -1)
@@ -502,7 +501,7 @@ function Icon:notify(clearNoticeEvent)
 						dNotice.Amount.ZIndex = dNotice.Amount.ZIndex + 10
 						dNotice.Amount.Text = 0
 						dNotice.Parent = option.container
-						dropdown.notice = dNotice
+						option.notice = dNotice
 						local optionName = option.container.OptionName
 						local ONS = optionName.Size
 						optionName.Size = UDim2.new(0.82, ONS.X.Offset, ONS.Y.Scale, ONS.Y.Offset)
@@ -510,6 +509,7 @@ function Icon:notify(clearNoticeEvent)
 					pcall(function() dNotice.ImageColor3 = self.theme.notification.deselected.ImageColor3 end)
 					pcall(function() dNotice.Amount.TextColor3 = self.theme.amount.deselected.TextColor3 end)
 					dNotice.Amount.Text = tonumber(dNotice.Amount.Text) + 1
+					table.insert(promptedOptions, option)
 				end
 			end
 		end
@@ -534,11 +534,17 @@ function Icon:notify(clearNoticeEvent)
 		end
 
 		if self.dropdown then
-			local totalDNotifications = tonumber(dNotice.Amount.Text) - 1
-			dNotice.Amount.Text = totalDNotifications
-			if totalDNotifications < 1 then
-				dropdown.notice = nil
-				dNotice:Destroy()
+			for _, option in pairs(promptedOptions) do
+				local dNotice = option.notice
+				local optionName = option.container.OptionName
+				local ONS = optionName.Size
+				local totalDNotifications = tonumber(dNotice.Amount.Text) - 1
+				dNotice.Amount.Text = totalDNotifications
+				if totalDNotifications < 1 then
+					option.notice = nil
+					dNotice:Destroy()
+					optionName.Size = UDim2.new(0.95, ONS.X.Offset, ONS.Y.Scale, ONS.Y.Offset)
+				end
 			end
 		end
 	end)()

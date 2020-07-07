@@ -22,7 +22,7 @@ If in controller mode and ``forceBool`` is ``false`` then it will make the topba
 ```lua
 IconController:enableControllerMode(bool)
 ```
-Used internally to enable/disable controller mode, but may be used to force a player into using controller mode.
+Used internally to enable/disable controller mode; can be used to force the controller display for a client.
 
 --------------------
 ### createFakeChat
