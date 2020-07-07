@@ -149,7 +149,7 @@ A bool that when set to ``true`` delays the automatic updating of the zone, prev
 
 --------------------
 ### group
-*(read only)*
+{read-only}
 ```lua
 Zone.group
 ```
@@ -157,7 +157,7 @@ The container instance originally passed when constructing the zone.
 
 --------------------
 ### groupParts
-*(read only)*
+{read-only}
 ```lua
 Zone.groupParts
 ```
@@ -165,7 +165,7 @@ An array of all BaseParts within ``group``.
 
 --------------------
 ### clusters
-*(read only)*
+{read-only}
 ```lua
 Zone.clusters
 ```
@@ -183,7 +183,7 @@ A dictionary describing a collection of touching parts within the zone.
 
 --------------------
 ### additionalHeight
-*(read only)*
+{read-only}
 ```lua
 Zone.additionalHeight
 ```
@@ -191,7 +191,7 @@ The number originally passed when constructing the zone, or 0. Describes how far
 
 --------------------
 ### region
-*(read only)*
+{read-only}
 ```lua
 Zone.region
 ```
@@ -199,7 +199,7 @@ A Region3 formed from ``groupParts``.
 
 --------------------
 ### boundMin
-*(read only)*
+{read-only}
 ```lua
 Zone.boundMin
 ```
@@ -207,7 +207,7 @@ A Vector3 used to form ``region``, describing the zones minimum point.
 
 --------------------
 ### boundMax
-*(read only)*
+{read-only}
 ```lua
 Zone.boundMax
 ```
@@ -215,7 +215,7 @@ A Vector3 used to form ``region``, describing the zones maximum point.
 
 --------------------
 ### regionHeight
-*(read only)*
+{read-only}
 ```lua
 Zone.regionHeight
 ```

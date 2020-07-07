@@ -272,7 +272,7 @@ A dictionary of instances that make up the icon.
 
 --------------------
 ### theme
-*(read only)*
+{read-only}
 ```lua
 Icon.theme
 ```
@@ -352,7 +352,7 @@ defaultThemeDetails = {
 
 --------------------
 ### toggleStatus
-{read-only}{static}
+{read-only}
 ```lua
 Icon.toggleStatus
 ```
@@ -360,7 +360,7 @@ A string describing the toggle status: "selected" or "deselected". To change, us
 
 --------------------
 ### name
-{read-only}{static}{server-only}{client-only}{deprecated}
+{read-only}
 ```lua
 Icon.name
 ```
@@ -376,7 +376,7 @@ The tip shown when the icon is highlighted (mouse hovering over the icon or game
 
 --------------------
 ### controllerTip
-*(read only)*
+{read-only}
 ```lua
 Icon.controllerTip
 ```
@@ -384,7 +384,7 @@ The controller tip that overrides the normal tip when the player is in controlle
 
 --------------------
 ### imageId
-*(read only)*
+{read-only}
 ```lua
 Icon.imageId
 ```
@@ -392,7 +392,7 @@ The icons imageId. To change, use ``Icon:setImage()``.
 
 --------------------
 ### imageSize
-*(read only)*
+{read-only}
 ```lua
 Icon.imageSize
 ```
@@ -401,7 +401,7 @@ Default: 20px
 
 --------------------
 ### order
-*(read only)*
+{read-only}
 ```lua
 Icon.order
 ```
@@ -409,7 +409,7 @@ The icons order. This determines whether the icon comes before or after other ic
 
 --------------------
 ### enabled
-*(read only)*
+{read-only}
 ```lua
 Icon.order
 ```
@@ -417,7 +417,7 @@ A bool describing whether the icon is enabled or not. To change, use ``Icon:setE
 
 --------------------
 ### alignment
-*(read only)*
+{read-only}
 ```lua
 Icon.alignment
 ```
@@ -425,7 +425,7 @@ A string describing the alignment of the icon, there are three alignments: ``lef
 
 --------------------
 ### totalNotifications
-*(read only)*
+{read-only}
 ```lua
 Icon.totalNotifications
 ```
@@ -433,7 +433,7 @@ An int representing the amount of active notifications.
 
 --------------------
 ### toggleMenu
-*(read only)*
+{read-only}
 ```lua
 Icon.toggleFunction 
 ```
@@ -441,7 +441,7 @@ A GuiObject binded by ``Icon:setToggleMenu()``.
 
 --------------------
 ### toggleFunction 
-*(read only)*
+{read-only}
 ```lua
 Icon.toggleFunction 
 ```
@@ -449,7 +449,7 @@ A custom function called during ``Icon:select()`` and ``Icon:deselect()``. To ch
 
 --------------------
 ### hoverFunction 
-*(read only)*
+{read-only}
 ```lua
 Icon.hoverFunction 
 ```

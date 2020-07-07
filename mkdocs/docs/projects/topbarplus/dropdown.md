@@ -81,7 +81,7 @@ Destroys all instances, connections and signals associcated with the dropdown.
 
 --------------------
 ### icon
-*(read only)*
+{read-only}
 ```lua
 Dropdown.objects
 ```
@@ -89,7 +89,7 @@ The icon the dropdown is associated with.
 
 --------------------
 ### options
-*(read only)*
+{read-only}
 ```lua
 Dropdown.theme
 ```
@@ -98,7 +98,7 @@ An array with the dropdown's options, use ``Dropdown:newOption()`` to create a n
 
 --------------------
 ### settings
-*(read only)*
+{read-only}
 ```lua
 Dropdown.settings
 ```

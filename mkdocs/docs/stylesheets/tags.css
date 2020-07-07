@@ -1,12 +1,13 @@
 .tag {
 	color: #ffffff;
 	font-weight:  bold;
-	line-height: 15px;
+	line-height: .8rem;
 	padding: 5px;
 	background-clip: padding-box;
 	border-radius: 5px;
 	margin-left: 10px !important;
 	display: inline-block;
+	font-size: .7rem;
 }
 .read-only {
 	background-color: rgb(12, 95, 78);
