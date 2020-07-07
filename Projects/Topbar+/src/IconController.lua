@@ -301,9 +301,7 @@ function IconController:setTopbarEnabled(bool,forceBool)
 		end
 	else
 		local topbarContainer = topbar.TopbarContainer
-		if menuOpen then
-			topbarContainer.Visible = false
-		elseif checkTopbarEnabled() then
+		if checkTopbarEnabled() then
 			topbarContainer.Visible = bool
 		else
 			topbarContainer.Visible = false

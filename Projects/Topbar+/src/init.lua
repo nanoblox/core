@@ -130,7 +130,7 @@ bottomRect.Parent = background
 
 local uiSize = Instance.new("UISizeConstraint")
 uiSize.Name = "_UISizeConstraint"
-uiSize.MinSize = Vector2.new(140,0)
+uiSize.MinSize = Vector2.new(150,0)
 uiSize.Parent = dropdown
 
 local tempFolder = Instance.new("Folder")

@@ -487,6 +487,33 @@ function Icon:notify(clearNoticeEvent)
 		self.objects.amount.Text = (self.totalNotifications < 100 and self.totalNotifications) or "99+"
 		self.objects.notification.Visible = true
 		
+		local dropdown = self.dropdown
+		local dNotice
+		if dropdown then
+			for i, option in pairs(dropdown.options) do
+				if table.find(option.events, clearNoticeEvent) then
+					local oNotice = self.objects.notification
+					dNotice = dropdown.notice
+					if not dNotice then
+						dNotice = self.objects.notification:Clone()
+						dNotice.Position = UDim2.new(0.8, 0, 0.175, -1)
+						dNotice.Size = UDim2.new(0.2, 0, 0.65, 0)
+						dNotice.ZIndex = dNotice.ZIndex + 10
+						dNotice.Amount.ZIndex = dNotice.Amount.ZIndex + 10
+						dNotice.Amount.Text = 0
+						dNotice.Parent = option.container
+						dropdown.notice = dNotice
+						local optionName = option.container.OptionName
+						local ONS = optionName.Size
+						optionName.Size = UDim2.new(0.82, ONS.X.Offset, ONS.Y.Scale, ONS.Y.Offset)
+					end
+					pcall(function() dNotice.ImageColor3 = self.theme.notification.deselected.ImageColor3 end)
+					pcall(function() dNotice.Amount.TextColor3 = self.theme.amount.deselected.TextColor3 end)
+					dNotice.Amount.Text = tonumber(dNotice.Amount.Text) + 1
+				end
+			end
+		end
+
 		local notifComplete = Signal.new()
 		local endEvent = self.endNotifications:Connect(function()
 			notifComplete:Fire()
@@ -504,6 +531,15 @@ function Icon:notify(clearNoticeEvent)
 		self.totalNotifications = self.totalNotifications - 1
 		if self.totalNotifications < 1 then
 			self.objects.notification.Visible = false
+		end
+
+		if self.dropdown then
+			local totalDNotifications = tonumber(dNotice.Amount.Text) - 1
+			dNotice.Amount.Text = totalDNotifications
+			if totalDNotifications < 1 then
+				dropdown.notice = nil
+				dNotice:Destroy()
+			end
 		end
 	end)()
 end
