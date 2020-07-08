@@ -249,7 +249,7 @@ function Zone:getPlayer(player)
 		charOffset = -hrp.Size.Y/2 - hum.HipHeight + 0.5
 	end
 	local origin = hrp.Position + Vector3.new(0, charOffset, 0)
-	local hitValidPart = self:castRay(origin, self.groupParts)
+	local hitValidPart, intersection = self:castRay(origin, self.groupParts)
 	local originallyInZone = self.previousPlayers[player]
 	local nowInZone = false
 	if hitValidPart then
