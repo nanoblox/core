@@ -265,7 +265,7 @@ function Zone:getPlayer(player)
 		self.previousPlayers[player] = nil
 		self.playerRemoving:Fire(player)
 	end
-	return hitValidPart
+	return hitValidPart, intersection
 end
 
 function Zone:getPlayers()
