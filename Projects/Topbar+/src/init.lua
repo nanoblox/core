@@ -44,6 +44,19 @@ iconButton.ImageColor3 = Color3.fromRGB(0, 0, 0)
 iconButton.ScaleType = Enum.ScaleType.Stretch
 iconButton.Parent = iconContainer
 
+local stateOverlay = Instance.new("ImageLabel")
+stateOverlay.BackgroundTransparency = 1
+stateOverlay.Name = "StateOverlay"
+stateOverlay.Position = iconButton.Position
+stateOverlay.Size = iconButton.Size
+stateOverlay.Visible = true
+stateOverlay.ZIndex = iconButton.ZIndex + 1
+stateOverlay.Image = iconButton.Image
+stateOverlay.ImageTransparency = 1
+stateOverlay.ImageColor3 = Color3.fromRGB(255, 255, 255)
+stateOverlay.ScaleType = iconButton.ScaleType
+stateOverlay.Parent = iconButton.Parent
+
 local gradient = Instance.new("UIGradient")
 gradient.Enabled = false
 gradient.Parent = iconButton

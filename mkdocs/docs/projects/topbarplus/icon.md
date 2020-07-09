@@ -137,6 +137,13 @@ icon:setTheme(themeDetails)
 Applies the specified theme to the icon. See ``icon.theme`` for details on creating a theme.
 
 --------------------
+### disableStateOverlay
+```lua
+icon:disableStateOverlay(bool)
+```
+If set to true, disables the state overlay (the color and transparency changes when an icon is hovered over and pressed).
+
+--------------------
 ### applyThemeToObject
 ```lua
 icon:applyThemeToObject(objectName, toggleStatus)

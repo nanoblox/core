@@ -105,27 +105,11 @@ function Icon.new(name, imageId, order)
 	self.toggleFunction = function() end
 	self.hoverFunction = function() end
 	self.deselectWhenOtherIconSelected = true
-	
-	--[[
-	local hoverInputs = {"InputBegan", "InputEnded"}
-	local originalTransparency = button.ImageTransparency
-	self:setHoverFunction(function(inputName)
-		local hovering = inputName == "InputBegan"
-		button.ImageTransparency = (hovering and originalTransparency + 0.2) or (self.theme.button.selected.ImageTransparency or originalTransparency)
-	end)
-	for _, inputName in pairs(hoverInputs) do
-		button[inputName]:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseMovement then
-				self.hoverFunction(inputName)
-			end
-		end)
-	end
-	--]]
 	self.maxTouchTime = 0.5
 	self._isControllerMode = false
 	
 	if userInputService.MouseEnabled or userInputService.GamepadEnabled then
-		button.MouseButton1Down:Connect(function()
+		button.MouseButton1Click:Connect(function()
 			if self.toggleStatus == "selected" then
 				self:deselect()
 			else
@@ -134,6 +118,12 @@ function Icon.new(name, imageId, order)
 				end
 				self:select()
 			end
+		end)
+		button.MouseButton1Down:Connect(function()
+			self:updateStateOverlay(0.7, Color3.new(0, 0, 0))
+		end)
+		button.MouseButton1Up:Connect(function()
+			self:updateStateOverlay(0.9, Color3.new(1, 1, 1))
 		end)
 	elseif userInputService.TouchEnabled then
 		local inputs = {}
@@ -179,12 +169,14 @@ function Icon.new(name, imageId, order)
 			self.hoverFunction(true)
 			self.hovering = true
 			self._hoveringMaid:give(button.MouseMoved:Connect(setToolTipPosition))
+			self:updateStateOverlay(0.9, Color3.new(1, 1, 1))
 		end,
 		leave = function(x,y)
 			self:updateToolTip(false)
 			self.hoverFunction(false)
 			self.hovering = false
 			self._hoveringMaid:clean()
+			self:updateStateOverlay(1)
 		end,
 	}
 	
@@ -234,6 +226,17 @@ function Icon:updateToolTip(visibility, position)
 	end
 	tipContainer.TextLabel.Text = tip
 	tipContainer.Visible = (visibility and self.toggleStatus == "deselected" and tip ~= "")
+end
+
+function Icon:updateStateOverlay(transparency, color)
+	local stateOverlay = self.objects.button.Parent.StateOverlay
+	stateOverlay.ImageTransparency = transparency or 1
+	stateOverlay.ImageColor3 = color or Color3.new(1, 1, 1)
+end
+
+function Icon:disableStateOverlay(bool)
+	local stateOverlay = self.objects.button.Parent.StateOverlay
+	stateOverlay.Visible = not bool
 end
 
 function Icon:setTip(tip, property)
