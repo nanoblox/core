@@ -49,7 +49,7 @@ zone:initLoop(interval)
 Initiates a loop which calls ``zone:getPlayers()`` every x second, defaults to ``0.5``.
 
 --------------------
-### initLoop
+### initClientLoop
 ```lua
 zone:initClientLoop(interval)
 ```
