@@ -235,6 +235,9 @@ function Icon:updateStateOverlay(transparency, color)
 end
 
 function Icon:disableStateOverlay(bool)
+	if bool == nil then
+		bool = true
+	end
 	local stateOverlay = self.objects.button.Parent.StateOverlay
 	stateOverlay.Visible = not bool
 end
