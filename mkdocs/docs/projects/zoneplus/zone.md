@@ -46,7 +46,14 @@ Returns an array of players within the zone.
 ```lua
 zone:initLoop(interval)
 ```
-Automatically initiates a loop which calls ``zone:getPlayers()`` every x second, defaults to ``0.5``.
+Initiates a loop which calls ``zone:getPlayers()`` every x second, defaults to ``0.5``.
+
+--------------------
+### initLoop
+```lua
+zone:initClientLoop(interval)
+```
+Initiates a loop which calls ``zone:getPlayer(localPlayer)`` every x second, defaults to ``0.5``.
 
 --------------------
 ### endLoop
@@ -86,7 +93,7 @@ zone.playerAdded
 Fired when a player enters the zone.
 
 !!! info Info
-	``zone:getPlayers()`` must be called at frequent intervals, or zone:initLoop() once (which calls this repeatedly), for this event to function.
+	``zone:getPlayer(player)`` (or ``zone:getPlayers()`` which calls this) must be called at frequent intervals, or ``zone:initLoop()`` (or ``zone:initClientLoop()`` for the local player) once (which calls this repeatedly), for this event to function.
 
 ```lua
 zone.playerAdded:Connect(function(player)
@@ -102,8 +109,8 @@ zone.playerRemoving
 Fired when a player leaves the zone.
 
 !!! info Info
-	``zone:getPlayers()`` must be called at frequent intervals, or zone:initLoop() once (which calls this repeatedly), for this event to function.
-    
+	``zone:getPlayer(player)`` (or ``zone:getPlayers()`` which calls this) must be called at frequent intervals, or ``zone:initLoop()`` (or ``zone:initClientLoop()`` for the local player) once (which calls this repeatedly), for this event to function.
+
 ```lua
 zone.playerRemoving:Connect(function(player)
 
