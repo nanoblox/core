@@ -79,13 +79,6 @@ icon:setRight()
 Aligns the icon on the right-side of the topbar, next to the leaderboard/emotes/inventory toggle. The greater the ``order``, the further rightward the icon will appear relative to other icons set-right.
 
 --------------------
-### setMid
-```lua
-icon:setMid()
-```
-Aligns the icon in the middle of the topbar. The greater the ``order``, the further *rightward* the icon will appear relative to other icons set-middle.
-
---------------------
 ### setImageSize
 ```lua
 icon:setImageSize(width, height)
