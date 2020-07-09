@@ -32,7 +32,7 @@ Overrides the normal tip, if the player is in controller mode.
 ```lua
 local dropdown = icon:createDropdown(options)
 ```
-Creates a dropdown that will be shown when the icon is right-clicked or long-pressed on mobile. Returns the dropdown created. If there already is an ``Icon.dropdown``, ``icon:removeDropdown()`` will be called before creating a new one.
+Creates a dropdown that will be shown when the icon is right-clicked or long-pressed on mobile. Returns the dropdown created. If there already is an ``icon.dropdown``, ``icon:removeDropdown()`` will be called before creating a new one.
 
 See ``Dropdown.options`` for more details, and ``About`` for an example.
 
@@ -41,7 +41,7 @@ See ``Dropdown.options`` for more details, and ``About`` for an example.
 ```lua
 icon:removeDropdown()
 ```
-Destroys and removes all references of ``Icon.dropdown``.
+Destroys and removes all references of ``icon.dropdown``.
 
 --------------------
 ### setImage
@@ -141,14 +141,14 @@ Whenver the icon gets highlighted or unhighlighted, the function set is called a
 ```lua
 icon:setTheme(themeDetails)
 ```
-Applies the specified theme to the icon. See ``Icon.theme`` for details on creating a theme.
+Applies the specified theme to the icon. See ``icon.theme`` for details on creating a theme.
 
 --------------------
 ### applyThemeToObject
 ```lua
 icon:applyThemeToObject(objectName, toggleStatus)
 ```
-Used internally to apply the theme set to the object, in ``Icon.objects``, with the name passed.
+Used internally to apply the theme set to the object, in ``icon.objects``, with the name passed.
 
 --------------------
 ### applyThemeToAllObjects
@@ -176,7 +176,7 @@ Deselects the icon.
 ```lua
 icon:notify(clearNoticeEvent)
 ```
-Prompts a notification that appears in the top-right corner of the icon. Specifiy ``clearNoticeEvent`` with an event to determine when to end the notifcation. If not specified, ``clearNoticeEvent`` defaults to ``Icon.deselected``.
+Prompts a notification that appears in the top-right corner of the icon. Specifiy ``clearNoticeEvent`` with an event to determine when to end the notifcation. If not specified, ``clearNoticeEvent`` defaults to ``icon.deselected``.
 
 --------------------
 ### clearNotifications
@@ -204,11 +204,11 @@ Destroys all instances, connections and signals associcated with the icon.
 --------------------
 ### updated
 ```lua
-Icon.updated
+icon.updated
 ```
 Fired when the icon causes a position shift of other icons.
 ```lua
-Icon.updated:Connect(function()
+icon.updated:Connect(function()
 
 end)
 ```
@@ -216,11 +216,11 @@ end)
 --------------------
 ### selected
 ```lua
-Icon.selected
+icon.selected
 ```
 Fired when the icon is selected.
 ```lua
-Icon.selected:Connect(function()
+icon.selected:Connect(function()
 
 end)
 ```
@@ -228,11 +228,11 @@ end)
 --------------------
 ### deselected
 ```lua
-Icon.deselected
+icon.deselected
 ```
 Fired when the icon is deselected.
 ```lua
-Icon.deselected:Connect(function()
+icon.deselected:Connect(function()
 
 end)
 ```
@@ -240,11 +240,11 @@ end)
 --------------------
 ### endNotifications
 ```lua
-Icon.endNotifications
+icon.endNotifications
 ```
 Fired when the icons notifcations are cleared.
 ```lua
-Icon.endNotifications:Connect(function()
+icon.endNotifications:Connect(function()
 
 end)
 ```
@@ -261,7 +261,7 @@ end)
 --------------------
 ### objects
 ```lua
-Icon.objects
+icon.objects
 ```
 A dictionary of instances that make up the icon.
 
@@ -280,9 +280,9 @@ A dictionary of instances that make up the icon.
 
 --------------------
 ### theme
-{read-only}
+*(read only)*
 ```lua
-Icon.theme
+icon.theme
 ```
 A dictionary describing the icons theme. To change, use ``icon:setTheme()``.
 
@@ -360,17 +360,17 @@ defaultThemeDetails = {
 
 --------------------
 ### toggleStatus
-{read-only}
+{read-only}{static}
 ```lua
-Icon.toggleStatus
+icon.toggleStatus
 ```
 A string describing the toggle status: "selected" or "deselected". To change, use ``icon:select()`` and ``icon:deselect()``.
 
 --------------------
 ### name
-{read-only}
+{read-only}{static}{server-only}{client-only}{deprecated}
 ```lua
-Icon.name
+icon.name
 ```
 The icon creation name.
 
@@ -378,94 +378,102 @@ The icon creation name.
 ### tip
 {read-only}
 ```lua
-Icon.tip
+icon.tip
 ```
-The tip shown when the icon is highlighted (mouse hovering over the icon or gamepad selection has the icon selected).
+The tip (``string``) shown when the icon is highlighted (mouse hovering over the icon or gamepad selection has the icon selected).
 
 --------------------
 ### controllerTip
-{read-only}
+*(read only)*
 ```lua
-Icon.controllerTip
+icon.controllerTip
 ```
 The controller tip that overrides the normal tip when the player is in controller mode.
 
 --------------------
 ### imageId
-{read-only}
+*(read only)*
 ```lua
-Icon.imageId
+icon.imageId
 ```
 The icons imageId. To change, use ``icon:setImage()``.
 
 --------------------
 ### imageSize
-{read-only}
+*(read only)*
 ```lua
-Icon.imageSize
+icon.imageSize
 ```
 A Vector2 representing the images size. To change, use ``icon:setImageSize()``.
 Default: 20px
 
 --------------------
 ### order
-{read-only}
+*(read only)*
 ```lua
-Icon.order
+icon.order
 ```
 The icons order. This determines whether the icon comes before or after other icons. Defaults to ``1``. To change, use ``icon:setOrder()``.
 
 --------------------
 ### enabled
-{read-only}
+*(read only)*
 ```lua
-Icon.order
+icon.order
 ```
 A bool describing whether the icon is enabled or not. To change, use ``icon:setEnabled()``.
 
 --------------------
-### alignment
-{read-only}
+### hovering
+*(read only)*
 ```lua
-Icon.alignment
+icon.hovering
+```
+A bool describing whether a mouse or controller is hovering over the icon.
+
+--------------------
+### alignment
+*(read only)*
+```lua
+icon.alignment
 ```
 A string describing the alignment of the icon, there are three alignments: ``left``, ``mid``, ``right``
 
 --------------------
 ### totalNotifications
-{read-only}
+*(read only)*
 ```lua
-Icon.totalNotifications
+icon.totalNotifications
 ```
 An int representing the amount of active notifications.
 
 --------------------
 ### toggleMenu
-{read-only}
+*(read only)*
 ```lua
-Icon.toggleFunction 
+icon.toggleFunction 
 ```
 A GuiObject binded by ``icon:setToggleMenu()``.
 
 --------------------
 ### toggleFunction 
-{read-only}
+*(read only)*
 ```lua
-Icon.toggleFunction 
+icon.toggleFunction 
 ```
 A custom function called during ``icon:select()`` and ``icon:deselect()``. To change, use ``icon:setToggleFunction()``.
 
 --------------------
 ### hoverFunction 
-{read-only}
+*(read only)*
 ```lua
-Icon.hoverFunction 
+icon.hoverFunction 
 ```
 A custom function called when the icon is (un)highlighted. To change, use ``icon:setHoverFunction()``.
 
 --------------------
 ### deselectWhenOtherIconSelected 
 ```lua
-Icon.toggleFunction 
+icon.toggleFunction 
 ```
 A bool deciding whether the icon will be deselected when another icon is selected. Defaults to ``true``.

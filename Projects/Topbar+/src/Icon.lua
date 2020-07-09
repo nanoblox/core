@@ -82,7 +82,9 @@ function Icon.new(name, imageId, order)
 	
 	local maid = Maid.new()
 	self._maid = maid
-	self._fakeChatConnections = Maid.new()
+	self._fakeChatMaid = maid:give(Maid.new())
+	self._hoveringMaid = maid:give(Maid.new())
+	
 	self.updated = maid:give(Signal.new())
 	self.selected = maid:give(Signal.new())
 	self.deselected = maid:give(Signal.new())
@@ -97,6 +99,7 @@ function Icon.new(name, imageId, order)
 	self:setCellSize(32)
 	self.order = order or 1
 	self.enabled = true
+	self.hovering = false
 	self.alignment = "left"
 	self.totalNotifications = 0
 	self.toggleFunction = function() end
@@ -172,60 +175,26 @@ function Icon.new(name, imageId, order)
 	
 	self._hoverFunctions = {
 		enter = function(x,y)
-			local tip = self.tip
-			if self._isControllerMode and self.controllerTip and self.controllerTip ~= "" then
-				tip = self.controllerTip
-			end
-			if self.toggleStatus == "deselected" and tip and tip ~= "" then
-				showToolTip(tip,Vector2.new(x,y),self._isControllerMode)
-				xpcall(function()
-					self.hoverFunction(true)
-				end,function(err)
-					warn("Hover function error: "..err)
-				end)
-				if self._mouseHoverTrack and self._mouseHoverTrack.Connected then
-					self._mouseHoverTrack:Disconnect()
-					self._mouseHoverTrack = nil
-				end
-				if self._isControllerMode then
-					local tempConnection
-					tempConnection = guiService:GetPropertyChangedSignal("SelectedObject"):Connect(function()
-						if tempConnection and tempConnection.Connected then
-							tempConnection:Disconnect()
-						end
-						xpcall(function()
-							self.hoverFunction(false)
-						end,function(err)
-							warn("Hover function error: "..err)
-						end)
-					end)
-				else
-					self._mouseHoverTrack = button.MouseMoved:Connect(setToolTipPosition)
-				end
-			else
-				topbarPlusGui.ToolTip.Visible = false
-			end
+			self:updateToolTip(true, Vector2.new(x,y))
+			self.hoverFunction(true)
+			self.hovering = true
+			self._hoveringMaid:give(button.MouseMoved:Connect(setToolTipPosition))
 		end,
 		leave = function(x,y)
-			if self._mouseHoverTrack and self._mouseHoverTrack.Connected then
-				self._mouseHoverTrack:Disconnect()
-				self._mouseHoverTrack = nil
-			end
-			hideToolTip()
-			xpcall(function()
-				self.hoverFunction(true)
-			end,function(err)
-				warn("Hover function error: "..err)
-			end)
+            self:updateToolTip(false)
+			self.hoverFunction(false)
+			self.hovering = false
+			self._hoveringMaid:clean()
 		end,
 	}
 	
 	maid:give(button.MouseEnter:Connect(self._hoverFunctions.enter))
 	maid:give(button.MouseLeave:Connect(self._hoverFunctions.leave))
-	maid:give(guiService:GetPropertyChangedSignal("SelectedObject"):Connect(function()
-		if guiService.SelectedObject == self.objects.button then
-			self._hoverFunctions.enter()
-		end
+	maid:give(button.SelectionGained:Connect(function()
+		self._hoverFunctions.enter()
+	end))
+	maid:give(button.SelectionLost:Connect(function()
+		self._hoverFunctions.leave()
 	end))
 	
 	
@@ -252,38 +221,36 @@ function setToolTipPosition(x,y)
 	tipContainer.Position = UDim2.new(0,x,0,y)
 end
 
-function showToolTip(tip,position,controllerMode)
+function Icon:updateToolTip(visibility, position)
 	local tipContainer = topbarPlusGui.ToolTip
+	local tip = self.tip
+	if self._isControllerMode and self.controllerTip and self.controllerTip ~= "" then
+		tip = self.controllerTip
+	end
 	local textSize = textService:GetTextSize(tip,12,Enum.Font.GothamSemibold,Vector2.new(1000,20-6))
 	tipContainer.Size = UDim2.new(0,textSize.X+6,0,20)
-	if not controllerMode then
+	if position and not self._isControllerMode then
 		setToolTipPosition(position.X,position.Y)
 	end
 	tipContainer.TextLabel.Text = tip
-	tipContainer.Visible = true
+	tipContainer.Visible = (visibility and self.toggleStatus == "deselected" and tip ~= "")
 end
 
-function hideToolTip()
-	local tipContainer = topbarPlusGui.ToolTip
-	tipContainer.Visible = false
-end
-
-function Icon:setTip(tip)
+function Icon:setTip(tip, property)
+	property = property or "tip"
+	local newTip = ""
 	if tip then
 		assert(typeof(tip) == "string","Expected string, got "..typeof(tip))
-		self.tip = tip
-	else
-		self.tip = ""
+		newTip = tip
+	end
+	self[property] = newTip
+	if self.hovering then
+		self:updateToolTip(newTip)
 	end
 end
 
 function Icon:setControllerTip(tip)
-	if tip then
-		assert(typeof(tip) == "string","Expected string, got "..typeof(tip))
-		self.controllerTip = tip
-	else
-		self.controllerTip = ""
-	end
+	self:setTip(tip, "controllerTip")
 end
 
 function Icon:createDropdown(options)
