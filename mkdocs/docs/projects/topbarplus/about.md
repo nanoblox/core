@@ -57,8 +57,75 @@ shopIcon:notify() -- Prompt a notification
 !!!warning
     Likewise, if using a 'toggle menu', you must ensure its ScreenGui has ``ResetOnSpawn`` set to ``false``, or that you are calling Icon:setToggleMenu(guiObject) every time the player respawns, for the menu to persist.
 
+# Tips
+A tip is a label containing a short message that appears when an icon is highlighted on computer and console.
+
+<a><img src="https://i.ibb.co/0GszjkF/icon-tip.png" width="50%"/></a>
+
+To apply a tip, simply do:
+```lua
+icon:setTip(message)
+```
+To remove a tip, set its message to ``""`` or ``nil``:
+```lua
+icon:setTip(nil)
+```
+To apply a specific message for controller mode, do:
+```lua
+icon:setControllerTip(message)
+```
+
+<a><img src="https://i.ibb.co/ZxbR9yK/icon-controller-Tip.png" width="50%"/></a>
+
+To test controller mode on PC, simply plug-in a controller and press the console icon that pops up to the right of the topbar.
+
+# Dropdowns
+A dropdown is a collection of 'options' that appear when an icon is right-clicked on PC or long-pressed on mobile:
+
+<a><img src="https://i.ibb.co/2gvtccV/icon-dropdown.png" width="50%"/></a>
+
+```lua
+icon:createDropdown({
+	{
+		name = "About",
+		icon = "rbxassetid://2746077483",
+		clicked = function()
+			print("Navigate to About")
+		end,
+		events = {}
+	},
+	{
+		name = "Commands",
+		icon = "rbxassetid://2746074974",
+		clicked = function()
+			icon:select()
+		end,
+		events = {icon.selected}
+	},
+	{
+		name = "Roles",
+		icon = "rbxassetid://2746105644",
+		clicked = function()
+			print("Navigate to Roles")
+		end,
+		events = {}
+	},
+	{
+		name = "Settings",
+		icon = "rbxassetid://2746112353",
+		clicked = function()
+			print("Navigate to Settings")
+		end,
+		events = {}
+	},
+})
+```
+
+For more information on creating and utilising a dropdown, see ``Icon:createDropdown()``.
+
+
 # Themes
-Themes are easily adaptable tables of information that can be applied to icons to ehance their appearance and behaviour.
+Themes are easily adaptable tables of information that can be applied to icons to enhance their appearance and behaviour.
 
 You can break down a theme into three sections:
 
@@ -146,58 +213,66 @@ local theme = {
 
 
 
-### Soft Blue
+### Blue Gradient
 
 <details>
   <summary>View</summary>
   
 ```lua
+local selectedColor = Color3.fromRGB(0, 170, 255)
+local selectedColorDarker = Color3.fromRGB(0, 120, 180)
 local theme = {
-	-- TOGGLE EFFECT
-	["toggleTweenInfo"] = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		
-	-- OBJECT PROPERTIES
-	["button"] = {
-		selected = {
-			ImageTransparency = 0.3,
-			ImageColor3 = Color3.fromRGB(0, 170, 255),
-		},
-		deselected = {
-			ImageTransparency = 1,
+	
+    -- TOGGLE EFFECT
+    ["toggleTweenInfo"] = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+
+    -- OBJECT PROPERTIES
+    ["button"] = {
+        selected = {
+            ImageTransparency = 0.1,
+            ImageColor3 = Color3.fromRGB(255, 255, 255)--selectedColor,
+        },
+    },
+    ["image"] = {
+        selected = {
+            ImageColor3 = Color3.fromRGB(255, 255, 255),
+        },
+        deselected = {
+            ImageColor3 = Color3.fromRGB(255, 255, 255),
+        },
+    },
+    ["notification"] = {
+        selected = {
+            Image = "http://www.roblox.com/asset/?id=4882430005",
+            ImageColor3 = Color3.fromRGB(255, 255, 255),
+        },
+        deselected = {
+            Image = "http://www.roblox.com/asset/?id=4882430005",
+            ImageColor3 = selectedColor,
+
+        },
+    },
+    ["amount"] = {
+        selected = {
+            TextColor3 = selectedColor,
+        },
+        deselected = {
+            TextColor3 = Color3.fromRGB(255, 255, 255),
 		},
 	},
-	["image"] = {
+	["gradient"] = {
 		selected = {
-			ImageColor3 = Color3.fromRGB(255, 255, 255),
-		},
-		deselected = {
-			ImageColor3 = Color3.fromRGB(255, 255, 255),
-		},
-	},
-	["notification"] = {
-		selected = {
-			Image = "http://www.roblox.com/asset/?id=4882430005",
-			ImageColor3 = Color3.fromRGB(255, 255, 255),
-		},
-		deselected = {
-			Image = "http://www.roblox.com/asset/?id=4882430005",
-			ImageColor3 = Color3.fromRGB(0, 170, 255),
-		},
-	},
-	["amount"] = {
-		selected = {
-			TextColor3 = Color3.fromRGB(0, 170, 255),
-		},
-		deselected = {
-			TextColor3 = Color3.fromRGB(255, 255, 255),
-		},
-	},
+			Color = ColorSequence.new(selectedColor, selectedColorDarker),
+			Rotation = 90,
+        },
+    },
 }
+iconController:setGameTheme(theme)
 ```
   
 </details>
 
-<a><img src="https://i.imgur.com/Q5YnIuR.gif" width="100%"/></a>
+<a><img src="https://i.ibb.co/KDhcgC1/icon-gradient-example.png" width="100%"/></a>
 
 ----------------------------------------------
 
@@ -321,41 +396,3 @@ local theme = {
 </details>
 
 <a><img src="https://i.imgur.com/zTf9IFa.png" width="100%"/></a>
-
-
-
-
-
-
-
-
-
-
-```lua
-icon:createDropdown({
-	{
-		name = "About",
-		icon = "http://www.roblox.com/asset/?id=4943948171",
-		clicked = function()
-			print("Navigate to About")
-		end,
-		events = {}
-	},
-	{
-		name = "Commands",
-		icon = "http://www.roblox.com/asset/?id=4943948171",
-		clicked = function()
-			print("Navigate to Commands")
-		end,
-		events = {}
-	},
-	{
-		name = "Roles",
-		icon = "http://www.roblox.com/asset/?id=4943948171",
-		clicked = function()
-			print("Navigate to Roles")
-		end,
-		events = {}
-	},
-})
-```

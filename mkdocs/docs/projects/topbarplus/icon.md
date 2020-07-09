@@ -127,7 +127,7 @@ Sets a function that is called every time the icon is selected and deselected.
 ```lua
 icon:setHoverFunction(hoverFunction)
 ```
-Whenver the icon gets highlighted or unhighlighted, the function set is called and a boolean is passed telling if the icon got highlighted or unhighlighted.
+A function that is called when the icon is highlighted and unhighlighted. The first argument passed is ``icon.hovering``.
 
 --------------------
 ### setTheme
@@ -469,7 +469,7 @@ A custom function called during ``icon:select()`` and ``icon:deselect()``. To ch
 ```lua
 icon.hoverFunction 
 ```
-A custom function called when the icon is (un)highlighted. To change, use ``icon:setHoverFunction()``.
+A custom function called when the icon is highlighted or unhighlighted. To change, use ``icon:setHoverFunction()``.
 
 --------------------
 ### deselectWhenOtherIconSelected 
