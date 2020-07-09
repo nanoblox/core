@@ -197,7 +197,7 @@ function IconController:createIcon(name, imageId, order)
 	return icon
 end
 
-function IconController:setTopbarEnabled(bool,forceBool)
+function IconController:setTopbarEnabled(bool, forceBool)
 	if forceBool == nil then
 		forceBool = true
 	end
@@ -552,11 +552,7 @@ guiService.MenuClosed:Connect(function()
 end)
 guiService.MenuOpened:Connect(function()
 	menuOpen = true
-	if isControllerMode() then
-		IconController:setTopbarEnabled(false,false)
-	else
-		IconController:setTopbarEnabled(IconController.topbarEnabled,false)
-	end
+	IconController:setTopbarEnabled(false,false)
 end)
 
 --Controller
