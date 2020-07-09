@@ -181,7 +181,7 @@ function Icon.new(name, imageId, order)
 			self._hoveringMaid:give(button.MouseMoved:Connect(setToolTipPosition))
 		end,
 		leave = function(x,y)
-            self:updateToolTip(false)
+			self:updateToolTip(false)
 			self.hoverFunction(false)
 			self.hovering = false
 			self._hoveringMaid:clean()
