@@ -82,7 +82,9 @@ function Icon.new(name, imageId, order)
 	
 	local maid = Maid.new()
 	self._maid = maid
-	self._fakeChatConnections = Maid.new()
+	self._fakeChatMaid = maid:give(Maid.new())
+	self._hoveringMaid = maid:give(Maid.new())
+	
 	self.updated = maid:give(Signal.new())
 	self.selected = maid:give(Signal.new())
 	self.deselected = maid:give(Signal.new())
@@ -97,32 +99,17 @@ function Icon.new(name, imageId, order)
 	self:setCellSize(32)
 	self.order = order or 1
 	self.enabled = true
+	self.hovering = false
 	self.alignment = "left"
 	self.totalNotifications = 0
 	self.toggleFunction = function() end
 	self.hoverFunction = function() end
 	self.deselectWhenOtherIconSelected = true
-	
-	--[[
-	local hoverInputs = {"InputBegan", "InputEnded"}
-	local originalTransparency = button.ImageTransparency
-	self:setHoverFunction(function(inputName)
-		local hovering = inputName == "InputBegan"
-		button.ImageTransparency = (hovering and originalTransparency + 0.2) or (self.theme.button.selected.ImageTransparency or originalTransparency)
-	end)
-	for _, inputName in pairs(hoverInputs) do
-		button[inputName]:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseMovement then
-				self.hoverFunction(inputName)
-			end
-		end)
-	end
-	--]]
 	self.maxTouchTime = 0.5
 	self._isControllerMode = false
 	
 	if userInputService.MouseEnabled or userInputService.GamepadEnabled then
-		button.MouseButton1Down:Connect(function()
+		button.MouseButton1Click:Connect(function()
 			if self.toggleStatus == "selected" then
 				self:deselect()
 			else
@@ -131,6 +118,12 @@ function Icon.new(name, imageId, order)
 				end
 				self:select()
 			end
+		end)
+		button.MouseButton1Down:Connect(function()
+			self:updateStateOverlay(0.7, Color3.new(0, 0, 0))
+		end)
+		button.MouseButton1Up:Connect(function()
+			self:updateStateOverlay(0.9, Color3.new(1, 1, 1))
 		end)
 	elseif userInputService.TouchEnabled then
 		local inputs = {}
@@ -172,60 +165,28 @@ function Icon.new(name, imageId, order)
 	
 	self._hoverFunctions = {
 		enter = function(x,y)
-			local tip = self.tip
-			if self._isControllerMode and self.controllerTip and self.controllerTip ~= "" then
-				tip = self.controllerTip
-			end
-			if self.toggleStatus == "deselected" and tip and tip ~= "" then
-				showToolTip(tip,Vector2.new(x,y),self._isControllerMode)
-				xpcall(function()
-					self.hoverFunction(true)
-				end,function(err)
-					warn("Hover function error: "..err)
-				end)
-				if self._mouseHoverTrack and self._mouseHoverTrack.Connected then
-					self._mouseHoverTrack:Disconnect()
-					self._mouseHoverTrack = nil
-				end
-				if self._isControllerMode then
-					local tempConnection
-					tempConnection = guiService:GetPropertyChangedSignal("SelectedObject"):Connect(function()
-						if tempConnection and tempConnection.Connected then
-							tempConnection:Disconnect()
-						end
-						xpcall(function()
-							self.hoverFunction(false)
-						end,function(err)
-							warn("Hover function error: "..err)
-						end)
-					end)
-				else
-					self._mouseHoverTrack = button.MouseMoved:Connect(setToolTipPosition)
-				end
-			else
-				topbarPlusGui.ToolTip.Visible = false
-			end
+			self:updateToolTip(true, Vector2.new(x,y))
+			self.hoverFunction(true)
+			self.hovering = true
+			self._hoveringMaid:give(button.MouseMoved:Connect(setToolTipPosition))
+			self:updateStateOverlay(0.9, Color3.new(1, 1, 1))
 		end,
 		leave = function(x,y)
-			if self._mouseHoverTrack and self._mouseHoverTrack.Connected then
-				self._mouseHoverTrack:Disconnect()
-				self._mouseHoverTrack = nil
-			end
-			hideToolTip()
-			xpcall(function()
-				self.hoverFunction(true)
-			end,function(err)
-				warn("Hover function error: "..err)
-			end)
+			self:updateToolTip(false)
+			self.hoverFunction(false)
+			self.hovering = false
+			self._hoveringMaid:clean()
+			self:updateStateOverlay(1)
 		end,
 	}
 	
 	maid:give(button.MouseEnter:Connect(self._hoverFunctions.enter))
 	maid:give(button.MouseLeave:Connect(self._hoverFunctions.leave))
-	maid:give(guiService:GetPropertyChangedSignal("SelectedObject"):Connect(function()
-		if guiService.SelectedObject == self.objects.button then
-			self._hoverFunctions.enter()
-		end
+	maid:give(button.SelectionGained:Connect(function()
+		self._hoverFunctions.enter()
+	end))
+	maid:give(button.SelectionLost:Connect(function()
+		self._hoverFunctions.leave()
 	end))
 	
 	
@@ -252,50 +213,62 @@ function setToolTipPosition(x,y)
 	tipContainer.Position = UDim2.new(0,x,0,y)
 end
 
-function showToolTip(tip,position,controllerMode)
+function Icon:updateToolTip(visibility, position)
 	local tipContainer = topbarPlusGui.ToolTip
+	local tip = self.tip
+	if self._isControllerMode and self.controllerTip and self.controllerTip ~= "" then
+		tip = self.controllerTip
+	end
 	local textSize = textService:GetTextSize(tip,12,Enum.Font.GothamSemibold,Vector2.new(1000,20-6))
 	tipContainer.Size = UDim2.new(0,textSize.X+6,0,20)
-	if not controllerMode then
+	if position and not self._isControllerMode then
 		setToolTipPosition(position.X,position.Y)
 	end
 	tipContainer.TextLabel.Text = tip
-	tipContainer.Visible = true
+	tipContainer.Visible = (visibility and self.toggleStatus == "deselected" and tip ~= "")
 end
 
-function hideToolTip()
-	local tipContainer = topbarPlusGui.ToolTip
-	tipContainer.Visible = false
+function Icon:updateStateOverlay(transparency, color)
+	local stateOverlay = self.objects.button.Parent.StateOverlay
+	stateOverlay.ImageTransparency = transparency or 1
+	stateOverlay.ImageColor3 = color or Color3.new(1, 1, 1)
 end
 
-function Icon:setTip(tip)
+function Icon:disableStateOverlay(bool)
+	if bool == nil then
+		bool = true
+	end
+	local stateOverlay = self.objects.button.Parent.StateOverlay
+	stateOverlay.Visible = not bool
+end
+
+function Icon:setTip(tip, property)
+	property = property or "tip"
+	local newTip = ""
 	if tip then
 		assert(typeof(tip) == "string","Expected string, got "..typeof(tip))
-		self.tip = tip
-	else
-		self.tip = ""
+		newTip = tip
+	end
+	self[property] = newTip
+	if self.hovering then
+		self:updateToolTip(newTip)
 	end
 end
 
 function Icon:setControllerTip(tip)
-	if tip then
-		assert(typeof(tip) == "string","Expected string, got "..typeof(tip))
-		self.controllerTip = tip
-	else
-		self.controllerTip = ""
-	end
+	self:setTip(tip, "controllerTip")
 end
 
 function Icon:createDropdown(options)
 	if self.dropdown then
-		self:destroyDropdown()
+		self:removeDropdown()
 	end
 	local DropdownModule = require(script.Parent:WaitForChild("Dropdown"))
-	self.dropdown = DropdownModule.new(self,options)
+	self.dropdown = self._maid:give(DropdownModule.new(self,options))
 	return self.dropdown
 end
 
-function Icon:destroyDropdown()
+function Icon:removeDropdown()
 	if self.dropdown then
 		self.dropdown:destroy()
 		self.dropdown = nil
@@ -340,6 +313,17 @@ function Icon:setImageSize(pixelsX, pixelsY)
 	self.objects.image.Size = UDim2.new(0, pixelsX, 0, pixelsY)
 end
 
+function Icon:setCellSize(pixelsX)
+	local originalPixelsX = self.cellSize
+	pixelsX = tonumber(pixelsX) or self.cellSize
+	if originalPixelsX then
+		local differenceMultiplier = pixelsX/originalPixelsX
+		self:setImageSize(self.imageSize.X*differenceMultiplier, self.imageSize.X*differenceMultiplier)
+	end
+	self.cellSize = pixelsX
+	self.objects.container.Size = UDim2.new(0, pixelsX, 0, pixelsX)
+end
+
 function Icon:setEnabled(bool)
 	self.enabled = bool
 	self.objects.container.Visible = bool
@@ -371,7 +355,7 @@ function Icon:setBaseZIndex(baseValue)
 end
 
 function Icon:setToggleMenu(guiObject)
-	if not guiObject or not guiObject:IsA("GuiObject") then
+	if not guiObject:IsA("GuiObject") and not guiObject:IsA("LayerCollector") then
 		guiObject = nil
 	end
 	self.toggleMenu = guiObject
@@ -443,7 +427,6 @@ function Icon:applyThemeToObject(objectName, toggleStatus)
 		for propName, propValue in pairs(propertiesTable) do
 			if propName == "Transparency" and object:IsA("UIGradient") then
 				object[propName] = propValue
-				continue
 			end
 			if table.find(invalidProperties, propName) then
 				object[propName] = propValue
@@ -453,6 +436,14 @@ function Icon:applyThemeToObject(objectName, toggleStatus)
 		end
 		local tween = tweenService:Create(object, toggleTweenInfo, finalPropertiesTable):Play()
 		debris:AddItem(tween,toggleTweenInfo.Time)
+	end
+end
+
+local function setToggleMenuVisible(self,bool)
+	if self.toggleMenu:IsA("LayerCollector") then
+		self.toggleMenu.Enabled = bool
+	else
+		self.toggleMenu.Visible = bool
 	end
 end
 
@@ -467,7 +458,7 @@ function Icon:select()
 	self:applyThemeToAllObjects()
 	self.toggleFunction()
 	if self.toggleMenu then
-		self.toggleMenu.Visible = true
+		setToggleMenuVisible(self,true)
 	end
 	self.selected:Fire()
 end
@@ -477,7 +468,7 @@ function Icon:deselect()
 	self:applyThemeToAllObjects()
 	self.toggleFunction()
 	if self.toggleMenu then
-		self.toggleMenu.Visible = false
+		setToggleMenuVisible(self,false)
 	end
 	self.deselected:Fire()
 end
@@ -491,6 +482,33 @@ function Icon:notify(clearNoticeEvent)
 		self.objects.amount.Text = (self.totalNotifications < 100 and self.totalNotifications) or "99+"
 		self.objects.notification.Visible = true
 		
+		local dropdown = self.dropdown
+		local promptedOptions = {}
+		if dropdown then
+			for i, option in pairs(dropdown.options) do
+				if table.find(option.events, clearNoticeEvent) then
+					local dNotice = option.notice
+					if not dNotice then
+						dNotice = self.objects.notification:Clone()
+						dNotice.Position = UDim2.new(0.8, 0, 0.175, -1)
+						dNotice.Size = UDim2.new(0.2, 0, 0.65, 0)
+						dNotice.ZIndex = dNotice.ZIndex + 10
+						dNotice.Amount.ZIndex = dNotice.Amount.ZIndex + 10
+						dNotice.Amount.Text = 0
+						dNotice.Parent = option.container
+						option.notice = dNotice
+						local optionName = option.container.OptionName
+						local ONS = optionName.Size
+						optionName.Size = UDim2.new(0.82, ONS.X.Offset, ONS.Y.Scale, ONS.Y.Offset)
+					end
+					pcall(function() dNotice.ImageColor3 = self.theme.notification.deselected.ImageColor3 end)
+					pcall(function() dNotice.Amount.TextColor3 = self.theme.amount.deselected.TextColor3 end)
+					dNotice.Amount.Text = tonumber(dNotice.Amount.Text) + 1
+					table.insert(promptedOptions, option)
+				end
+			end
+		end
+
 		local notifComplete = Signal.new()
 		local endEvent = self.endNotifications:Connect(function()
 			notifComplete:Fire()
@@ -509,6 +527,21 @@ function Icon:notify(clearNoticeEvent)
 		if self.totalNotifications < 1 then
 			self.objects.notification.Visible = false
 		end
+
+		if self.dropdown then
+			for _, option in pairs(promptedOptions) do
+				local dNotice = option.notice
+				local optionName = option.container.OptionName
+				local ONS = optionName.Size
+				local totalDNotifications = tonumber(dNotice.Amount.Text) - 1
+				dNotice.Amount.Text = totalDNotifications
+				if totalDNotifications < 1 then
+					option.notice = nil
+					dNotice:Destroy()
+					optionName.Size = UDim2.new(0.95, ONS.X.Offset, ONS.Y.Scale, ONS.Y.Offset)
+				end
+			end
+		end
 	end)()
 end
 
@@ -520,9 +553,6 @@ function Icon:destroy()
 	self:clearNotifications()
 	self._maid:clean()
 	self._fakeChatConnections:clean()
-	if self.dropdown then
-		self.dropdown:destroy()
-	end
 end
 
 
