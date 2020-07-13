@@ -45,7 +45,7 @@ require(4664437268) -- Initiate Zone+
 
 Then in a ``LocalScript`` within ``StarterPlayerScripts``:
 ```lua
-local ZonePlus = require(game:GetService("ReplicatedStorage"):WaitForChild("HDAdmin"):WaitForChild("Zone+"))
+local ZonePlus = game:GetService("ReplicatedStorage"):WaitForChild("HDAdmin"):WaitForChild("Zone+")
 local ZoneService = require(ZonePlus.ZoneService)
 local group = workspace.YourGroupHere
 local zone = ZoneService:createZone("ZoneName", group, 15)
