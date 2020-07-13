@@ -19,7 +19,7 @@ After requiring the MainModule, Zone+ modules can be referenced on the server an
 | Client       | ``ReplicatedStorage:WaitForChild("HDAdmin"):WaitForChild("Zone+")``   |
 
 # Example (server-sided)
-On the server:
+In a ``Script`` on the server (e.g. within ``ServerScriptService``)
 ```lua
 local ZonePlus = require(4664437268) -- Initiate Zone+
 local ZoneService = require(ZonePlus.ZoneService) -- Retrieve and require ZoneService
@@ -37,12 +37,12 @@ zone:initLoop() -- Initiates loop (default 0.5) which enables the events to work
 ```
 
 # Example (client-sided)
-On the server:
+In a ``Script`` on the server (i.e. within ``ServerScriptService``)
 ```lua
 require(4664437268) -- Initiate Zone+
 ```
 
-On the client:
+In a ``LocalScript`` on the client (i.e. within ``StarterPlayerScripts``)
 !!! info Info
     It's important you use methods such as ``zone:getPlayer(localPlayer)`` and ``zone:initClientLoop()`` (instead of ``zone:getPlayers()`` and ``zone:initLoop()``) if you only intend to check for the local player.
 ```lua
