@@ -17,12 +17,12 @@ After requiring the MainModule, Topbar+ modules can be referenced on the client 
 | Client       | ``ReplicatedStorage:WaitForChild("HDAdmin"):WaitForChild("Topbar+")``   |
 
 # Example
-In a ``Script`` on the server (i.e. within ``ServerScriptService``)
+In a ``Script`` within ``ServerScriptService``:
 ```lua
 require(4874365424) -- Initiate Topbar+
 ```
 
-In a ``LocalScript`` on the client (i.e. within ``StarterPlayerScripts``)
+In a ``LocalScript`` within ``StarterPlayerScripts``:
 ```lua
 -- Require the IconController
 local replicatedStorage = game:GetService("ReplicatedStorage")
