@@ -25,6 +25,7 @@ local ZonePlus = require(4664437268) -- Initiate Zone+
 local ZoneService = require(ZonePlus.ZoneService) -- Retrieve and require ZoneService
 local group = workspace.YourGroupHere -- A container (i.e. Model or Folder) of parts that represent the zone
 local zone = ZoneService:createZone("ZoneName", group, 15) -- Construct a zone called 'ZoneName' using 'group' and with an extended height of 15 
+
 local playersInZone = zone:getPlayers() -- Retrieves an array of players within the zone
 
 zone.playerAdded:Connect(function(player) -- Fires when a player enters the zone
@@ -43,15 +44,14 @@ require(4664437268) -- Initiate Zone+
 ```
 
 Then in a ``LocalScript`` within ``StarterPlayerScripts``:
-
-!!! info Info
-    It's important you use methods such as ``zone:getPlayer(localPlayer)`` and ``zone:initClientLoop()`` (instead of ``zone:getPlayers()`` and ``zone:initLoop()``) if you only intend to check for the local player.
 ```lua
-local localPlayer = game:GetService("Players").LocalPlayer
-local ZoneService = require(game:GetService("ReplicatedStorage"):WaitForChild("HDAdmin"):WaitForChild("Zone+").ZoneService)
+local ZonePlus = require(game:GetService("ReplicatedStorage"):WaitForChild("HDAdmin"):WaitForChild("Zone+"))
+local ZoneService = require(ZonePlus.ZoneService)
 local group = workspace.YourGroupHere
 local zone = ZoneService:createZone("ZoneName", group, 15)
-local isClientInZone = zone:getPlayer(localPlayer)
+local localPlayer = game:GetService("Players").LocalPlayer
+
+local isClientInZone = zone:getPlayer(localPlayer) -- Checks whether the local player is within the zone
 
 zone.playerAdded:Connect(function() -- Fires when the localPlayer enters the zone
     print(localPlayer.Name.." entered!")
@@ -61,6 +61,9 @@ zone.playerRemoving:Connect(function()  -- Fires when the localPlayer exits the 
 end)
 zone:initClientLoop() -- Initiates loop (default 0.5) which *only* checks for the local player, enabling events to work
 ```
+
+!!! info Info
+    It's important you use methods such as ``zone:getPlayer(localPlayer)`` and ``zone:initClientLoop()`` (instead of ``zone:getPlayers()`` and ``zone:initLoop()``) if you only intend to check for the local player.
 
 # Uses
 For coded examples, visit the Zone+ Playground.
