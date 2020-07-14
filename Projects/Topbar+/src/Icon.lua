@@ -355,7 +355,7 @@ function Icon:setBaseZIndex(baseValue)
 end
 
 function Icon:setToggleMenu(guiObject)
-	if not guiObject or not guiObject:IsA("GuiObject") then
+	if not guiObject:IsA("GuiObject") and not guiObject:IsA("LayerCollector") then
 		guiObject = nil
 	end
 	self.toggleMenu = guiObject
@@ -439,6 +439,14 @@ function Icon:applyThemeToObject(objectName, toggleStatus)
 	end
 end
 
+local function setToggleMenuVisible(self,bool)
+	if self.toggleMenu:IsA("LayerCollector") then
+		self.toggleMenu.Enabled = bool
+	else
+		self.toggleMenu.Visible = bool
+	end
+end
+
 function Icon:applyThemeToAllObjects(...)
 	for objectName, _ in pairs(self.theme) do
 		self:applyThemeToObject(objectName, ...)
@@ -450,7 +458,7 @@ function Icon:select()
 	self:applyThemeToAllObjects()
 	self.toggleFunction()
 	if self.toggleMenu then
-		self.toggleMenu.Visible = true
+		setToggleMenuVisible(self,true)
 	end
 	self.selected:Fire()
 end
@@ -460,7 +468,7 @@ function Icon:deselect()
 	self:applyThemeToAllObjects()
 	self.toggleFunction()
 	if self.toggleMenu then
-		self.toggleMenu.Visible = false
+		setToggleMenuVisible(self,false)
 	end
 	self.deselected:Fire()
 end
