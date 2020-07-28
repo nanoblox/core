@@ -36,7 +36,7 @@ function User.new(dataStoreName, key)
 	local currentTick = tick()
 	self.onlySaveDataWhenChanged = true
 	self.teleportPlayerAwayOnFail = false
-	self.autoSave = true
+	self.autoSave = false
 	self.autoSaveInterval = 60
 	self.maxRetries = 3
 	self.cooldown = 8
@@ -54,7 +54,7 @@ function User.new(dataStoreName, key)
 	self.startData = {}
 	
 	-- AutoSave
-	self._nextAutoSaveTick = currentTick
+	self.nextAutoSaveTick = currentTick
 	if self.autoSave then
 		self:initSaveLoop()
 	end
@@ -240,8 +240,8 @@ function User:initSaveLoop(autoSaveInterval)
 	coroutine.wrap(function()
 		while self.autoSave and loopId == self.sessionId do
 			local currentTick = tick()
-			if currentTick >= self._nextAutoSaveTick then
-				self._nextAutoSaveTick = currentTick + self.autoSaveInterval
+			if currentTick >= self.nextAutoSaveTick then
+				self.nextAutoSaveTick = currentTick + self.autoSaveInterval
 				self:saveAsync()
 			end
 			RunService.Heartbeat:Wait()
