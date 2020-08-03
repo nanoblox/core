@@ -49,14 +49,15 @@ function User.new(dataStoreName, key)
 	self.isNewUser = nil
 	self.isLoaded = false
 	self.loaded = maid:give(Signal.new())
+	self.saved = maid:give(Signal.new())
 	self.player = nil
 	self.errorMessageBase = "DataStore+ | Failed to %s DataKey '".. tostring(key).."' ("..dataStoreName.."): "
 	self.startData = {}
 	
 	-- AutoSave
-	self.nextAutoSaveTick = currentTick
+	self.nextAutoSaveTick = currentTick + 5
 	if self.autoSave then
-		self:initSaveLoop()
+		self:initAutoSave()
 	end
 	
 	--BindToClose
@@ -159,6 +160,7 @@ function User:saveAsync()
 				return nil
 			end
 			-- Success, return data to be saved
+			self.saved:Fire()
 			return self.perm
 		end)
 	end)
@@ -210,8 +212,9 @@ function User:_applyCooldown(callType)
 end
 
 function User:_protectedCall(callType, func)
-	for i = 1, self.maxRetries do
-		local finalAttempt = i == self.maxRetries
+	local retries = self.maxRetries + 1
+	for i = 1, retries do
+		local finalAttempt = i == self.maxRetries + 1
 		local success, value = pcall(func, finalAttempt)
 		if success and (value or callType == "load") then
 			return value
@@ -230,19 +233,30 @@ function User:setStartData(startData)
 	self.startData = startData
 end
 
-function User:initSaveLoop(autoSaveInterval)
+function User:initAutoSave(autoSaveInterval)
 	local loopId = self.sessionId
 	self.autoSaveInterval = tonumber(autoSaveInterval) or self.autoSaveInterval
 	if self.saveLoopInitialized then
 		return false
 	end
 	self.saveLoopInitialized = true
+	self.autoSave = true
+	local firstTime = true
 	coroutine.wrap(function()
+		self:waitUntilLoaded()
 		while self.autoSave and loopId == self.sessionId do
 			local currentTick = tick()
 			if currentTick >= self.nextAutoSaveTick then
 				self.nextAutoSaveTick = currentTick + self.autoSaveInterval
+				local maxRetries = self.maxRetries
+				if firstTime then
+					self.maxRetries = 0
+				end
 				self:saveAsync()
+				if firstTime then
+					self.maxRetries = (self.maxRetries == 0 and maxRetries) or self.maxRetries
+					firstTime = false
+				end
 			end
 			RunService.Heartbeat:Wait()
 		end
@@ -252,6 +266,7 @@ end
 
 function User:waitUntilLoaded()
 	local loaded = self.isLoaded or self.loaded:Wait()
+	return self.perm
 end
 
 function User:destroy()
