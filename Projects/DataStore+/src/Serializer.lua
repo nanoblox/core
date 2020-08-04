@@ -133,6 +133,7 @@ function Serializer.deserialize(value, deepCopy)
         end
         return dataTypes.table.deserialize(value, deepCopy)
     end
+    return value
 end
 
 

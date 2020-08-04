@@ -4,7 +4,7 @@ local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
 local Signal = require(HDAdmin:WaitForChild("Signal"))
 local Maid = require(HDAdmin:WaitForChild("Maid"))
 local activeTables = {}
-local events = {"setted", "incremented", "changed", "inserted", "removed", "paired", "concatted", "cleared"}
+local events = {"setted", "incremented", "concatted", "changed", "inserted", "removed", "paired", "cleared"}
 local TableModifiers = {}
 setmetatable(TableModifiers, {
 	__mode = "k"}
@@ -31,8 +31,6 @@ function TableModifiers.apply(targetTable)
 			return newIndex
 		end
 	})
-	
-	targetTable._tableUpdated = false
 		
 	return maid
 end
@@ -90,7 +88,6 @@ end
 function TableModifiers:set(stat, value)
 	local oldValue = self[stat]
 	self[stat] = value
-	self._tableUpdated = true
 	self.setted:Fire(stat, value, oldValue)
 	self.changed:Fire(stat, value, oldValue)
 	return value
@@ -100,29 +97,32 @@ function TableModifiers:increment(stat, value)
 	local oldValue = self[stat] or 0
 	local newValue = oldValue + value
 	self[stat] = newValue
-	self._tableUpdated = true
 	self.incremented:Fire(stat, value)
 	self.changed:Fire(stat, newValue, oldValue)
 	return newValue
 end
 
-function TableModifiers:insert(stat, value)
+function TableModifiers:insert(stat, value, pos)
 	local tab = (type(self[stat]) == "table" and self[stat]) or {}
-	table.insert(tab, value)
+	table.insert(tab, value, pos)
 	self[stat] = tab
-	self._tableUpdated = true
 	self.inserted:Fire(stat, value)
 	return tab
 end
 
-function TableModifiers:remove(stat, value)
+function TableModifiers:remove(stat, value, pos)
 	local tab = self[stat]
-	for i,v in pairs(tab) do
-		if v == value then
-			table.remove(tab, i)
+	local exactV = tab[pos]
+	if exactV and exactV == value then
+		table.remove(tab, pos)
+	else
+		for i,v in pairs(tab) do
+			if v == value then
+				table.remove(tab, i)
+				break
+			end
 		end
 	end
-	self._tableUpdated = true
 	self.removed:Fire(stat, value)
 end
 
@@ -131,7 +131,6 @@ function TableModifiers:pair(stat, key, value)
 	local tab = (type(originalTab) == "table" and originalTab) or {}
 	tab[key] = value
 	self[stat] = tab
-	self._tableUpdated = true
 	self.paired:Fire(stat, key, value)
 	return tab
 end
@@ -140,7 +139,6 @@ function TableModifiers:concat(stat, value)
 	local oldValue = self[stat] or ""
 	local newValue = oldValue.. tostring(value)
 	self[stat] = newValue
-	self._tableUpdated = true
 	self.concatted:Fire(stat, newValue, oldValue)
 	self.changed:Fire(stat, newValue, oldValue)
 	return newValue
@@ -148,7 +146,8 @@ end
 
 function TableModifiers:clear()
 	for k,v in pairs(self) do
-		self[k] = nil
+		--self[k] = nil
+		self:set(k, nil)
 	end
 	self.cleared:Fire()
 end

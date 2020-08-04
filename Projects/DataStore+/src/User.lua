@@ -10,8 +10,54 @@ local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
 local Signal = require(HDAdmin:WaitForChild("Signal"))
 local Maid = require(HDAdmin:WaitForChild("Maid"))
 local TableModifiers = require(script.Parent.TableModifiers)
+local Serializer = require(script.Parent.Serializer)
 local User = {}
 User.__index = User
+
+
+
+-- LOCAL FUNCTIONS
+local function doTablesMatch(t1, t2, cancelOpposites)
+	if type(t1) ~= "table" then
+		return false
+	end
+	for i, v in pairs(t1) do
+		if (typeof(v) == "table") then
+			if (doTablesMatch(t2[i], v) == false) then
+				return false
+			end
+		else
+			if (v ~= t2[i]) then
+				return false
+			end
+		end
+	end
+	if not cancelOpposites then
+		if not doTablesMatch(t2, t1, true) then
+			return false
+		end
+	end
+	return true
+end
+
+local function isATable(value)
+	return type(value) == "table"
+end
+
+local function isEqual(v1, v2)
+	if isATable(v1) and isATable(v2) then
+		return doTablesMatch(v1, v2)
+	end
+	return v1 == v2
+end
+
+local function findValue(tab, value)
+	for i,v in pairs(tab) do
+		if isEqual(v, value) then
+			return i
+		end
+	end
+end
 
 
 
@@ -28,9 +74,11 @@ function User.new(dataStoreName, key)
 	self.temp = {}
 	self.perm = {}
 	self.backup = {}
+	self._data = {}
 	maid:give(TableModifiers.apply(self.temp))
 	maid:give(TableModifiers.apply(self.perm))
 	maid:give(TableModifiers.apply(self.backup))
+	maid:give(TableModifiers.apply(self._data))
 	
 	-- Config
 	local currentTick = tick()
@@ -66,7 +114,26 @@ function User.new(dataStoreName, key)
 		    self:saveAsync()
 		end)
 	end
-	
+
+	-- Perm to _Data (serialization)
+	local serEvents = {
+		changed = "set",
+		inserted = "insert",
+		removed = "remove",
+		paired = "pair",
+	}
+	for eventName, methodName in pairs(serEvents) do
+		self.perm[eventName]:Connect(function(...)
+			local packaged = {...}
+			local newValues = {}
+			for _, v in pairs(packaged) do
+				table.insert(newValues, Serializer.serialize(v, true))
+			end
+			self._data[methodName](self._data, table.unpack(newValues))
+			self._data._tableUpdated = true
+		end)
+	end
+
 	return self
 end
 
@@ -77,49 +144,94 @@ function User:loadAsync()
 	local callType = "load"
 	self.isLoaded = false
 	
-	-- Retrieve previous perm data 
-	local permData = self:_protectedCall(callType, function(finalAttempt)
+	-- Retrieve previous _data 
+	local data = self:_protectedCall(callType, function(finalAttempt)
 		return self.dataStore:GetAsync(self.key)
 	end)
 	
-	-- Setup perm; if nothing found, apply start data
-	if not permData then
-		permData = self.startData
+	-- This merges serialized data into the servers deserialized data while only triggering necessary events
+	local function transformData(newData, oldData)
+		for name, content in pairs(newData) do
+			-- don't deseralize hidden values and add them to _data instantly instead
+			local oldDataMain = oldData
+			local isPrivate = oldData == self.perm and name:sub(1,1) == "_"
+			if isPrivate then
+				oldDataMain = self._data
+			else
+				name = Serializer.deserialize(name)
+				content = Serializer.deserialize(content)
+			end
+			-- For this section, we only want to insert/set/pair *differences*
+			if type(content) == "table" then
+				local oldT = (type(oldDataMain[name]) == "table" and oldDataMain[name]) or {}
+				local oldTCopy = {}
+				for k,v in pairs(oldT) do
+					oldTCopy[k] = v
+				end
+				if #content > 0 then
+					-- Compare diffrences and only insert or remove differences
+					-- oldTCopy = {hamster, goat}
+					-- content = {hamster, cat, goat}
+					-- becomes: {hamster, goat, cat}
+					local totalElements = #oldTCopy
+					for i = 1, totalElements do
+						local newI = totalElements+1-i
+						local v = oldTCopy[newI]
+						local i2 = findValue(content, v)
+						if i2 then
+							table.remove(content, i2)
+							table.remove(oldTCopy, newI)
+						end
+					end
+					for i,v in pairs(content) do
+						v = Serializer.deserialize(v)
+						oldDataMain:insert(name, v)
+					end
+					for i,v in pairs(oldTCopy) do
+						v = Serializer.deserialize(v)
+						oldDataMain:remove(name, v)
+					end
+				else
+					-- Only pair nil keys or keys with values/tables that dont match
+					for k,v in pairs(content) do
+						if not(oldTCopy[k] and isEqual(oldTCopy[k], v)) then
+							k = Serializer.deserialize(k)
+							v = Serializer.deserialize(v)
+							oldDataMain:pair(name, k, v)
+						end
+					end
+				end
+			else
+				local oldValue = oldDataMain[name]
+				-- Only set nil original values or keys with values/tables that dont match
+				if not isEqual(oldValue, content) or isPrivate then
+					local oldValueNum = tonumber(oldValue)
+					local newValueNum = tonumber(content)
+					oldDataMain[name] = oldValue
+					if oldValueNum and newValueNum then
+						oldDataMain:increment(name, newValueNum-oldValueNum)
+					else
+						oldDataMain:set(name, content)
+					end
+				end
+			end
+		end
+	end
+
+	-- Setup perm; if nothing found, apply start data. Transform _data into perm (i.e. deserialize)
+	if not data then
+		data = self.startData
 		self.isNewUser = true
 	else
 		self.isNewUser = false
 	end
-	for k,v in pairs(permData) do
-		self.perm[k] = v
-	end
+	transformData(data, self.perm)
 	
 	-- Find and trigger any backup data
-	local backupData = permData._backupData
+	local backupData = data._backupData
 	if backupData then
-		for name, content in pairs(backupData) do
-			if type(content) == "table" then
-				if #content > 0 then
-					for i,v in pairs(content) do
-						self.backup:insert(name, v)
-					end
-				else
-					for k,v in pairs(content) do
-						self.backup:pair(name, k, v)
-					end
-				end
-			else
-				local oldValue = permData[name]
-				local oldValueNum = tonumber(oldValue)
-				local newValueNum = tonumber(content)
-				self.backup[name] = oldValue
-				if oldValueNum and newValueNum then
-					self.backup:increment(name, newValueNum-oldValueNum)
-				else
-					self.backup:set(name, content)
-				end
-			end
-		end
-		self.perm._backupData = nil
+		transformData(backupData, self.backup)
+		self._data._backupData = nil
 	end
 	
 	-- Complete
@@ -132,7 +244,7 @@ function User:saveAsync()
 	local callType = "save"
 	
 	-- Return if nothing needs saving
-	if self.perm._tableUpdated == false and self.backup._tableUpdated == false and self.onlySaveDataWhenChanged then
+	if self._data._tableUpdated == false and self.backup._tableUpdated == false and self.onlySaveDataWhenChanged then
 		return false
 	end
 	
@@ -143,11 +255,11 @@ function User:saveAsync()
 	local backupAction = false
 	local success = self:_protectedCall(callType, function(finalAttempt)
 		return self.dataStore:UpdateAsync(self.key, function(previousData)
-			local previousData = previousData or self.perm
-			if previousData._dataId == self.perm._dataId then
+			previousData = previousData or self._data
+			if previousData._dataId == self._data._dataId then
 				-- DataIds match, generate new unique DataId
-				self.perm._dataId = httpService:GenerateGUID()
-				self.perm._tableUpdated = false
+				self._data._dataId = httpService:GenerateGUID()
+				self._data._tableUpdated = false
 			elseif finalAttempt then
 				-- DataIds do not match, all retries failed, force add backup data to previousData and proceed to backup action 
 				warn(string.format("%sDataIds do not match, all retries failed. Saved backup data and and proceeding to backup action.", self.errorMessageBase:format(callType)))
@@ -160,13 +272,13 @@ function User:saveAsync()
 				return nil
 			end
 			-- Success, return data to be saved
-			self.saved:Fire()
-			return self.perm
+			return self._data
 		end)
 	end)
 	
 	-- Clear backup data
 	if success then
+		self.saved:Fire()
 		self.backup:clear()
 	end
 	
@@ -218,6 +330,8 @@ function User:_protectedCall(callType, func)
 		local success, value = pcall(func, finalAttempt)
 		if success and (value or callType == "load") then
 			return value
+		elseif not success and finalAttempt then
+			warn(self.errorMessageBase:format(callType), value)
 		end
 		wait(1)
 	end
