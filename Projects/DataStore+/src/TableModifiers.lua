@@ -104,14 +104,18 @@ end
 
 function TableModifiers:insert(stat, value, pos)
 	local tab = (type(self[stat]) == "table" and self[stat]) or {}
-	table.insert(tab, value, pos)
+	pos = pos or #tab+1
+	table.insert(tab, pos, value)
 	self[stat] = tab
-	self.inserted:Fire(stat, value)
+	self.inserted:Fire(stat, value, pos)
 	return tab
 end
 
 function TableModifiers:remove(stat, value, pos)
 	local tab = self[stat]
+	if not tab then
+		return
+	end
 	local exactV = tab[pos]
 	if exactV and exactV == value then
 		table.remove(tab, pos)
@@ -123,7 +127,7 @@ function TableModifiers:remove(stat, value, pos)
 			end
 		end
 	end
-	self.removed:Fire(stat, value)
+	self.removed:Fire(stat, value, pos)
 end
 
 function TableModifiers:pair(stat, key, value)

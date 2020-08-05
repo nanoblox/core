@@ -125,11 +125,10 @@ function User.new(dataStoreName, key)
 	for eventName, methodName in pairs(serEvents) do
 		self.perm[eventName]:Connect(function(...)
 			local packaged = {...}
-			local newValues = {}
-			for _, v in pairs(packaged) do
-				table.insert(newValues, Serializer.serialize(v, true))
+			for k,v in pairs(packaged) do
+				packaged[k] = Serializer.serialize(v, true)
 			end
-			self._data[methodName](self._data, table.unpack(newValues))
+			self._data[methodName](self._data, table.unpack(packaged))
 			self._data._tableUpdated = true
 		end)
 	end
@@ -150,70 +149,88 @@ function User:loadAsync()
 	end)
 	
 	-- This merges serialized data into the servers deserialized data while only triggering necessary events
-	local function transformData(newData, oldData)
+	local function transformData(newData, coreData)
 		for name, content in pairs(newData) do
 			-- don't deseralize hidden values and add them to _data instantly instead
-			local oldDataMain = oldData
-			local isPrivate = oldData == self.perm and name:sub(1,1) == "_"
+			local coreDataMain = coreData
+			local isPrivate = coreData == self.perm and name:sub(1,1) == "_"
 			if isPrivate then
-				oldDataMain = self._data
+				coreDataMain = self._data
 			else
 				name = Serializer.deserialize(name)
 				content = Serializer.deserialize(content)
 			end
 			-- For this section, we only want to insert/set/pair *differences*
 			if type(content) == "table" then
-				local oldT = (type(oldDataMain[name]) == "table" and oldDataMain[name]) or {}
-				local oldTCopy = {}
-				for k,v in pairs(oldT) do
-					oldTCopy[k] = v
+				-- t1 | the table with new information
+				local t1 = content
+				-- t2 | the table we are effectively merging into
+				local original_t2 = (type(coreDataMain[name]) == "table" and coreDataMain[name]) or {}
+				local t2 = {}
+				for k,v in pairs(original_t2) do
+					t2[k] = v
 				end
 				if #content > 0 then
-					-- Compare diffrences and only insert or remove differences
-					-- oldTCopy = {hamster, goat}
-					-- content = {hamster, cat, goat}
-					-- becomes: {hamster, goat, cat}
-					local totalElements = #oldTCopy
-					for i = 1, totalElements do
-						local newI = totalElements+1-i
-						local v = oldTCopy[newI]
-						local i2 = findValue(content, v)
-						if i2 then
-							table.remove(content, i2)
-							table.remove(oldTCopy, newI)
+					-- This inserts/removes differences accoridngly using minimal amounts of moves
+					local iterations = (#t1 > #t2 and #t1) or #t2
+					for i = 1, iterations do
+						local V1 = t1[i]
+						local V2 = t2[i]
+						if V1 ~= V2 then
+							local nextV1 = t1[i+1]
+							if nextV1 ~= V2 and V2 ~= nil then
+								table.remove(t2, i)
+								coreDataMain:remove(name, Serializer.deserialize(V2, true), i)
+							end
+							local newV2 = t2[i]
+							if V1 ~= nil and newV2 ~= V1 then
+								table.insert(t2, i, V1)
+								coreDataMain:insert(name, Serializer.deserialize(V1, true), i)
+							end
 						end
 					end
-					for i,v in pairs(content) do
-						v = Serializer.deserialize(v)
-						oldDataMain:insert(name, v)
-					end
-					for i,v in pairs(oldTCopy) do
-						v = Serializer.deserialize(v)
-						oldDataMain:remove(name, v)
-					end
 				else
-					-- Only pair nil keys or keys with values/tables that dont match
-					for k,v in pairs(content) do
-						if not(oldTCopy[k] and isEqual(oldTCopy[k], v)) then
+					-- Only pair keys with values/tables that dont match
+					for k,v in pairs(t1) do
+						if not(t2[k] and isEqual(t2[k], v)) then
 							k = Serializer.deserialize(k)
 							v = Serializer.deserialize(v)
-							oldDataMain:pair(name, k, v)
+							coreDataMain:pair(name, k, v)
+						end
+					end
+					-- This accounts for nilled values
+					for k,v in pairs(t2) do
+						if t1[k] == nil then
+							coreDataMain:pair(name, k, nil)
 						end
 					end
 				end
 			else
-				local oldValue = oldDataMain[name]
+				local oldValue = coreDataMain[name]
 				-- Only set nil original values or keys with values/tables that dont match
 				if not isEqual(oldValue, content) or isPrivate then
 					local oldValueNum = tonumber(oldValue)
 					local newValueNum = tonumber(content)
-					oldDataMain[name] = oldValue
+					coreDataMain[name] = oldValue
 					if oldValueNum and newValueNum then
-						oldDataMain:increment(name, newValueNum-oldValueNum)
+						coreDataMain:increment(name, newValueNum-oldValueNum)
 					else
-						oldDataMain:set(name, content)
+						coreDataMain:set(name, content)
 					end
 				end
+			end
+		end
+		-- repeat a similar process to account for nilled values
+		for name, content in pairs(coreData) do
+			local coreDataMain = coreData
+			local isPrivate = coreData == self.perm and name:sub(1,1) == "_"
+			if isPrivate then
+				coreDataMain = self._data
+			else
+				name = Serializer.deserialize(name)
+			end
+			if newData[name] == nil then
+				coreDataMain:set(name, nil)
 			end
 		end
 	end
