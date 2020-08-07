@@ -22,6 +22,7 @@ dataTypes = {
     },
     ["Color3"] = {
         identifier = "c",
+        --[[ I need values to be 100% precise on both ends; converting to hex does not achieve this
         serialize = function(property)
 			local r = math.floor(property.r*255+.5)
             local g = math.floor(property.g*255+.5)
@@ -32,7 +33,15 @@ dataTypes = {
 			local r, g, b = value:match("(..)(..)(..)")
             r, g, b = tonumber(r, 16), tonumber(g, 16), tonumber(b, 16)
             return Color3.fromRGB(r, g, b)
+        end,
+        --]]
+        serialize = function(property)
+			return tostring(property)
 		end,
+		deserialize = function(value)
+			local tValue = value:split(",")
+            return Color3.new(unpack(tValue))
+        end,
     },
     ["EnumItem"] = {
         identifier = "e",

@@ -62,7 +62,7 @@ function UserStore:getUserByName(name)
 	end
 end
 
-function UserStore:getAllUsers()
+function UserStore:getUsers()
 	local usersArray = {}
 	for key, user in pairs(self.users) do
 		table.insert(usersArray, user)
@@ -95,7 +95,7 @@ function UserStore:getLoadedUserByName(name)
 	end
 end
 
-function UserStore:getAllLoadedUsers()
+function UserStore:getLoadedUsers()
 	local usersArray = {}
 	for key, user in pairs(self.users) do
 		if user.isLoaded then

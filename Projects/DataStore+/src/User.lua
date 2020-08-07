@@ -147,93 +147,6 @@ function User:loadAsync()
 	local data = self:_protectedCall(callType, function(finalAttempt)
 		return self.dataStore:GetAsync(self.key)
 	end)
-	
-	-- This merges serialized data into the servers deserialized data while only triggering necessary events
-	local function transformData(newData, coreData)
-		for name, content in pairs(newData) do
-			-- don't deseralize hidden values and add them to _data instantly instead
-			local coreDataMain = coreData
-			local isPrivate = coreData == self.perm and name:sub(1,1) == "_"
-			if isPrivate then
-				coreDataMain = self._data
-			else
-				name = Serializer.deserialize(name)
-				content = Serializer.deserialize(content)
-			end
-			-- For this section, we only want to insert/set/pair *differences*
-			if type(content) == "table" then
-				-- t1 | the table with new information
-				local t1 = content
-				-- t2 | the table we are effectively merging into
-				local original_t2 = (type(coreDataMain[name]) == "table" and coreDataMain[name]) or {}
-				local t2 = {}
-				for k,v in pairs(original_t2) do
-					t2[k] = v
-				end
-				if #content > 0 then
-					-- This inserts/removes differences accoridngly using minimal amounts of moves
-					local iterations = (#t1 > #t2 and #t1) or #t2
-					for i = 1, iterations do
-						local V1 = t1[i]
-						local V2 = t2[i]
-						if V1 ~= V2 then
-							local nextV1 = t1[i+1]
-							if nextV1 ~= V2 and V2 ~= nil then
-								table.remove(t2, i)
-								coreDataMain:remove(name, Serializer.deserialize(V2, true), i)
-							end
-							local newV2 = t2[i]
-							if V1 ~= nil and newV2 ~= V1 then
-								table.insert(t2, i, V1)
-								coreDataMain:insert(name, Serializer.deserialize(V1, true), i)
-							end
-						end
-					end
-				else
-					-- Only pair keys with values/tables that dont match
-					for k,v in pairs(t1) do
-						if not(t2[k] and isEqual(t2[k], v)) then
-							k = Serializer.deserialize(k)
-							v = Serializer.deserialize(v)
-							coreDataMain:pair(name, k, v)
-						end
-					end
-					-- This accounts for nilled values
-					for k,v in pairs(t2) do
-						if t1[k] == nil then
-							coreDataMain:pair(name, k, nil)
-						end
-					end
-				end
-			else
-				local oldValue = coreDataMain[name]
-				-- Only set nil original values or keys with values/tables that dont match
-				if not isEqual(oldValue, content) or isPrivate then
-					local oldValueNum = tonumber(oldValue)
-					local newValueNum = tonumber(content)
-					coreDataMain[name] = oldValue
-					if oldValueNum and newValueNum then
-						coreDataMain:increment(name, newValueNum-oldValueNum)
-					else
-						coreDataMain:set(name, content)
-					end
-				end
-			end
-		end
-		-- repeat a similar process to account for nilled values
-		for name, content in pairs(coreData) do
-			local coreDataMain = coreData
-			local isPrivate = coreData == self.perm and name:sub(1,1) == "_"
-			if isPrivate then
-				coreDataMain = self._data
-			else
-				name = Serializer.deserialize(name)
-			end
-			if newData[name] == nil then
-				coreDataMain:set(name, nil)
-			end
-		end
-	end
 
 	-- Setup perm; if nothing found, apply start data. Transform _data into perm (i.e. deserialize)
 	if not data then
@@ -242,12 +155,12 @@ function User:loadAsync()
 	else
 		self.isNewUser = false
 	end
-	transformData(data, self.perm)
+	self:transformData(data, self.perm)
 	
 	-- Find and trigger any backup data
 	local backupData = data._backupData
 	if backupData then
-		transformData(backupData, self.backup)
+		self:transformData(backupData, self.backup)
 		self._data._backupData = nil
 	end
 	
@@ -393,6 +306,100 @@ function User:initAutoSave(autoSaveInterval)
 		end
 		self.saveLoopInitialized = nil
 	end)()
+end
+
+function User:transformData(data1, data2, dataToUpdate)
+	-- This compares data1 and data2 and deserialises and merges the changes into dataToUpdate
+	if not dataToUpdate then
+		dataToUpdate = data2
+	end
+	-- account for nilled values
+	for name, content in pairs(data2) do
+		local dataToUpdateMain = dataToUpdate
+		local isPrivate = dataToUpdate == self.perm and name:sub(1,1) == "_"
+		if isPrivate then
+			dataToUpdateMain = self._data
+		else
+			name = Serializer.deserialize(name)
+		end
+		if data1[name] == nil then
+			dataToUpdateMain:set(name, nil)
+		end
+	end
+	
+	-- repeat a similar process for present values
+	for name, content in pairs(data1) do
+		-- don't deseralize hidden values and add them to _data instantly instead
+		local dataToUpdateMain = dataToUpdate
+		local isPrivate = dataToUpdate == self.perm and name:sub(1,1) == "_"
+		if isPrivate then
+			dataToUpdateMain = self._data
+		else
+			name = Serializer.deserialize(name)
+			content = Serializer.deserialize(content)
+		end
+		-- Update values
+		local coreValue = data2[name]
+		local bothAreTables = type(coreValue) == "table" and type(content) == "table"
+		if isPrivate or (coreValue ~= content and not bothAreTables) then
+			-- Only set nil original values or keys with values/tables that dont match
+			local oldValueNum = tonumber(coreValue)
+			local newValueNum = tonumber(content)
+			dataToUpdateMain[name] = coreValue
+			if oldValueNum and newValueNum then
+				dataToUpdateMain:increment(name, newValueNum-oldValueNum)
+			else
+				dataToUpdateMain:set(name, content)
+			end
+		else
+			-- For this section, we only want to insert/set/pair *differences*
+			if type(content) == "table" then
+				-- t1 | the table with new information
+				local t1 = content
+				-- t2 | the table we are effectively merging into
+				local original_t2 = (type(coreValue) == "table" and coreValue) or {}
+				local t2 = {}
+				for k,v in pairs(original_t2) do
+					t2[k] = v
+				end
+				if #content > 0 then
+					-- This inserts/removes differences accoridngly using minimal amounts of moves
+					local iterations = (#t1 > #t2 and #t1) or #t2
+					for i = 1, iterations do
+						local V1 = t1[i]
+						local V2 = t2[i]
+						if V1 ~= V2 then
+							local nextV1 = t1[i+1]
+							if nextV1 ~= V2 and V2 ~= nil then
+								table.remove(t2, i)
+								dataToUpdateMain:remove(name, Serializer.deserialize(V2, true), i)
+							end
+							local newV2 = t2[i]
+							if V1 ~= nil and newV2 ~= V1 then
+								table.insert(t2, i, V1)
+								dataToUpdateMain:insert(name, Serializer.deserialize(V1, true), i)
+							end
+						end
+					end
+				else
+					-- Only pair keys with values/tables that dont match
+					for k,v in pairs(t1) do
+						if not(t2[k] and isEqual(t2[k], v)) then
+							k = Serializer.deserialize(k)
+							v = Serializer.deserialize(v)
+							dataToUpdateMain:pair(name, k, v)
+						end
+					end
+					-- This accounts for nilled values
+					for k,v in pairs(t2) do
+						if t1[k] == nil then
+							dataToUpdateMain:pair(name, k, nil)
+						end
+					end
+				end
+			end
+		end
+	end
 end
 
 function User:waitUntilLoaded()
