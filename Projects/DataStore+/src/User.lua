@@ -88,6 +88,8 @@ function User.new(dataStoreName, key)
 	self.autoSaveInterval = 60
 	self.maxRetries = 3
 	self.cooldown = 8
+	self.transformLoadDataTo = self.perm
+	self.transformingLoadData = false
 	
 	-- Setup information
 	self.dataStoreName = dataStoreName
@@ -155,7 +157,10 @@ function User:loadAsync()
 	else
 		self.isNewUser = false
 	end
-	self:transformData(data, self.perm)
+	local tableToUpdate = self.transformLoadDataTo or self._data
+	self.transformingLoadData = true
+	self:transformData(data, self.perm, tableToUpdate)
+	self.transformingLoadData = false
 	
 	-- Find and trigger any backup data
 	local backupData = data._backupData
@@ -308,22 +313,24 @@ function User:initAutoSave(autoSaveInterval)
 	end)()
 end
 
-function User:transformData(data1, data2, dataToUpdate)
+function User:transformData(data1, data2, dataToUpdate, ignoreNilled)
 	-- This compares data1 and data2 and deserialises and merges the changes into dataToUpdate
 	if not dataToUpdate then
 		dataToUpdate = data2
 	end
 	-- account for nilled values
-	for name, content in pairs(data2) do
-		local dataToUpdateMain = dataToUpdate
-		local isPrivate = dataToUpdate == self.perm and name:sub(1,1) == "_"
-		if isPrivate then
-			dataToUpdateMain = self._data
-		else
-			name = Serializer.deserialize(name)
-		end
-		if data1[name] == nil then
-			dataToUpdateMain:set(name, nil)
+	if not ignoreNilled then
+		for name, content in pairs(data2) do
+			local dataToUpdateMain = dataToUpdate
+			local isPrivate = data2 == self.perm and name:sub(1,1) == "_"
+			if isPrivate then
+				dataToUpdateMain = self._data
+			else
+				name = Serializer.deserialize(name)
+			end
+			if data1[name] == nil then
+				dataToUpdateMain:set(name, nil)
+			end
 		end
 	end
 	
@@ -331,7 +338,8 @@ function User:transformData(data1, data2, dataToUpdate)
 	for name, content in pairs(data1) do
 		-- don't deseralize hidden values and add them to _data instantly instead
 		local dataToUpdateMain = dataToUpdate
-		local isPrivate = dataToUpdate == self.perm and name:sub(1,1) == "_"
+		local isPrivate = data2 == self.perm and name:sub(1,1) == "_"
+		
 		if isPrivate then
 			dataToUpdateMain = self._data
 		else
@@ -342,7 +350,7 @@ function User:transformData(data1, data2, dataToUpdate)
 		local coreValue = data2[name]
 		local bothAreTables = type(coreValue) == "table" and type(content) == "table"
 		if isPrivate or (coreValue ~= content and not bothAreTables) then
-			-- Only set nil original values or keys with values/tables that dont match
+			-- Only set values or keys with values/tables that dont match
 			local oldValueNum = tonumber(coreValue)
 			local newValueNum = tonumber(content)
 			dataToUpdateMain[name] = coreValue
@@ -372,7 +380,9 @@ function User:transformData(data1, data2, dataToUpdate)
 							local nextV1 = t1[i+1]
 							if nextV1 ~= V2 and V2 ~= nil then
 								table.remove(t2, i)
-								dataToUpdateMain:remove(name, Serializer.deserialize(V2, true), i)
+								if not ignoreNilled then
+									dataToUpdateMain:remove(name, Serializer.deserialize(V2, true), i)
+								end
 							end
 							local newV2 = t2[i]
 							if V1 ~= nil and newV2 ~= V1 then
@@ -391,9 +401,12 @@ function User:transformData(data1, data2, dataToUpdate)
 						end
 					end
 					-- This accounts for nilled values
-					for k,v in pairs(t2) do
-						if t1[k] == nil then
-							dataToUpdateMain:pair(name, k, nil)
+					if not ignoreNilled then
+						for k,v in pairs(t2) do
+							if t1[k] == nil then
+								k = Serializer.deserialize(k)
+								dataToUpdateMain:pair(name, k, nil)
+							end
 						end
 					end
 				end

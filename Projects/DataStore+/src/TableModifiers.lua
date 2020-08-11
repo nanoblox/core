@@ -166,10 +166,11 @@ function TableModifiers:pair(stat, key, value)
 	local eventName = actions[actionName]
 	local originalTab = self[stat]
 	local tab = (type(originalTab) == "table" and originalTab) or {}
+	local originalValue = tab[key]
 	tab[key] = value
 	self[stat] = tab
 	self.actionCalled:Fire(actionName, stat, key, value)
-	self.paired:Fire(stat, key, value)
+	self.paired:Fire(stat, key, value, originalValue)
 	return tab
 end
 
