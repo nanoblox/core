@@ -44,6 +44,19 @@ iconButton.ImageColor3 = Color3.fromRGB(0, 0, 0)
 iconButton.ScaleType = Enum.ScaleType.Stretch
 iconButton.Parent = iconContainer
 
+local stateOverlay = Instance.new("ImageLabel")
+stateOverlay.BackgroundTransparency = 1
+stateOverlay.Name = "StateOverlay"
+stateOverlay.Position = iconButton.Position
+stateOverlay.Size = iconButton.Size
+stateOverlay.Visible = true
+stateOverlay.ZIndex = iconButton.ZIndex + 1
+stateOverlay.Image = iconButton.Image
+stateOverlay.ImageTransparency = 1
+stateOverlay.ImageColor3 = Color3.fromRGB(255, 255, 255)
+stateOverlay.ScaleType = iconButton.ScaleType
+stateOverlay.Parent = iconButton.Parent
+
 local gradient = Instance.new("UIGradient")
 gradient.Enabled = false
 gradient.Parent = iconButton
@@ -87,6 +100,73 @@ amount.TextColor3 = Color3.fromRGB(31, 33, 35)
 amount.TextScaled = true
 amount.Parent = notification
 
+--CREATE ICON WITH TEXT
+local iconWithTextContainer = Instance.new("Frame")
+iconWithTextContainer.BackgroundTransparency = 1
+iconWithTextContainer.Name = "_IconWithTextTemplate"
+iconWithTextContainer.Position = UDim2.new(0, 104, 0, 4)
+iconWithTextContainer.Size = UDim2.new(0, 32*4, 0, 32)
+iconWithTextContainer.Visible = false
+iconWithTextContainer.ZIndex = 1
+iconWithTextContainer.Parent = topbarContainer
+
+local iconWithTextButton = Instance.new("ImageButton")
+iconWithTextButton.BackgroundTransparency = 1
+iconWithTextButton.Name = "Button"
+iconWithTextButton.Position = UDim2.new(0, 0, 0, 0)
+iconWithTextButton.Size = UDim2.new(1, 0, 1, 0)
+iconWithTextButton.Visible = true
+iconWithTextButton.ZIndex = 2
+iconWithTextButton.Image = "rbxassetid://5027411759"
+iconWithTextButton.ImageTransparency = 0.5
+iconWithTextButton.ImageColor3 = Color3.fromRGB(0, 0, 0)
+iconWithTextButton.ScaleType = Enum.ScaleType.Slice
+iconWithTextButton.SliceCenter = Rect.new(48,48,48,48)
+iconWithTextButton.Parent = iconWithTextContainer
+
+local stateOverlay = Instance.new("ImageLabel")
+stateOverlay.BackgroundTransparency = 1
+stateOverlay.Name = "StateOverlay"
+stateOverlay.Size = UDim2.new(1,0,1,0)
+stateOverlay.Visible = true
+stateOverlay.ZIndex = 3
+stateOverlay.Image = iconWithTextButton.Image
+stateOverlay.ImageTransparency = 1
+stateOverlay.ImageColor3 = Color3.fromRGB(255, 255, 255)
+stateOverlay.ScaleType = iconWithTextButton.ScaleType
+stateOverlay.SliceCenter = iconWithTextButton.SliceCenter
+stateOverlay.Parent = iconWithTextContainer
+
+local gradient = Instance.new("UIGradient")
+gradient.Enabled = false
+gradient.Parent = iconWithTextButton
+
+local iconText = Instance.new("TextLabel")
+iconText.BackgroundTransparency = 1
+iconText.Name = "IconText"
+iconText.ZIndex = 3
+iconText.Size = UDim2.new(1,-32,1,0)
+iconText.Position = UDim2.new(0,32,0,0)
+iconText.Font = Enum.Font.GothamSemibold
+iconText.TextSize = 14
+iconText.TextColor3 = Color3.new(1,1,1)
+iconText.TextXAlignment = Enum.TextXAlignment.Left
+iconText.Parent = iconWithTextButton
+
+local iconFrame = Instance.new("Frame")
+iconFrame.BackgroundTransparency = 1
+iconFrame.Name = "IconFrame"
+iconFrame.Position = UDim2.new(0, 0, 0, 0)
+iconFrame.Size = UDim2.new(0,32,1,0)
+iconFrame.Visible = true
+iconFrame.ZIndex = 2
+iconFrame.Parent = iconWithTextButton
+
+local iconNotification = notification:Clone()
+iconNotification.Parent = iconFrame
+
+local iconWithTextImage = iconImage:Clone()
+iconWithTextImage.Parent = iconFrame
 
 --CREATE DROPDOWN
 local dropdown = Instance.new("Frame")
