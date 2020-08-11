@@ -77,13 +77,13 @@ local function updateIconCellSize(icon, controllerEnabled)
 	icon:setCellSize(cellSize*scaleMultiplier)
 end
 
-function IconController:createIcon(name, imageId, order)
+function IconController:createIcon(name, imageId, order, withText)
 	
 	-- Verify data
 	assert(not topbarIcons[name], ("icon '%s' already exists!"):format(name))
 	
 	-- Create and record icon
-	local icon = Icon.new(name, imageId, order)
+	local icon = Icon.new(name, imageId, order, withText)
 	local iconDetails = {name = name, icon = icon, order = icon.order}
 	topbarIcons[name] = iconDetails
 	icon:setOrder(icon.order)
@@ -124,14 +124,14 @@ function IconController:createIcon(name, imageId, order)
 					end
 					return offset
 				end,
-				records = {},
+				records = {}
 			},
 			mid = {
 				startScale = 0.5,
 				getStartOffset = function(totalIconX) 
 					return -totalIconX/2 + (gap/2)
 				end,
-				records = {},
+				records = {}
 			},
 			right = {
 				startScale = 1,
@@ -142,8 +142,8 @@ function IconController:createIcon(name, imageId, order)
 					end
 					return offset
 				end,
-				records = {},
-				--reverseSort = true,
+				records = {}
+				--reverseSort = true
 			},
 		}
 		for _, details in pairs(topbarIcons) do
@@ -197,7 +197,7 @@ function IconController:createIcon(name, imageId, order)
 	return icon
 end
 
-function IconController:setTopbarEnabled(bool,forceBool)
+function IconController:setTopbarEnabled(bool, forceBool)
 	if forceBool == nil then
 		forceBool = true
 	end
@@ -338,7 +338,6 @@ function IconController:enableControllerMode(bool)
 		end
 		toolTip.AnchorPoint = Vector2.new(0.5,0)
 		toolTip.Position = UDim2.new(0.5,0,0,topbar.TopbarContainer.Size.Y.Offset+60)
-		toolTip.Visible = false
 	else
 		if userInputService.GamepadEnabled and controllerOptionIcon then
 			--mouse user but might want to use controller
@@ -359,8 +358,8 @@ function IconController:enableControllerMode(bool)
 		topbar.TopbarContainer.Visible = checkTopbarEnabled()
 		indicator.Visible = false
 		toolTip.AnchorPoint = Vector2.new(0,1)
-		toolTip.Visible = false
 	end
+	toolTip.Visible = false
 end
 
 function updateDevice()
@@ -401,7 +400,7 @@ function IconController:createFakeChat(theme)
 	if not icon then
 		icon = self:createIcon(iconName, "rbxasset://textures/ui/TopBar/chatOff.png", -1)
 		-- Open chat via Slash key
-		icon._fakeChatConnections:give(userInputService.InputEnded:connect(function(inputObject, gameProcessedEvent)
+		icon._fakeChatMaid:give(userInputService.InputEnded:connect(function(inputObject, gameProcessedEvent)
 			if gameProcessedEvent then
 				return "Another menu has priority"
 			elseif not(inputObject.KeyCode == Enum.KeyCode.Slash or inputObject.KeyCode == Enum.SpecialKey.ChatHotkey) then
@@ -415,7 +414,7 @@ function IconController:createFakeChat(theme)
 			icon:select()
 		end))
 		-- ChatActive
-		icon._fakeChatConnections:give(ChatMain.VisibilityStateChanged:connect(function(visibility)
+		icon._fakeChatMaid:give(ChatMain.VisibilityStateChanged:connect(function(visibility)
 			if not icon.ignoreVisibilityStateChange then
 				if visibility == true then
 					icon:select()
@@ -427,14 +426,14 @@ function IconController:createFakeChat(theme)
 		-- Keep when other icons selected
 		icon.deselectWhenOtherIconSelected = false
 		-- Mimic chat notifications
-		icon._fakeChatConnections:give(ChatMain.MessagesChanged:connect(function()
+		icon._fakeChatMaid:give(ChatMain.MessagesChanged:connect(function()
 			if ChatMain:GetVisibility() == true then
 				return "ChatWindow was open"
 			end
 			icon:notify(icon.selected)
 		end))
 		-- Mimic visibility when StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, state) is called
-		icon._fakeChatConnections:give(ChatMain.CoreGuiEnabled:connect(function(newState)
+		icon._fakeChatMaid:give(ChatMain.CoreGuiEnabled:connect(function(newState)
 			if icon.ignoreVisibilityStateChange then
 				return "ignoreVisibilityStateChange enabled"
 			end
@@ -466,7 +465,7 @@ end
 function IconController:removeFakeChat()
 	local icon = IconController:getIcon(fakeChatName)
 	local enabled = icon.enabled
-	icon._fakeChatConnections:clean()
+	icon._fakeChatMaid:clean()
 	starterGui:SetCoreGuiEnabled("Chat", enabled)
 	IconController:removeIcon(fakeChatName)
 end
@@ -553,11 +552,7 @@ guiService.MenuClosed:Connect(function()
 end)
 guiService.MenuOpened:Connect(function()
 	menuOpen = true
-	if isControllerMode() then
-		IconController:setTopbarEnabled(false,false)
-	else
-		IconController:setTopbarEnabled(IconController.topbarEnabled,false)
-	end
+	IconController:setTopbarEnabled(false,false)
 end)
 
 --Controller
