@@ -10,6 +10,7 @@ local playerGui = player.PlayerGui
 local topbarPlusGui = playerGui:WaitForChild("Topbar+")
 local topbarContainer = topbarPlusGui.TopbarContainer
 local iconTemplate = topbarContainer["_IconTemplate"]
+local iconWithTextTemplate = topbarContainer["_IconWithTextTemplate"]
 local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
 local Signal = require(HDAdmin:WaitForChild("Signal"))
 local Maid = require(HDAdmin:WaitForChild("Maid"))
@@ -19,23 +20,39 @@ Icon.__index = Icon
 
 
 -- CONSTRUCTOR
-function Icon.new(name, imageId, order)
+function Icon.new(name, imageId, order, withText)
 	local self = {}
 	setmetatable(self, Icon)
 	
-	local container = iconTemplate:Clone()
+	local container
+	local button
+	if withText then
+		container = iconWithTextTemplate:Clone()
+		button = container.Button
+		self.objects = {
+			["container"] = container,
+			["button"] = button,
+			["text"] = button.IconText,
+			["image"] = button.IconFrame.IconImage,
+			["notification"] = button.IconFrame.Notification,
+			["amount"] = button.IconFrame.Notification.Amount,
+			["gradient"] = button.UIGradient
+		}
+		self.objects.text.Text = withText
+	else
+		container = iconTemplate:Clone()
+		button = container.IconButton
+		self.objects = {
+			["container"] = container,
+			["button"] = button,
+			["image"] = button.IconImage,
+			["notification"] = button.Notification,
+			["amount"] = button.Notification.Amount,
+			["gradient"] = button.UIGradient
+		}
+	end
 	container.Name = name
 	container.Visible = true
-	local button = container.IconButton
-	
-	self.objects = {
-		["container"] = container,
-		["button"] = button,
-		["image"] = button.IconImage,
-		["notification"] = button.Notification,
-		["amount"] = button.Notification.Amount,
-		["gradient"] = button.UIGradient
-	}
 	
 	self.theme = {
 		-- TOGGLE EFFECT
@@ -75,6 +92,14 @@ function Icon.new(name, imageId, order)
 		["gradient"] = {
 			selected = {},
 			deselected = {},
+		},
+		["text"] = {
+			selected = {
+				TextColor3 = Color3.fromRGB(57, 60, 65),
+			},
+			deselected = {
+				TextColor3 = Color3.fromRGB(255, 255, 255),
+			}
 		}
 	}
 	self.toggleStatus = "deselected"
@@ -92,9 +117,10 @@ function Icon.new(name, imageId, order)
 	maid:give(container)
 	
 	self.name = name
+	self.type = (withText and "text") or "normal"
 	self.tip = ""
 	self.controllerTip = ""
-	self.imageId = imageId or 0
+	self.imageId = ((imageId == "" and 0) or imageId) or 0
 	self:setImageSize(20)
 	self:setCellSize(32)
 	self.order = order or 1
@@ -189,6 +215,11 @@ function Icon.new(name, imageId, order)
 		self._hoverFunctions.leave()
 	end))
 	
+	if self.type == "text" then
+		maid:give(self.objects.text:GetPropertyChangedSignal("Text"):Connect(function()
+			self:updateText()
+		end))
+	end
 	
 	container.Parent = topbarContainer
 	
@@ -277,11 +308,12 @@ end
 
 function Icon:setImage(imageId)
 	local textureId = (tonumber(imageId) and "http://www.roblox.com/asset/?id="..imageId) or imageId
-	self.imageId = textureId
+	self.imageId = (textureId == "" and 0) or textureId
 	self.objects.image.Image = textureId
 	self.theme.image = self.theme.image or {}
 	self.theme.image.selected = self.theme.image.selected or {}
 	self.theme.image.selected.Image = textureId
+	self:_updateText()
 end
 
 function Icon:setOrder(order)
@@ -304,6 +336,20 @@ function Icon:setRight()
 	self.updated:Fire()
 end
 
+function Icon:getTextIconXSize()
+	if self.type == "text" then
+		local size = textService:GetTextSize(self.objects.text.Text,self.objects.text.TextSize,self.objects.text.Font,Vector2.new(self.objects.text.Size.X,self.objects.text.Size.Y))
+		return size.X+(((self.objects.image.Visible and self.imageId ~= 0) and 32+6) or 12)
+	end
+end
+
+function Icon:_updateText()
+	if self.type == "text" then
+		self.objects.text.TextSize = ((self.cellSize or 32)/32)*14
+		self.objects.container.Size = UDim2.new(0, self:getTextIconXSize(), 0, self.cellSize or 32)
+	end
+end
+
 function Icon:setImageSize(pixelsX, pixelsY)
 	pixelsX = tonumber(pixelsX) or self.imageSize
 	if not pixelsY then
@@ -311,6 +357,7 @@ function Icon:setImageSize(pixelsX, pixelsY)
 	end
 	self.imageSize = Vector2.new(pixelsX, pixelsY)
 	self.objects.image.Size = UDim2.new(0, pixelsX, 0, pixelsY)
+	self:_updateText()
 end
 
 function Icon:setCellSize(pixelsX)
@@ -321,24 +368,17 @@ function Icon:setCellSize(pixelsX)
 		self:setImageSize(self.imageSize.X*differenceMultiplier, self.imageSize.X*differenceMultiplier)
 	end
 	self.cellSize = pixelsX
-	self.objects.container.Size = UDim2.new(0, pixelsX, 0, pixelsX)
+	if self.type == "text" then
+		self:_updateText()
+	else
+		self.objects.container.Size = UDim2.new(0, pixelsX, 0, pixelsX)
+	end
+	self.updated:Fire()
 end
 
 function Icon:setEnabled(bool)
 	self.enabled = bool
 	self.objects.container.Visible = bool
-	self.updated:Fire()
-end
-
-function Icon:setCellSize(pixelsX)
-	local originalPixelsX = self.cellSize
-	pixelsX = tonumber(pixelsX) or self.cellSize
-	if originalPixelsX then
-		local differenceMultiplier = pixelsX/originalPixelsX
-		self:setImageSize(self.imageSize.X*differenceMultiplier, self.imageSize.X*differenceMultiplier)
-	end
-	self.cellSize = pixelsX
-	self.objects.container.Size = UDim2.new(0, pixelsX, 0, pixelsX)
 	self.updated:Fire()
 end
 
