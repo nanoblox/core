@@ -77,13 +77,13 @@ local function updateIconCellSize(icon, controllerEnabled)
 	icon:setCellSize(cellSize*scaleMultiplier)
 end
 
-function IconController:createIcon(name, imageId, order)
+function IconController:createIcon(name, imageId, order, withText)
 	
 	-- Verify data
 	assert(not topbarIcons[name], ("icon '%s' already exists!"):format(name))
 	
 	-- Create and record icon
-	local icon = Icon.new(name, imageId, order)
+	local icon = Icon.new(name, imageId, order, withText)
 	local iconDetails = {name = name, icon = icon, order = icon.order}
 	topbarIcons[name] = iconDetails
 	icon:setOrder(icon.order)
@@ -124,14 +124,14 @@ function IconController:createIcon(name, imageId, order)
 					end
 					return offset
 				end,
-				records = {},
+				records = {}
 			},
 			mid = {
 				startScale = 0.5,
 				getStartOffset = function(totalIconX) 
 					return -totalIconX/2 + (gap/2)
 				end,
-				records = {},
+				records = {}
 			},
 			right = {
 				startScale = 1,
@@ -142,8 +142,8 @@ function IconController:createIcon(name, imageId, order)
 					end
 					return offset
 				end,
-				records = {},
-				--reverseSort = true,
+				records = {}
+				--reverseSort = true
 			},
 		}
 		for _, details in pairs(topbarIcons) do
