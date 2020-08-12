@@ -46,7 +46,7 @@ iconButton.ScaleType = Enum.ScaleType.Crop
 iconButton.Parent = iconContainer
 
 local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0.3,0)
+uiCorner.CornerRadius = UDim.new(0.25,0)
 uiCorner.Parent = iconButton
 
 local stateOverlay = Instance.new("ImageLabel")

@@ -123,6 +123,19 @@ icon:createDropdown({
 
 For more information on creating and utilising a dropdown, see ``Icon:createDropdown()``.
 
+# Labels
+A label is a piece of text that sits next to the icons image. 
+
+<a><img src="https://i.ibb.co/GvDkp8k/labele-xample.png" width="50%"/></a>
+
+To apply a label, simply do:
+```lua
+icon:setLabel(text)
+```
+To remove a label, set its text to ``""`` or ``nil``:
+```lua
+icon:setLabel(nil)
+```
 
 # Themes
 Themes are easily adaptable tables of information that can be applied to icons to enhance their appearance and behaviour.

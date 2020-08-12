@@ -14,11 +14,18 @@ Constructs a new icon where ``name`` is a unique string identifying the icon, ``
 
 # Methods
 --------------------
+### setLabel
+```lua
+icon:setLabel(text)
+```
+Expands the icon and sets a piece of text that appears next to the image. Setting to ``nil`` or ``""`` will remove the label.
+
+--------------------
 ### setTip
 ```lua
 icon:setTip(tip)
 ```
-Sets a tip that is displayed when hovering over the icon. Setting a tip to ``nil`` or ``""`` will remove the tip.
+Sets a tip that is displayed when hovering over the icon. Setting to ``nil`` or ``""`` will remove the tip.
 
 --------------------
 ### setControllerTip
@@ -272,6 +279,8 @@ A dictionary of instances that make up the icon.
 | **container**       | *Frame*          | The icon container.                            |
 | **button**          | *ImageButton*    | The icon background.                           |
 | **image**           | *ImageLabel*     | The icon image.                                |
+| **label**           | *TextLabel*     | The icons label. Set using ``icon:setLabel()``.  |
+| **corner**           | *UICorner*     | Decides the icons corner radius.                                |
 | **notification**    | *ImageLabel*     | The notification container and background.     |
 | **amount**          | *TextLabel*      | The notification amount text.                  |
 | **gradient**        | *UIGradient*     | The gradient used to make the icon look fancy. |

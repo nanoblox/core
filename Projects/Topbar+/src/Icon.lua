@@ -281,7 +281,8 @@ function Icon:setControllerTip(tip)
 end
 
 function Icon:setCornerRadius(scale,offset)
-	self.objects.corner.CornerRadius = UDim.new(scale or 0, offset or 0)
+	local cr = self.objects.corner.CornerRadius
+	self.objects.corner.CornerRadius = UDim.new(scale or cr.Scale, offset or cr.Offset)
 end
 
 function Icon:createDropdown(options)
@@ -352,16 +353,19 @@ function Icon:setCellSize(pixelsX)
 		self:setImageSize(self.imageSize.X*differenceMultiplier, self.imageSize.X*differenceMultiplier)
 	end
 	self.cellSize = pixelsX
+	local notifPosYScale = 0.45
 	if self.objects.label.Text ~= "" then
 		self.objects.image.AnchorPoint = Vector2.new(0,0.5)
 		self.objects.image.Position = UDim2.new(0,((self.cellSize or 32)/32)*6,0.5,0)
 		self.objects.label.Position = UDim2.new(0,((self.objects.image.Visible and self.imageId ~= 0) and (((((self.cellSize or 32)/32)*12))+self.objects.image.AbsoluteSize.X) or ((self.cellSize or 32)/32)*6),0.5,0)
 		self.objects.container.Size = UDim2.new(0, self:getIconLabelXSize(), 0, pixelsX)
+		notifPosYScale = 0.5
 	else
 		self.objects.image.AnchorPoint = Vector2.new(0.5,0.5)
 		self.objects.image.Position = UDim2.new(0.5,0,0.5,0)
 		self.objects.container.Size = UDim2.new(0, pixelsX, 0, pixelsX)
 	end
+	self.objects.notification.Position = UDim2.new(notifPosYScale, 0, 0, -2)
 	self.updated:Fire()
 end
 
