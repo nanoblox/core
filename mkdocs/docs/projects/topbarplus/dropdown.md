@@ -2,7 +2,7 @@
 --------------------
 ### set
 ```lua
-Dropdown:set(setting, value)
+dropdown:set(setting, value)
 ```
 Sets the specified setting to the given value. For example:
 ```lua
@@ -12,49 +12,49 @@ dropdown:set("backgroundColor", Color3.fromRGB(100, 100, 100))
 --------------------
 ### update
 ```lua
-Dropdown:update()
+dropdown:update()
 ```
 Forces the dropdown to update colors and text alignment. If the dropdown is visible when this is called, the dropdown will be hidden.
 
 --------------------
 ### isOpen
 ```lua
-Dropdown:isOpen()
+local bool = dropdown:isOpen()
 ```
 Returns a bool indicating if the dropdown is open or not.
 
 --------------------
 ### hide
 ```lua
-Dropdown:hide()
+dropdown:hide()
 ```
 Hides the dropdown.
 
 --------------------
 ### show
 ```lua
-Dropdown:show(position)
+dropdown:show(position)
 ```
 Displays the dropdown at the passed Vector2 position. If ``position`` is not defined, the dropdown will appear automatically at the icon.
 
 --------------------
 ### createOption
 ```lua
-Dropdown:createOption(option)
+local updatedOption = dropdown:createOption(option)
 ```
-Creates an option menu based on the given ``option`` details.
+Creates an option menu based on the given ``option`` details, and returns the passed ``option`` table.
 
 --------------------
 ### removeOption
 ```lua
-Dropdown:removeOption(nameOrIndex)
+dropdown:removeOption(nameOrIndex)
 ```
 Destroys an option with the given name or index.
 
 --------------------
 ### destroy
 ```lua
-Dropdown:destroy()
+dropdown:destroy()
 ```
 Destroys all instances, connections and signals associcated with the dropdown.
 
@@ -73,7 +73,7 @@ Destroys all instances, connections and signals associcated with the dropdown.
 ### icon
 *(read only)*
 ```lua
-Dropdown.objects
+dropdown.objects
 ```
 The icon the dropdown is associated with.
 
@@ -81,7 +81,7 @@ The icon the dropdown is associated with.
 ### options
 *(read only)*
 ```lua
-Dropdown.theme
+dropdown.theme
 ```
 An array containing dictionaries that describe an option:
 
@@ -96,9 +96,9 @@ An array containing dictionaries that describe an option:
 ### settings
 *(read only)*
 ```lua
-Dropdown.settings
+dropdown.settings
 ```
-A dictionary containing the dropdowns settings. Use ``Dropdown:set()`` to change a setting.
+A dictionary containing the dropdowns settings. Use ``dropdown:set()`` to change a setting.
 
 | Key                 | Value            | Desc                                           |
 | :--------------     |:--------------   | :----------------------------------------------|

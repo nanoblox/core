@@ -19,30 +19,51 @@ After requiring the MainModule, Zone+ modules can be referenced on the server an
 | Client       | ``ReplicatedStorage:WaitForChild("HDAdmin"):WaitForChild("Zone+")``   |
 
 # Example (server-sided)
-On the server:
+In a ``Script`` within ``ServerScriptService``:
 ```lua
 local ZonePlus = require(4664437268) -- Initiate Zone+
 local ZoneService = require(ZonePlus.ZoneService) -- Retrieve and require ZoneService
 local group = workspace.YourGroupHere -- A container (i.e. Model or Folder) of parts that represent the zone
 local zone = ZoneService:createZone("ZoneName", group, 15) -- Construct a zone called 'ZoneName' using 'group' and with an extended height of 15 
+
 local playersInZone = zone:getPlayers() -- Retrieves an array of players within the zone
+
+zone.playerAdded:Connect(function(player) -- Fires when a player enters the zone
+    print(player.Name.." entered!")
+end)
+zone.playerRemoving:Connect(function(player)  -- Fires when a player exits the zone
+    print(player.Name.." left!")
+end)
+zone:initLoop() -- Initiates loop (default 0.5) which enables the events to work
 ```
 
 # Example (client-sided)
-Zone+ is primarily intended for server-sided use, however also supports client use.
-
-On the server:
+In a ``Script`` within ``ServerScriptService``:
 ```lua
 require(4664437268) -- Initiate Zone+
 ```
 
-On the client:
+Then in a ``LocalScript`` within ``StarterPlayerScripts``:
 ```lua
-local ZoneService = require(game:GetService("ReplicatedStorage"):WaitForChild("HDAdmin"):WaitForChild("Zone+").ZoneService)
+local ZonePlus = game:GetService("ReplicatedStorage"):WaitForChild("HDAdmin"):WaitForChild("Zone+")
+local ZoneService = require(ZonePlus.ZoneService)
 local group = workspace.YourGroupHere
 local zone = ZoneService:createZone("ZoneName", group, 15)
-local playersInZone = zone:getPlayers()
+local localPlayer = game:GetService("Players").LocalPlayer
+
+local isClientInZone = zone:getPlayer(localPlayer) -- Checks whether the local player is within the zone
+
+zone.playerAdded:Connect(function() -- Fires when the localPlayer enters the zone
+    print(localPlayer.Name.." entered!")
+end)
+zone.playerRemoving:Connect(function()  -- Fires when the localPlayer exits the zone
+    print(localPlayer.Name.." left!")
+end)
+zone:initClientLoop() -- Initiates loop (default 0.5) which *only* checks for the local player, enabling events to work
 ```
+
+!!! info Info
+    It's important you use methods such as ``zone:getPlayer(localPlayer)`` and ``zone:initClientLoop()`` (instead of ``zone:getPlayers()`` and ``zone:initLoop()``) if you only intend to check for the local player.
 
 # Uses
 For coded examples, visit the Zone+ Playground.
@@ -74,3 +95,13 @@ Randomly generate coins a few studs above any surface within the zone.
 Utilise zones to determine the amount of players on a particular pad.
 
 <a><img src="https://i.imgur.com/rJlHmEv.gif" width="100%"/></a>
+
+------------------------------
+
+### Ambient Areas
+Play sounds within specific areas.
+
+!!!note Note
+    This example is client-sided and found within StarterPlayerScripts in the Topbar+ Playground.
+
+<video src="https://thumbs.gfycat.com/TangibleFamiliarBufeo-mobile.mp4" controls></video>

@@ -1,4 +1,7 @@
 -- LOCAL
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
+local Maid = require(HDAdmin:WaitForChild("Maid"))
 local User = require(script.Parent.User)
 local UserStore = {}
 UserStore.__index = UserStore
@@ -59,7 +62,7 @@ function UserStore:getUserByName(name)
 	end
 end
 
-function UserStore:getAllUsers()
+function UserStore:getUsers()
 	local usersArray = {}
 	for key, user in pairs(self.users) do
 		table.insert(usersArray, user)
@@ -92,7 +95,7 @@ function UserStore:getLoadedUserByName(name)
 	end
 end
 
-function UserStore:getAllLoadedUsers()
+function UserStore:getLoadedUsers()
 	local usersArray = {}
 	for key, user in pairs(self.users) do
 		if user.isLoaded then
@@ -112,6 +115,12 @@ end
 
 -- *Player key specific
 function UserStore:createLeaderstat(player, statToBind)
+	local maidName = "_maid"..player.Name..tostring(statToBind)
+	if self[maidName] then
+		return
+	end
+	local maid = Maid.new()
+	self[maidName] = maid
 	local dataTypes = {"perm", "temp"}
 	local user = self:getUser(player)
 	if not user then
@@ -123,7 +132,7 @@ function UserStore:createLeaderstat(player, statToBind)
 		leaderstats.Name = "leaderstats"
 		leaderstats.Parent = player
 	end
-	local statInstance = Instance.new("StringValue")
+	local statInstance = maid:give(Instance.new("StringValue"))
 	statInstance.Name = statToBind
 	statInstance.Value = "..."
 	coroutine.wrap(function()
@@ -134,30 +143,23 @@ function UserStore:createLeaderstat(player, statToBind)
 	end)()
 	statInstance.Parent = leaderstats
 	for _, dataName in pairs(dataTypes) do
-		user[dataName].changed:Connect(function(stat, value, oldValue)
+		maid:give(user[dataName].changed:Connect(function(stat, value, oldValue)
 			if statInstance and statInstance.Value and stat == statToBind then
-				statInstance.Value = value
+				statInstance.Value = tostring(value)
 			end
-		end)
+		end))
 	end
 	return statInstance
 end
 
 -- *Player key specific
 function UserStore:removeLeaderstat(player, statToUnbind)
-	local user = self:getUser(player)
-	if not user then
-		return false
+	local maidName = "_maid"..player.Name..tostring(statToUnbind)
+	local maid = self[maidName]
+	if maid then
+		maid:clean()
+		self[maidName] = nil
 	end
-	local leaderstats = player:FindFirstChild("leaderstats")
-	if not leaderstats then
-		return false
-	end
-	local statInstance = leaderstats:FindFirstChild(statToUnbind)
-	if not statInstance then
-		return false
-	end
-	statInstance:Destroy()
 	return true
 end
 

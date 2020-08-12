@@ -2,7 +2,7 @@
 --------------------
 ### new
 ```lua
-Zone.new(group, additionalHeight)
+local zone = Zone.new(group, additionalHeight)
 ```
 Constructs a new zone where ``group`` is an instance (such as a Model or Folder) containing parts to represent the zone, and ``additionalHeight``, a number defining how many studs to extend the zone upwards, defaulting to ``0``.
 
@@ -16,60 +16,63 @@ Constructs a new zone where ``group`` is an instance (such as a Model or Folder)
 --------------------
 ### update
 ```lua
-Zone:update()
+zone:update()
 ```
-Reconstructs the region and clusters forming the zone.
+Reconstructs the region and clusters forming the zone. Zones are dynamic (they listen for changes in children, such as the adding or removing of a part, and the resizing and positioning of these children), therefore will update automatically for you.
 
 --------------------
 ### getPlayersInRegion
 ```lua
-Zone:getPlayersInRegion()
+local players = zone:getPlayersInRegion()
 ```
 Returns an array of players within the zones region (the rough area surrounding the zone).
 
 --------------------
 ### getPlayer
 ```lua
-Zone:getPlayer(player)
+local hitPart, intersection = zone:getPlayer(player)
 ```
-Returns the group part the player is standing on or within if in the zone, otherwise ``false``.
+If within the zone, returns the group part the player is standing on or within (a ``BasePart``) and the intersection point (a ``Vector3``), otherwise ``false``.
 
 --------------------
 ### getPlayers
 ```lua
-Zone:getPlayers()
+local players = zone:getPlayers()
 ```
 Returns an array of players within the zone.
 
 --------------------
 ### initLoop
 ```lua
-Zone:initLoop(interval)
+zone:initLoop(interval)
 ```
-Automatically initiates a loop which calls ``Zone:getPlayers()`` every x second, defaults to ``0.5``.
+Initiates a loop which calls ``zone:getPlayers()`` every x second, defaults to ``0.5``.
+
+--------------------
+### initClientLoop
+```lua
+zone:initClientLoop(interval)
+```
+Initiates a loop which calls ``zone:getPlayer(localPlayer)`` every x second, defaults to ``0.5``.
 
 --------------------
 ### endLoop
 ```lua
-Zone:endLoop()
+zone:endLoop()
 ```
-Cancels any loop created with ``Zone:initLoop()``.
+Cancels any loop created with ``zone:initLoop()``.
 
 --------------------
 ### getRandomPoint
 ```lua
-Zone:getRandomPoint()
-```
-Returns a random point, a CFrame value, within the zone, along with the group part directly below, and its intersection vector relative to the point.
-
-```
 local randomCFrame, hitPart, hitIntersection = zone:getRandomPoint()
 ```
+Returns a random point ( a``CFrame``), within the zone, along with the group part (a ``BasePart``) directly below, and its intersection vector relative to the point (a ``Vector3``).
 
 --------------------
 ### destroy
 ```lua
-Zone:destroy()
+zone:destroy()
 ```
 Destroys all instances, connections and signals associcated with the zone, and ends any loop running.
 
@@ -85,15 +88,15 @@ Destroys all instances, connections and signals associcated with the zone, and e
 --------------------
 ### playerAdded
 ```lua
-Zone.playerAdded
+zone.playerAdded
 ```
 Fired when a player enters the zone.
 
 !!! info Info
-	``Zone:getPlayers()`` must be called at frequent intervals, or Zone:initLoop() once (which calls this repeatedly), for this event to function.
+	``zone:getPlayer(player)`` (or ``zone:getPlayers()`` which calls this) must be called at frequent intervals, or ``zone:initLoop()`` (or ``zone:initClientLoop()`` for the local player) once (which calls this repeatedly), for this event to function.
 
 ```lua
-Zone.playerAdded:Connect(function(player)
+zone.playerAdded:Connect(function(player)
 
 end)
 ```
@@ -101,15 +104,15 @@ end)
 --------------------
 ### playerRemoving
 ```lua
-Zone.playerRemoving
+zone.playerRemoving
 ```
 Fired when a player leaves the zone.
 
 !!! info Info
-	``Zone:getPlayers()`` must be called at frequent intervals, or Zone:initLoop() once (which calls this repeatedly), for this event to function.
-    
+	``zone:getPlayer(player)`` (or ``zone:getPlayers()`` which calls this) must be called at frequent intervals, or ``zone:initLoop()`` (or ``zone:initClientLoop()`` for the local player) once (which calls this repeatedly), for this event to function.
+
 ```lua
-Zone.playerRemoving:Connect(function(player)
+zone.playerRemoving:Connect(function(player)
 
 end)
 ```
@@ -117,11 +120,11 @@ end)
 --------------------
 ### updated
 ```lua
-Zone.updated
+zone.updated
 ```
 Fired when the zone updates (i.e. a group part is changed, such as its position or size, or a part is added or removed from the group).
 ```lua
-Zone.updated:Connect(function()
+zone.updated:Connect(function()
 
 end)
 ```
@@ -136,38 +139,38 @@ end)
 --------------------
 ### autoUpdate
 ```lua
-Zone.autoUpdate
+zone.autoUpdate
 ```
 A bool deciding whether the zone should automatically update when its group parts change.
 
 --------------------
 ### respectUpdateQueue
 ```lua
-Zone.respectUpdateQueue
+zone.respectUpdateQueue
 ```
 A bool that when set to ``true`` delays the automatic updating of the zone, preventing multiple calls within a short time period.
 
 --------------------
 ### group
-*(read only)*
+{read-only}
 ```lua
-Zone.group
+zone.group
 ```
 The container instance originally passed when constructing the zone.
 
 --------------------
 ### groupParts
-*(read only)*
+{read-only}
 ```lua
-Zone.groupParts
+zone.groupParts
 ```
 An array of all BaseParts within ``group``. 
 
 --------------------
 ### clusters
-*(read only)*
+{read-only}
 ```lua
-Zone.clusters
+zone.clusters
 ```
 An array of clusters.
 
@@ -183,40 +186,40 @@ A dictionary describing a collection of touching parts within the zone.
 
 --------------------
 ### additionalHeight
-*(read only)*
+{read-only}
 ```lua
-Zone.additionalHeight
+zone.additionalHeight
 ```
 The number originally passed when constructing the zone, or 0. Describes how far to extend the zone in the global Y direction.
 
 --------------------
 ### region
-*(read only)*
+{read-only}
 ```lua
-Zone.region
+zone.region
 ```
 A Region3 formed from ``groupParts``.
 
 --------------------
 ### boundMin
-*(read only)*
+{read-only}
 ```lua
-Zone.boundMin
+zone.boundMin
 ```
 A Vector3 used to form ``region``, describing the zones minimum point.
 
 --------------------
 ### boundMax
-*(read only)*
+{read-only}
 ```lua
-Zone.boundMax
+zone.boundMax
 ```
 A Vector3 used to form ``region``, describing the zones maximum point.
 
 --------------------
 ### regionHeight
-*(read only)*
+{read-only}
 ```lua
-Zone.regionHeight
+zone.regionHeight
 ```
 A number describing the Y-value difference between ``boundMin`` and ``boundMax``.

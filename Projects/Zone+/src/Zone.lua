@@ -149,17 +149,24 @@ function Zone:displayBounds()
 end
 
 function Zone:castRay(origin, parts)
-	local newOrigin = origin + Vector3.new(0, self.regionHeight, 0)
-	local lookDirection = newOrigin + Vector3.new(0, -1, 0)
-	local ray = Ray.new(newOrigin, (lookDirection - newOrigin).unit * (self.additionalHeight + self.regionHeight))
-	local hitPart, intersection = workspace:FindPartOnRayWithWhitelist(ray, parts)
-	if hitPart then
+	local startVector = origin + Vector3.new(0, self.regionHeight, 0)
+	local lookDirection = startVector + Vector3.new(0, -1, 0)
+	local endVector = (lookDirection - startVector).unit * (self.additionalHeight + self.regionHeight)
+	
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterDescendantsInstances = parts
+	raycastParams.FilterType = Enum.RaycastFilterType.Whitelist
+	local raycastResult = workspace:Raycast(startVector, endVector, raycastParams)
+	if raycastResult then
+		local hitPart = raycastResult.Instance
+		local intersection = raycastResult.Position
 		local intersectionY = intersection.Y
 		local pointY = origin.Y
 		if pointY + hitPart.Size.Y > intersectionY then
 			return hitPart, intersection
 		end
 	end
+
 	return false
 end
 
@@ -249,7 +256,7 @@ function Zone:getPlayer(player)
 		charOffset = -hrp.Size.Y/2 - hum.HipHeight + 0.5
 	end
 	local origin = hrp.Position + Vector3.new(0, charOffset, 0)
-	local hitValidPart = self:castRay(origin, self.groupParts)
+	local hitValidPart, intersection = self:castRay(origin, self.groupParts)
 	local originallyInZone = self.previousPlayers[player]
 	local nowInZone = false
 	if hitValidPart then
@@ -265,7 +272,7 @@ function Zone:getPlayer(player)
 		self.previousPlayers[player] = nil
 		self.playerRemoving:Fire(player)
 	end
-	return hitValidPart
+	return hitValidPart, intersection
 end
 
 function Zone:getPlayers()

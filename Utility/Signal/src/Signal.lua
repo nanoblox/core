@@ -31,10 +31,15 @@ function Signal:Connect(handler)
 	if not (type(handler) == "function") then
 		error(("connect(%s)"):format(typeof(handler)), 2)
 	end
-
-	return self._bindableEvent.Event:Connect(function()
-		handler(unpack(self._argData, 1, self._argCount))
+	-- Slightly modified this to account for very rare times
+	-- when an event is duplo-called and both _argData and
+	-- _argCount == nil
+	local connection = self._bindableEvent.Event:Connect(function()
+		if self._argData ~= nil then
+			handler(unpack(self._argData, 1, self._argCount))
+		end
 	end)
+	return connection
 end
 
 function Signal:Wait()

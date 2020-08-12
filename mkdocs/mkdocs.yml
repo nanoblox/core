@@ -60,7 +60,7 @@ extra_css:
   - stylesheets/monokai.css
 
 extra_javascript:
-  - javascripts/tags.js
+#  - javascripts/tags.js
 
 markdown_extensions:
   - admonition

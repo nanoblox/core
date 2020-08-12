@@ -4,7 +4,20 @@ local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
 local Signal = require(HDAdmin:WaitForChild("Signal"))
 local Maid = require(HDAdmin:WaitForChild("Maid"))
 local activeTables = {}
-local events = {"setted", "incremented", "changed", "inserted", "removed", "paired", "concatted", "cleared"}
+local actions = {
+	set = "setted",
+	increment = "incremented",
+	concat = "concatted",
+	insert = "inserted",
+	remove = "removed",
+	pair = "paired",
+	clear = "cleared"
+}
+local changeActions = {
+	set = true,
+	increment = true,
+	concat = true,
+}
 local TableModifiers = {}
 setmetatable(TableModifiers, {
 	__mode = "k"}
@@ -22,8 +35,16 @@ function TableModifiers.apply(targetTable)
 	maid = Maid.new()
 	
 	local eventInstances = {}
-	for _, eventName in pairs(events) do
-		eventInstances[eventName] = maid:give(Signal.new())
+	eventInstances["actionCalled"] = maid:give(Signal.new())
+	eventInstances["changed"] = maid:give(Signal.new())
+	for actionName, eventName in pairs(actions) do
+		local signal = maid:give(Signal.new())
+		eventInstances[eventName] = signal
+		if changeActions[actionName] then
+			maid:give(signal:Connect(function(...)
+				eventInstances.changed:Fire(...)
+			end))
+		end
 	end
 	setmetatable(targetTable, {
 		__index = function(this, index)
@@ -31,8 +52,6 @@ function TableModifiers.apply(targetTable)
 			return newIndex
 		end
 	})
-	
-	targetTable._tableUpdated = false
 		
 	return maid
 end
@@ -88,68 +107,92 @@ function TableModifiers:len(stat)
 end
 
 function TableModifiers:set(stat, value)
+	local actionName = "set"
+	local eventName = actions[actionName]
 	local oldValue = self[stat]
 	self[stat] = value
-	self._tableUpdated = true
-	self.setted:Fire(stat, value, oldValue)
-	self.changed:Fire(stat, value, oldValue)
+	self.actionCalled:Fire(actionName, stat, value)
+	self[eventName]:Fire(stat, value, oldValue)
 	return value
 end
 
 function TableModifiers:increment(stat, value)
+	local actionName = "increment"
+	local eventName = actions[actionName]
 	local oldValue = self[stat] or 0
 	local newValue = oldValue + value
 	self[stat] = newValue
-	self._tableUpdated = true
-	self.incremented:Fire(stat, value)
-	self.changed:Fire(stat, newValue, oldValue)
+	self.actionCalled:Fire(actionName, stat, value)
+	self[eventName]:Fire(stat, value)
 	return newValue
 end
 
-function TableModifiers:insert(stat, value)
+function TableModifiers:insert(stat, value, pos)
+	local actionName = "insert"
+	local eventName = actions[actionName]
 	local tab = (type(self[stat]) == "table" and self[stat]) or {}
-	table.insert(tab, value)
+	pos = pos or #tab+1
+	table.insert(tab, pos, value)
 	self[stat] = tab
-	self._tableUpdated = true
-	self.inserted:Fire(stat, value)
+	self.actionCalled:Fire(actionName, stat, value, pos)
+	self[eventName]:Fire(stat, value, pos)
 	return tab
 end
 
-function TableModifiers:remove(stat, value)
+function TableModifiers:remove(stat, value, pos)
+	local actionName = "remove"
+	local eventName = actions[actionName]
 	local tab = self[stat]
-	for i,v in pairs(tab) do
-		if v == value then
-			table.remove(tab, i)
+	if not tab then
+		return
+	end
+	local exactV = tab[pos]
+	if exactV and exactV == value then
+		table.remove(tab, pos)
+	else
+		for i,v in pairs(tab) do
+			if v == value then
+				table.remove(tab, i)
+				break
+			end
 		end
 	end
-	self._tableUpdated = true
-	self.removed:Fire(stat, value)
+	self.actionCalled:Fire(actionName, stat, value, pos)
+	self.removed:Fire(stat, value, pos)
 end
 
 function TableModifiers:pair(stat, key, value)
+	local actionName = "pair"
+	local eventName = actions[actionName]
 	local originalTab = self[stat]
 	local tab = (type(originalTab) == "table" and originalTab) or {}
+	local originalValue = tab[key]
 	tab[key] = value
 	self[stat] = tab
-	self._tableUpdated = true
-	self.paired:Fire(stat, key, value)
+	self.actionCalled:Fire(actionName, stat, key, value)
+	self.paired:Fire(stat, key, value, originalValue)
 	return tab
 end
 
 function TableModifiers:concat(stat, value)
+	local actionName = "concat"
+	local eventName = actions[actionName]
 	local oldValue = self[stat] or ""
 	local newValue = oldValue.. tostring(value)
 	self[stat] = newValue
-	self._tableUpdated = true
+	self.actionCalled:Fire(actionName, stat, value)
 	self.concatted:Fire(stat, newValue, oldValue)
-	self.changed:Fire(stat, newValue, oldValue)
 	return newValue
 end
 
 function TableModifiers:clear()
+	local actionName = "clear"
+	local eventName = actions[actionName]
 	for k,v in pairs(self) do
-		self[k] = nil
+		--self[k] = nil
+		self:set(k, nil)
 	end
+	self.actionCalled:Fire(actionName)
 	self.cleared:Fire()
 end
 
