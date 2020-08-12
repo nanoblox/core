@@ -278,6 +278,11 @@ local theme = {
 			Color = ColorSequence.new(selectedColor, selectedColorDarker),
 			Rotation = 90,
         },
+	},
+	["label"] = {
+		selected = {
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+        },
     },
 }
 iconController:setGameTheme(theme)
