@@ -10,7 +10,6 @@ local playerGui = player.PlayerGui
 local topbarPlusGui = playerGui:WaitForChild("Topbar+")
 local topbarContainer = topbarPlusGui.TopbarContainer
 local iconTemplate = topbarContainer["_IconTemplate"]
-local iconWithTextTemplate = topbarContainer["_IconWithTextTemplate"]
 local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
 local Signal = require(HDAdmin:WaitForChild("Signal"))
 local Maid = require(HDAdmin:WaitForChild("Maid"))
@@ -20,37 +19,22 @@ Icon.__index = Icon
 
 
 -- CONSTRUCTOR
-function Icon.new(name, imageId, order, withText)
+function Icon.new(name, imageId, order, label)
 	local self = {}
 	setmetatable(self, Icon)
 	
-	local container
-	local button
-	if withText then
-		container = iconWithTextTemplate:Clone()
-		button = container.Button
-		self.objects = {
-			["container"] = container,
-			["button"] = button,
-			["text"] = button.IconText,
-			["image"] = button.IconFrame.IconImage,
-			["notification"] = button.IconFrame.Notification,
-			["amount"] = button.IconFrame.Notification.Amount,
-			["gradient"] = button.UIGradient
-		}
-		self.objects.text.Text = withText
-	else
-		container = iconTemplate:Clone()
-		button = container.IconButton
-		self.objects = {
-			["container"] = container,
-			["button"] = button,
-			["image"] = button.IconImage,
-			["notification"] = button.Notification,
-			["amount"] = button.Notification.Amount,
-			["gradient"] = button.UIGradient
-		}
-	end
+	local container = iconTemplate:Clone()
+	local button = container.IconButton
+	self.objects = {
+		["container"] = container,
+		["button"] = button,
+		["image"] = button.IconImage,
+		["label"] = button.IconLabel,
+		["corner"] = button.UICorner,
+		["notification"] = button.Notification,
+		["amount"] = button.Notification.Amount,
+		["gradient"] = button.UIGradient
+	}
 	container.Name = name
 	container.Visible = true
 	
@@ -93,7 +77,11 @@ function Icon.new(name, imageId, order, withText)
 			selected = {},
 			deselected = {},
 		},
-		["text"] = {
+		["corner"] = {
+			selected = {},
+			deselected = {},
+		},
+		["label"] = {
 			selected = {
 				TextColor3 = Color3.fromRGB(57, 60, 65),
 			},
@@ -117,12 +105,12 @@ function Icon.new(name, imageId, order, withText)
 	maid:give(container)
 	
 	self.name = name
-	self.type = (withText and "text") or "normal"
 	self.tip = ""
 	self.controllerTip = ""
 	self.imageId = ((imageId == "" and 0) or imageId) or 0
 	self:setImageSize(20)
-	self:setCellSize(32)
+	self:setLabel(label)
+	--self:setCellSize(32)
 	self.order = order or 1
 	self.enabled = true
 	self.hovering = false
@@ -214,12 +202,9 @@ function Icon.new(name, imageId, order, withText)
 	maid:give(button.SelectionLost:Connect(function()
 		self._hoverFunctions.leave()
 	end))
-	
-	if self.type == "text" then
-		maid:give(self.objects.text:GetPropertyChangedSignal("Text"):Connect(function()
-			self:updateText()
-		end))
-	end
+	maid:give(self.objects.corner:GetPropertyChangedSignal("CornerRadius"):Connect(function()
+		self.objects.button.Parent.StateOverlay.UICorner.CornerRadius = self.objects.corner.CornerRadius
+	end))
 	
 	container.Parent = topbarContainer
 	
@@ -273,6 +258,11 @@ function Icon:disableStateOverlay(bool)
 	stateOverlay.Visible = not bool
 end
 
+function Icon:setLabel(text)
+	self.objects.label.Text = text or ""
+	self:setCellSize()
+end
+
 function Icon:setTip(tip, property)
 	property = property or "tip"
 	local newTip = ""
@@ -288,6 +278,10 @@ end
 
 function Icon:setControllerTip(tip)
 	self:setTip(tip, "controllerTip")
+end
+
+function Icon:setCornerRadius(scale,offset)
+	self.objects.corner.CornerRadius = UDim.new(scale or 0, offset or 0)
 end
 
 function Icon:createDropdown(options)
@@ -313,7 +307,7 @@ function Icon:setImage(imageId)
 	self.theme.image = self.theme.image or {}
 	self.theme.image.selected = self.theme.image.selected or {}
 	self.theme.image.selected.Image = textureId
-	self:_updateText()
+	self:setCellSize()
 end
 
 function Icon:setOrder(order)
@@ -336,18 +330,9 @@ function Icon:setRight()
 	self.updated:Fire()
 end
 
-function Icon:getTextIconXSize()
-	if self.type == "text" then
-		local size = textService:GetTextSize(self.objects.text.Text,self.objects.text.TextSize,self.objects.text.Font,Vector2.new(self.objects.text.Size.X,self.objects.text.Size.Y))
-		return size.X+(((self.objects.image.Visible and self.imageId ~= 0) and 32+6) or 12)
-	end
-end
-
-function Icon:_updateText()
-	if self.type == "text" then
-		self.objects.text.TextSize = ((self.cellSize or 32)/32)*14
-		self.objects.container.Size = UDim2.new(0, self:getTextIconXSize(), 0, self.cellSize or 32)
-	end
+function Icon:getIconLabelXSize()
+	local size = textService:GetTextSize(self.objects.label.Text,self.objects.label.TextSize,self.objects.label.Font,Vector2.new(10000,self.objects.label.Size.Y))
+	return size.X+((self.objects.image.Visible and self.imageId ~= 0) and self.objects.image.Size.X.Offset+((((self.cellSize or 32)/32)*12)+6) or ((self.cellSize or 32)/32)*12)
 end
 
 function Icon:setImageSize(pixelsX, pixelsY)
@@ -357,20 +342,24 @@ function Icon:setImageSize(pixelsX, pixelsY)
 	end
 	self.imageSize = Vector2.new(pixelsX, pixelsY)
 	self.objects.image.Size = UDim2.new(0, pixelsX, 0, pixelsY)
-	self:_updateText()
 end
 
 function Icon:setCellSize(pixelsX)
 	local originalPixelsX = self.cellSize
-	pixelsX = tonumber(pixelsX) or self.cellSize
+	pixelsX = tonumber(pixelsX) or self.cellSize or 32
 	if originalPixelsX then
 		local differenceMultiplier = pixelsX/originalPixelsX
 		self:setImageSize(self.imageSize.X*differenceMultiplier, self.imageSize.X*differenceMultiplier)
 	end
 	self.cellSize = pixelsX
-	if self.type == "text" then
-		self:_updateText()
+	if self.objects.label.Text ~= "" then
+		self.objects.image.AnchorPoint = Vector2.new(0,0.5)
+		self.objects.image.Position = UDim2.new(0,((self.cellSize or 32)/32)*6,0.5,0)
+		self.objects.label.Position = UDim2.new(0,((self.objects.image.Visible and self.imageId ~= 0) and (((((self.cellSize or 32)/32)*12))+self.objects.image.AbsoluteSize.X) or ((self.cellSize or 32)/32)*6),0.5,0)
+		self.objects.container.Size = UDim2.new(0, self:getIconLabelXSize(), 0, pixelsX)
 	else
+		self.objects.image.AnchorPoint = Vector2.new(0.5,0.5)
+		self.objects.image.Position = UDim2.new(0.5,0,0.5,0)
 		self.objects.container.Size = UDim2.new(0, pixelsX, 0, pixelsX)
 	end
 	self.updated:Fire()
@@ -461,7 +450,7 @@ function Icon:applyThemeToObject(objectName, toggleStatus)
 	if object then
 		local propertiesTable = self.theme[objectName][(toggleStatus or self.toggleStatus)]
 		local toggleTweenInfo = self.theme.toggleTweenInfo
-		local invalidProperties = {"Image","Color","NumberSequence"}
+		local invalidProperties = {"Image","Color","NumberSequence","Text"}
 		local finalPropertiesTable = {}
 		local noTweenTable = {}
 		for propName, propValue in pairs(propertiesTable) do
