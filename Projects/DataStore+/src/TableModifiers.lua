@@ -130,7 +130,11 @@ end
 function TableModifiers:insert(stat, value, pos)
 	local actionName = "insert"
 	local eventName = actions[actionName]
-	local tab = (type(self[stat]) == "table" and self[stat]) or {}
+	local tab = (type(self[stat]) == "table" and self[stat])
+	if not tab then
+		tab = {}
+		self:set(stat, tab)
+	end
 	pos = pos or #tab+1
 	table.insert(tab, pos, value)
 	self[stat] = tab
@@ -165,7 +169,11 @@ function TableModifiers:pair(stat, key, value)
 	local actionName = "pair"
 	local eventName = actions[actionName]
 	local originalTab = self[stat]
-	local tab = (type(originalTab) == "table" and originalTab) or {}
+	local tab = (type(originalTab) == "table" and originalTab)
+	if not tab then
+		tab = {}
+		self:set(stat, tab)
+	end
 	local originalValue = tab[key]
 	tab[key] = value
 	self[stat] = tab
