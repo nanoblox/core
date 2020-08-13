@@ -126,7 +126,7 @@ For more information on creating and utilising a dropdown, see ``Icon:createDrop
 # Labels
 A label is a piece of text that sits next to the icons image. 
 
-<a><img src="https://i.ibb.co/GvDkp8k/labele-xample.png" width="50%"/></a>
+<a><img src="https://i.imgur.com/TyDnzQg.png" width="50%"/></a>
 
 To apply a label, simply do:
 ```lua
@@ -183,7 +183,7 @@ end
 ```
 
 
-For further details, visit the Icon docs.
+For further details, visit [Icon.objects](https://1foreverhd.github.io/HDAdmin/projects/topbarplus/icon/#objects) and [Icon.theme](https://1foreverhd.github.io/HDAdmin/projects/topbarplus/icon/#theme).
 
 Here's some examples of custom themes you can create:
 

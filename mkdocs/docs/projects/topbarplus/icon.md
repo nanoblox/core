@@ -301,6 +301,8 @@ A dictionary describing the icons theme. To change, use ``icon:setTheme()``.
 | **container**       | *ToggleDetails*  | (See below)                                    |
 | **button**          | *ToggleDetails*  | (See below)                                    |
 | **image**           | *ToggleDetails*  | (See below)                                    |
+| **label**    | *ToggleDetails*  | (See below)                                    |
+| **corner**           | *ToggleDetails*  | (See below)                                    |
 | **notification**    | *ToggleDetails*  | (See below)                                    |
 | **amount**          | *ToggleDetails*  | (See below)                                    |
 | **gradient**        | *ToggleDetails*  | (See below)                                    |
@@ -349,6 +351,14 @@ defaultThemeDetails = {
         deselected = {
             ImageColor3 = Color3.fromRGB(255, 255, 255),
         }
+    },
+    ["label"] = {
+        selected = {},
+        deselected = {},
+    },
+    ["corner"] = {
+        selected = {},
+        deselected = {},
     },
     ["notification"] = {
         selected = {},
