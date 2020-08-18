@@ -186,6 +186,7 @@ indicator.AnchorPoint = Vector2.new(0.5,0)
 indicator.Position = UDim2.new(0.5,0,0,5)
 indicator.ScaleType = Enum.ScaleType.Fit
 indicator.Visible = false
+indicator.Active = true
 indicator.Parent = topbarPlusGui
 
 

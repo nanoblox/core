@@ -592,5 +592,12 @@ controllerOptionIcon.deselected:Connect(function()
 	IconController.forceController = false
 	updateDevice()
 end)
+local topbar = getTopbarPlusGui()
+topbar.Indicator.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		IconController:setTopbarEnabled(true,false)
+	end
+	input:Destroy()
+end)
 
 return IconController
