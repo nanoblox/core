@@ -46,7 +46,7 @@ iconButton.ScaleType = Enum.ScaleType.Crop
 iconButton.Parent = iconContainer
 
 local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0.25,0)
+uiCorner.CornerRadius = UDim.new(0.3,0)
 uiCorner.Parent = iconButton
 
 local stateOverlay = Instance.new("ImageLabel")
@@ -186,6 +186,7 @@ indicator.AnchorPoint = Vector2.new(0.5,0)
 indicator.Position = UDim2.new(0.5,0,0,5)
 indicator.ScaleType = Enum.ScaleType.Fit
 indicator.Visible = false
+indicator.Active = true
 indicator.Parent = topbarPlusGui
 
 
