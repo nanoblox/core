@@ -83,6 +83,7 @@ function User.new(dataStoreName, key)
 	-- Config
 	local currentTick = tick()
 	self.onlySaveDataWhenChanged = true
+	self.ignoreSaveOnBindToClose = false
 	self.teleportPlayerAwayOnFail = false
 	self.autoSave = false
 	self.autoSaveInterval = 60
@@ -113,7 +114,9 @@ function User.new(dataStoreName, key)
 	--BindToClose
 	if not runService:IsStudio() then
 		game:BindToClose(function()
-		    self:saveAsync()
+			if not self.ignoreSaveOnBindToClose then
+				self:saveAsync()
+			end
 		end)
 	end
 
