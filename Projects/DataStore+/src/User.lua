@@ -397,7 +397,7 @@ function User:transformData(data1, data2, dataToUpdate, ignoreNilled)
 				else
 					-- Only pair keys with values/tables that dont match
 					for k,v in pairs(t1) do
-						if not(t2[k] and isEqual(t2[k], v)) then
+						if not(t2[k] ~= nil and isEqual(t2[k], v)) then
 							k = Serializer.deserialize(k)
 							v = Serializer.deserialize(v)
 							dataToUpdateMain:pair(name, k, v)
