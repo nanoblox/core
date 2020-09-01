@@ -322,7 +322,7 @@ function User:transformData(data1, data2, dataToUpdate, ignoreNilled)
 		dataToUpdate = data2
 	end
 	-- account for nilled values
-	if not ignoreNilled then
+	if not ignoreNilled and typeof(data2) == "table" then
 		for name, content in pairs(data2) do
 			local dataToUpdateMain = dataToUpdate
 			local isPrivate = data2 == self.perm and name:sub(1,1) == "_"
@@ -338,77 +338,79 @@ function User:transformData(data1, data2, dataToUpdate, ignoreNilled)
 	end
 	
 	-- repeat a similar process for present values
-	for name, content in pairs(data1) do
-		-- don't deseralize hidden values and add them to _data instantly instead
-		local dataToUpdateMain = dataToUpdate
-		local isPrivate = data2 == self.perm and name:sub(1,1) == "_"
-		
-		if isPrivate then
-			dataToUpdateMain = self._data
-		else
-			name = Serializer.deserialize(name)
-			content = Serializer.deserialize(content)
-		end
-		-- Update values
-		local coreValue = data2[name]
-		local bothAreTables = type(coreValue) == "table" and type(content) == "table"
-		if isPrivate or (coreValue ~= content and not bothAreTables) then
-			-- Only set values or keys with values/tables that dont match
-			local oldValueNum = tonumber(coreValue)
-			local newValueNum = tonumber(content)
-			dataToUpdateMain[name] = coreValue
-			if oldValueNum and newValueNum then
-				dataToUpdateMain:increment(name, newValueNum-oldValueNum)
+	if typeof(data1) == "table" then
+		for name, content in pairs(data1) do
+			-- don't deseralize hidden values and add them to _data instantly instead
+			local dataToUpdateMain = dataToUpdate
+			local isPrivate = data2 == self.perm and name:sub(1,1) == "_"
+			
+			if isPrivate then
+				dataToUpdateMain = self._data
 			else
-				dataToUpdateMain:set(name, content)
+				name = Serializer.deserialize(name)
+				content = Serializer.deserialize(content)
 			end
-		else
-			-- For this section, we only want to insert/set/pair *differences*
-			if type(content) == "table" then
-				-- t1 | the table with new information
-				local t1 = content
-				-- t2 | the table we are effectively merging into
-				local original_t2 = (type(coreValue) == "table" and coreValue) or {}
-				local t2 = {}
-				for k,v in pairs(original_t2) do
-					t2[k] = v
+			-- Update values
+			local coreValue = data2[name]
+			local bothAreTables = type(coreValue) == "table" and type(content) == "table"
+			if isPrivate or (coreValue ~= content and not bothAreTables) then
+				-- Only set values or keys with values/tables that dont match
+				local oldValueNum = tonumber(coreValue)
+				local newValueNum = tonumber(content)
+				dataToUpdateMain[name] = coreValue
+				if oldValueNum and newValueNum then
+					dataToUpdateMain:increment(name, newValueNum-oldValueNum)
+				else
+					dataToUpdateMain:set(name, content)
 				end
-				if #content > 0 then
-					-- This inserts/removes differences accoridngly using minimal amounts of moves
-					local iterations = (#t1 > #t2 and #t1) or #t2
-					for i = 1, iterations do
-						local V1 = t1[i]
-						local V2 = t2[i]
-						if V1 ~= V2 then
-							local nextV1 = t1[i+1]
-							if nextV1 ~= V2 and V2 ~= nil then
-								table.remove(t2, i)
-								if not ignoreNilled then
-									dataToUpdateMain:remove(name, Serializer.deserialize(V2, true), i)
+			else
+				-- For this section, we only want to insert/set/pair *differences*
+				if type(content) == "table" then
+					-- t1 | the table with new information
+					local t1 = content
+					-- t2 | the table we are effectively merging into
+					local original_t2 = (type(coreValue) == "table" and coreValue) or {}
+					local t2 = {}
+					for k,v in pairs(original_t2) do
+						t2[k] = v
+					end
+					if #content > 0 then
+						-- This inserts/removes differences accoridngly using minimal amounts of moves
+						local iterations = (#t1 > #t2 and #t1) or #t2
+						for i = 1, iterations do
+							local V1 = t1[i]
+							local V2 = t2[i]
+							if V1 ~= V2 then
+								local nextV1 = t1[i+1]
+								if nextV1 ~= V2 and V2 ~= nil then
+									table.remove(t2, i)
+									if not ignoreNilled then
+										dataToUpdateMain:remove(name, Serializer.deserialize(V2, true), i)
+									end
+								end
+								local newV2 = t2[i]
+								if V1 ~= nil and newV2 ~= V1 then
+									table.insert(t2, i, V1)
+									dataToUpdateMain:insert(name, Serializer.deserialize(V1, true), i)
 								end
 							end
-							local newV2 = t2[i]
-							if V1 ~= nil and newV2 ~= V1 then
-								table.insert(t2, i, V1)
-								dataToUpdateMain:insert(name, Serializer.deserialize(V1, true), i)
+						end
+					else
+						-- Only pair keys with values/tables that dont match
+						for k,v in pairs(t1) do
+							if not(t2[k] ~= nil and isEqual(t2[k], v)) then
+								k = Serializer.deserialize(k)
+								v = Serializer.deserialize(v)
+								dataToUpdateMain:pair(name, k, v)
 							end
 						end
-					end
-				else
-					-- Only pair keys with values/tables that dont match
-					for k,v in pairs(t1) do
-						if not(t2[k] ~= nil and isEqual(t2[k], v)) then
-							k = Serializer.deserialize(k)
-							v = Serializer.deserialize(v)
-							dataToUpdateMain:pair(name, k, v)
-						end
-					end
-					-- This accounts for nilled values
-					if not ignoreNilled then
-						for k,v in pairs(t2) do
-							if t1[k] == nil then
-								k = Serializer.deserialize(k)
-								dataToUpdateMain:pair(name, k, nil)
+						-- This accounts for nilled values
+						if not ignoreNilled then
+							for k,v in pairs(t2) do
+								if t1[k] == nil then
+									k = Serializer.deserialize(k)
+									dataToUpdateMain:pair(name, k, nil)
+								end
 							end
 						end
 					end
