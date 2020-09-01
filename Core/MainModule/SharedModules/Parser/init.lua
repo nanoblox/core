@@ -6,9 +6,8 @@ local Parser = {}
 
 -- START
 function Parser:init()
-	-- This is called when the module is easy-loaded
-	-- You can use it for testing, e.g: (Currently easy-loaded from CommandService)
-	
+	-- This is called when the module is easy-loaded (currently easy-loaded from CommandService)
+	-- You can use it for testing, e.g:
 	local message = ";globalPaint(red) all"
 	local batches = Parser.parseMessage(message)
 	main.modules.TableUtil.print(batches, "Batches", true)
@@ -25,7 +24,6 @@ function Parser.parseMessage(message)
 	-- within a services .generateRecord method
 	
 	-- Data grabber examples to help you with the parser:
-	print("main.isServer = ", main.isServer)
 	local CommandService = (main.isServer and main.services.CommandService) or main.controllers.CommandController
 	local commandRecord = CommandService:getRecord("commandName")
 	local commandRecords = CommandService:getAllRecords()
