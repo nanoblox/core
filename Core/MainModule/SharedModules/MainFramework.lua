@@ -35,6 +35,8 @@ function main:initiate()
 	local serverMainGroup = isServer and main.ServerStorage[mainGroupName].Core
 	local clientMainGroup = main.ReplicatedStorage[mainGroupName].Core
 	local location = (isServer and "server") or "client"
+	main.isServer = isServer
+	main.isStudio = isStudio
 	main.server = serverMainGroup and serverMainGroup.Server
 	main.client = clientMainGroup.Client
 	main.sharedModules = clientMainGroup.SharedModules
@@ -86,9 +88,6 @@ function main:initiate()
 		else
 			modulePathway[moduleName] = moduleData
 			if type(moduleData) == "table" then
-				if rawget(moduleData, "init") then
-					moduleData:init()
-				end
 				-- Setup pathway for children
 				local isChildren = module:FindFirstChildOfClass("ModuleScript")
 				if isChildren then
@@ -114,6 +113,10 @@ function main:initiate()
 						end
 					})
 					
+				end
+				-- Call init
+				if rawget(moduleData, "init") then
+					moduleData:init()
 				end
 			end
 		end

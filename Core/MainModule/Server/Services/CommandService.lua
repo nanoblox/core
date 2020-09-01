@@ -9,6 +9,19 @@ local commands = {}
 
 
 
+-- START
+function CommandService:start()
+	wait(5)
+	-- This wait is needed for the time being until I create the instant initialiser
+	-- It currently requires a wait due to setting and commands data that needs loading
+	-- To fix this I will have config values load instantly
+	-- I will also introduce main events to determine when all
+	-- system data has loaded
+	local Parser = main.modules.Parser
+end
+
+
+
 -- EVENTS
 CommandService.recordAdded:Connect(function(commandName, record)
 	local command = Command.new(record)
