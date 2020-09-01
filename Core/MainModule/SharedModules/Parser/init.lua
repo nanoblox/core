@@ -14,9 +14,11 @@ function Parser.parseMessage(message)
 	-- within a services .generateRecord method
 	
 	-- Data grabber examples to help you with the parser:
-	local commandRecord = main.services.CommandService:getRecord("commandName")
-	local commandRecords = main.services.CommandService:getAllRecords()
-	local clientSettings = main.services.SettingsService:getRecord("Client")
+	local CommandService = (main.isServer and main.services.CommandService) or main.controllers.CommandController
+	local commandRecord = CommandService:getRecord("commandName")
+	local commandRecords = CommandService:getAllRecords()
+	local SettingService = (main.isServer and main.services.SettingService) or main.controllers.SettingController
+	local clientSettings = SettingService:getRecord("Client")
 	local prefixes = clientSettings.prefixes
 	local collective = clientSettings.collective
 	local spaceSeparator = clientSettings.spaceSeparator
@@ -24,6 +26,7 @@ function Parser.parseMessage(message)
 	local argsDictionary = Args.dictionary
 	local Modifiers = main.modules.Parser.Modifiers
 	local modifiersDictionary = Modifiers.dictionary
+	local modifiersSortedArray = Modifiers.sortedArray
 	local Qualifiers = main.modules.Parser.Qualifiers
 	local qualifiersDictionary = Qualifiers.dictionary
 end

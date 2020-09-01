@@ -101,4 +101,10 @@ end
 
 
 
+-- SORTED ARRAY
+Modifiers.sortedArray = main.modules.TableUtil.copy(Modifiers.array)
+table.sort(Modifiers.sortedArray, function(a, b) return #a.names[1] > #b.names[1] end)
+
+
+
 return Modifiers
