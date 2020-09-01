@@ -12,6 +12,15 @@
       "$className": "ServerScriptService",
       "HDAdmin": {
         "$className": "Folder",
+        "Core": {
+          "$className": "Folder",
+          "MainModule": {
+            "$path": "Core/MainModule"
+          },
+          "Config": {
+            "$path": "Core/Config.lua"
+          }
+        },
         "DataStore+": {
           "$className": "Folder",
           "MainModule": {
