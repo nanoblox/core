@@ -33,6 +33,7 @@ function UserStore:createUser(key)
 	local user = User.new(self.dataStoreName, key)
 	self.users[key] = user
 	user.player = isPlayer and key
+	user.name = isPlayer and key.Name
 	coroutine.wrap(function()
 		user:loadAsync()
 	end)()

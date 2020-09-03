@@ -11,7 +11,7 @@ local commands = {}
 
 -- START
 function CommandService:start()
-	wait(5)
+	--wait(5)
 	-- This wait is needed for the time being until I create the instant initialiser
 	-- It currently requires a wait due to setting and commands data that needs loading
 	-- To fix this I will have config values load instantly

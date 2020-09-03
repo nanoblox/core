@@ -63,10 +63,9 @@ function BanService.playerLoadedMethod(player, user)
 	local record = BanService:getRecord(player.UserId)
 	if record and record.accurate == false then
 		local RoleService = main.services.RoleService
-		local getHighestRole = RoleService.getHighestRole
-		local callersRole = RoleService:getRole(record.callerHighestRoleUID)
-		local callersRoleOrder = (callersRole and callersRole.order) or 0
-		if callersRoleOrder <= getHighestRole(user.perm.roles).order then
+		local callersHighestRole = RoleService:getRole(record.callerHighestRoleUID)
+		local targetsHighestRole = RoleService.getHighestRole(user.perm.roles)
+		if not RoleService.isSenior(callersHighestRole, targetsHighestRole) then
 			-- the banner did not have permission, unban user (target)
 			BanService:unban(player.UserId)
 		else
@@ -106,8 +105,10 @@ function BanService.verifyBan(targetUserId, callerUser)
 			return true, "NotAccurate"
 		end
 	end
-	local getHighestRole = main.services.RoleService.getHighestRole
-	if getHighestRole(callerUser.roles).order <= getHighestRole(targetPermData.roles).order then
+	local RoleService = main.services.RoleService
+	local callersHighestRole = RoleService.getHighestRole(callerUser.roles)
+	local targetsHighestRole = RoleService.getHighestRole(targetPermData.roles)
+	if not RoleService.isSenior(callersHighestRole, targetsHighestRole) then
 		return false, "Cannot ban peers or seniors"
 	end
 	return true
@@ -121,9 +122,8 @@ function BanService:ban(targetUserId, callerUser, isGlobal, properties)
 	end
 	-- Create ban record
 	local RoleService = main.services.RoleService
-	local getHighestRole = RoleService.getHighestRole
 	properties.callerId = callerUser.userId
-	properties.callerHighestRoleUID = getHighestRole(callerUser.perm.roles).UID
+	properties.callerHighestRoleUID = RoleService.getHighestRole(callerUser.perm.roles).UID
 	if warning == "NotAccurate" then
 		properties.accurate = false
 	end

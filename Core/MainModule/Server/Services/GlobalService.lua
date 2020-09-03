@@ -463,4 +463,5 @@ end
 
 
 
+GlobalService._order = 2
 return GlobalService

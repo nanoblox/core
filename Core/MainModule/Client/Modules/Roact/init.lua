@@ -42,6 +42,9 @@ local Roact = strict {
 	-- APIs that may change in the future without warning
 	UNSTABLE = {
 	},
+
+	_standalone = true
 }
+
 
 return Roact

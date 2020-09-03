@@ -57,7 +57,7 @@ function main:initiate()
 	
 	-- MODULE LOADER
 	local Thread
-	local function loadModule(module, modulePathway)
+	local function loadModule(module, modulePathway, doNotYield)
 		
 		-- Check is a module
 		if not module:IsA("ModuleScript") then
@@ -89,7 +89,7 @@ function main:initiate()
 			modulePathway[moduleName] = moduleData
 			if type(moduleData) == "table" then
 				-- Setup pathway for children
-				local isChildren = module:FindFirstChildOfClass("ModuleScript")
+				local isChildren = not rawget(moduleData, "_standalone") and module:FindFirstChildOfClass("ModuleScript")
 				if isChildren then
 					local children = {}
 					for _, childModule in pairs(module:GetChildren()) do
@@ -116,7 +116,11 @@ function main:initiate()
 				end
 				-- Call init
 				if rawget(moduleData, "init") then
-					moduleData:init()
+					if doNotYield then
+						Thread.spawnNow(function() moduleData:init() end)
+					else
+						moduleData:init()
+					end
 				end
 			end
 		end
@@ -133,7 +137,7 @@ function main:initiate()
 				for _, module in pairs(moduleFolder:GetChildren()) do
 					local moduleName = module.Name
 					if moduleName == index then
-						local moduleData = loadModule(module, main.modules)
+						local moduleData = loadModule(module, main.modules, true)
 						if rawget(moduleData, "start") then
 							Thread.spawnNow(function()
 								moduleData:start()
@@ -153,10 +157,15 @@ function main:initiate()
 	local serviceFolder = (main.server and main.server.Services) or main.client.Controllers
 	local serviceGroupName = serviceFolder.Name:lower()
 	local serviceGroup = main[serviceGroupName]
-	for _, module in pairs(serviceFolder:GetChildren()) do
-		loadModule(module, main[serviceGroupName])
+	local orderedServices = {}
+	for i, module in pairs(serviceFolder:GetChildren()) do
+		local moduleData = loadModule(module, main[serviceGroupName])
+		moduleData._order = moduleData._order or 100
+		table.insert(orderedServices, module.Name)
 	end
-	for moduleName, moduleData in pairs(serviceGroup) do
+	table.sort(orderedServices, function(a, b) return serviceGroup[a]._order < serviceGroup[b]._order end)
+	for i, moduleName in pairs(orderedServices) do
+		local moduleData = serviceGroup[moduleName]
 		if type(moduleData) == "table" and moduleData.start then
 			Thread.spawnNow(function()
 				moduleData:start()

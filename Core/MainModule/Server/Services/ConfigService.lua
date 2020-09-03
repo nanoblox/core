@@ -27,11 +27,13 @@ local function isATable(value)
 	return type(value) == "table"
 end
 
-local function updateSystems(func)
+local function updateSystems(func, callInstantly)
 	local systems = main.modules.SystemStore:getAllUsers()
 	for i, systemUser in pairs(systems) do
 		if systemUser.key ~= "Config" and systemUser.key ~= "NilledData" then
-			systemUser:waitUntilLoaded()
+			if not callInstantly then
+				systemUser:waitUntilLoaded()
+			end
 			func(systemUser)
 		end
 	end
@@ -48,13 +50,24 @@ end
 -- START
 function ConfigService:start()
 	
+	-- Firstly, update display instantly with default config values
+	local user = ConfigService.user
+	local config = main.config
+	updateSystems(function(systemUser)
+		local categoryName = systemUser.key
+		local configCategory = TableUtil.copy(config[categoryName] or {})
+		print("TRANSFORM 1: ", categoryName)
+		systemUser.recordsActionDelay = 0
+		systemUser:transformData(configCategory, systemUser.temp)
+		systemUser.recordsActionDelay = systemUser.originalRecordsActionDelay
+		print("TRANSFORM 2: ", categoryName)
+	end, true)
+
 	-- Load user and check for recent config update directly from studio
 	-- (i.e. this is the first server to receive the update)
 	-- If present, force save these changes
 	-- The HD Admin plugin automatically saves changes *within studio*
 	-- therefore this is only here as backup (e.g. in case it's disabled)
-	local user = ConfigService.user
-	local config = main.config
 	local latestConfig = ConfigService:getLatestConfig()
 	if not TableUtil.doTablesMatch(config, latestConfig) then
 		user.perm:set("ConfigData", TableUtil.copy(config))
@@ -73,7 +86,7 @@ function ConfigService:start()
 		local configCategory = TableUtil.copy(config[categoryName] or {})
 		-- Transform config values into it, ignoring nilled values
 		systemUser:transformData(configCategory, categoryTable, categoryTable, true)
-		-- Then Ttansform systemUser.perm, also ignoring nilled values
+		-- Then transform systemUser.perm, also ignoring nilled values
 		systemUser:transformData(systemUser.perm, categoryTable, categoryTable, true)
 		-- Finally, update the temp (server) container
 		systemUser:transformData(categoryTable, systemUser.temp)
@@ -180,4 +193,5 @@ end
 
 
 
+ConfigService._order = 4
 return ConfigService

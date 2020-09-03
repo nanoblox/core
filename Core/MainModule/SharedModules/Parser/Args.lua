@@ -32,6 +32,18 @@ Args.array = {
 	
 	-----------------------------------
 	{
+		names = {"optionalplayers"},
+		description	= "Hides the players argument for general use and only displays it within the preview menu.",
+		defaultValue = 0,
+		parse = function(stringToParse)
+			
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
 		-- Consider filters for specific players or broadcast
 		names = {"text", "string", "reason", "question", "teamname"},
 		description	= "",

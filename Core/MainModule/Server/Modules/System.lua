@@ -211,11 +211,13 @@ function System.new(name, ignoreTempChanges)
 		local nextExpiryUpdate = os.time()
 		user.temp.changed:Connect(function(recordKey, record)
 			-- Ignore records labelled as 'nilled' (i.e. within NilledData)
-			local ConfigService = main.services.ConfigService or (main:getFramework() and main.services.ConfigService)
-			local nilledUser = ConfigService.nilledUser
-			nilledUser:waitUntilLoaded()
-			if nilledUser.perm:find(name, recordKey) and record ~= nil then
-				return
+			local ConfigService = main.services.ConfigService-- or (main:getFramework() and main.services.ConfigService)
+			if ConfigService then
+				local nilledUser = ConfigService.nilledUser
+				nilledUser:waitUntilLoaded()
+				if nilledUser.perm:find(name, recordKey) and record ~= nil then
+					return
+				end
 			end
 			-- Record added/removed
 			local action 

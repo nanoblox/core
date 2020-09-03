@@ -71,6 +71,7 @@ function RoleService.generateRecord()
 		-- Appearance
 		name = "Unnamed Role",
 		color = Color3.fromRGB(255, 255, 255),
+		nonadmin = false, -- This is solely for the 'nonadmins' and 'admins' qualifiers
 		
 		-- Role Givers
 		giveToEveryone = false,
@@ -85,6 +86,8 @@ function RoleService.generateRecord()
 		giveToPremiumUsers = false,
 		enableAccountAgeGiver = false,
 		giveToUsersWithMinimumAccountAge = 0,
+		enableDailyLoginStreakGiver = false,
+		giveToUsersWithDailyLoginStreak = 14,
 		giveToStarCreators = false,
 		
 		-- Command Inheritance
@@ -104,11 +107,11 @@ function RoleService.generateRecord()
 		limitScale = true,
 		scaleLimit = 5,
 		limitGear = true,
-		limitQualifiers = false,
-		permittedQualifiers = {},
 		
 		-- Individual Powers
 		canUseAll = false,
+		canUseCommandsOnOthers = true,
+		canUseCommandsOnFriends = true,
 		canUseGlobalModifier = false,
 		canUseLoopModifier = false,
 		canUseCmdbar1 = false,
@@ -146,33 +149,26 @@ function RoleService.generateRecord()
 		-- Custom Chat
 		-- https://devforum.roblox.com/t/bubblechats-epic-makeover/739458
 		customBubble = false,
-		bubbleImageColor = Color3.fromRGB(),
-		bubbleTextColor = Color3.fromRGB(),
+		bubbleImageColor = Color3.fromRGB(255, 255, 255),
+		bubbleTextColor = Color3.fromRGB(255, 255, 255),
 		bubbleTextFont = "SourceSans",
 		customNameColor = false,
-		nameColor = Color3.fromRGB(),
+		nameColor = Color3.fromRGB(255, 255, 255),
 		customChatColor = false,
-		chatColor = Color3.fromRGB(),
+		chatColor = Color3.fromRGB(255, 255, 255),
 		customChatTags = false,
 		chatTags = {
 			{
 				tagText = "",
-				tagColor = Color3.fromRGB(),
+				tagColor = Color3.fromRGB(255, 255, 255),
 			}
 		},
 		
 		-- Custom Title
 		customTitle = false,
 		titleText = "",
-		titlePrimaryColor = Color3.fromRGB(),
-		titleStrokeColor = Color3.fromRGB(),
-	}
-end
-
-function RoleService.getHighestRole(tableOfRoles)
-	-- Works for both arrays and dictionaries
-	return {
-		order = 0
+		titlePrimaryColor = Color3.fromRGB(255, 255, 255),
+		titleStrokeColor = Color3.fromRGB(255, 255, 255),
 	}
 end
 
@@ -233,6 +229,62 @@ function RoleService:removeRole(nameOrUID)
 	return true
 end
 
+local function sortRoles(tableOfRoleUIDsOrNames, approveRole)
+	-- This converts input into an array if a dictionary
+	local arrayOfRoles = tableOfRoleUIDsOrNames
+	if #tableOfRoleUIDsOrNames == 0 then
+		arrayOfRoles = {}
+		for roleUID, _ in pairs(tableOfRoleUIDsOrNames) do
+			table.insert(arrayOfRoles, roleUID)
+		end
+	end
+	local currentOrder, selectedRole = nil, nil
+	for _, roleUID in pairs(arrayOfRoles) do
+		local role = RoleService:getRole(roleUID)
+		if role and (selectedRole == nil or approveRole(role._order, currentOrder)) then
+			currentOrder, selectedRole = role._order, role
+		end
+	end
+	if not selectedRole then
+		selectedRole = {
+			_order = 100,
+			unselectedRole = true,
+			name = "RoleFailed"
+		}
+	end
+	return selectedRole
+end
+
+function RoleService.getHighestRole(tableOfRoleUIDsOrNames) -- i.e. the most senior role
+	return sortRoles(tableOfRoleUIDsOrNames, function(roleOrder, currentOrder)
+		return roleOrder < currentOrder
+	end)
+end
+
+function RoleService.getLowestRole(tableOfRoleUIDsOrNames) -- i.e. the most junior role
+	return sortRoles(tableOfRoleUIDsOrNames, function(roleOrder, currentOrder)
+		return roleOrder > currentOrder
+	end)
+end
+
+function RoleService.isSenior(roleA, roleB)
+	assert(typeof(roleA) == "table", "roleA must be a role or table!")
+	assert(typeof(roleB) == "table", "roleB must be a role or table!")
+	return roleA._order < roleB._order
+end
+
+function RoleService.isPeer(roleA, roleB)
+	assert(typeof(roleA) == "table", "roleA must be a role or table!")
+	assert(typeof(roleB) == "table", "roleB must be a role or table!")
+	return roleA._order == roleB._order
+end
+
+function RoleService.isJunior(roleA, roleB)
+	assert(typeof(roleA) == "table", "roleA must be a role or table!")
+	assert(typeof(roleB) == "table", "roleB must be a role or table!")
+	return roleA._order > roleB._order
+end
+
 
 
 --[[
@@ -245,7 +297,7 @@ RoleService:createRole(true, {
 
 local main = require(game.HDAdmin)
 local RoleService = main.services.RoleService
-local roleKey = "U0jS1tKiBf"
+local roleKey = "Basic"
 RoleService:removeRole(roleKey)
 
 
