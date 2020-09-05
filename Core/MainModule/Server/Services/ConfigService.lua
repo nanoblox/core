@@ -83,22 +83,21 @@ function ConfigService:start()
 		local service = ConfigService.getServiceFromCategory(categoryName)
 		if not service then return end
 		local generateRecord = service and service.generateRecord
-		local categoryTable = {}
-		main.modules.TableModifiers.apply(categoryTable)
+		local categoryTable = main.modules.State.new()
 		local configCategory = TableUtil.copy(config[categoryName] or {})
 		-- Transform config values into it, ignoring nilled values
-		systemUser:transformData(configCategory, categoryTable, categoryTable, true)
+		categoryTable:transformToWithoutNilling(configCategory)
 		-- Then transform systemUser.perm, also ignoring nilled values
-		systemUser:transformData(systemUser.perm, categoryTable, categoryTable, true)
+		categoryTable:transformToWithoutNilling(systemUser.perm)
 		-- Finally, update the temp (server) container
 		service.recordsActionDelay = 0
-		systemUser:transformData(categoryTable, systemUser.temp)
+		systemUser.temp:transformTo(categoryTable)
 		Thread.spawnNow(function()
 			main.RunService.Heartbeat:Wait()
 			service.recordsActionDelay = service.originalRecordsActionDelay
 		end)
 		-- Remove tm
-		main.modules.TableModifiers.remove(categoryTable)
+		categoryTable:destroy()
 		
 		-- Listen out for nilled data
 		-- When category values are nilled (such as a role record), it's
@@ -204,8 +203,7 @@ function ConfigService:transformChanges(latestConfig, config, permOrTemp)
 		local dataToUpdate = systemUser[permOrTemp]
 		local category1 = latestConfig[categoryName]
 		local category2 = config[categoryName]
-		-- Transform
-		systemUser:transformData(category1, category2, dataToUpdate)
+		dataToUpdate:transformDifferences(category1, category2)
 	end)
 	main.config = latestConfigCopy
 end

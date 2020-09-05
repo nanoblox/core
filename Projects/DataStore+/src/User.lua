@@ -9,55 +9,10 @@ local RunService = game:GetService("RunService")
 local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
 local Signal = require(HDAdmin:WaitForChild("Signal"))
 local Maid = require(HDAdmin:WaitForChild("Maid"))
-local TableModifiers = require(script.Parent.TableModifiers)
+local State = require(script.Parent.State)
 local Serializer = require(script.Parent.Serializer)
 local User = {}
 User.__index = User
-
-
-
--- LOCAL FUNCTIONS
-local function doTablesMatch(t1, t2, cancelOpposites)
-	if type(t1) ~= "table" then
-		return false
-	end
-	for i, v in pairs(t1) do
-		if (typeof(v) == "table") then
-			if (doTablesMatch(t2[i], v) == false) then
-				return false
-			end
-		else
-			if (v ~= t2[i]) then
-				return false
-			end
-		end
-	end
-	if not cancelOpposites then
-		if not doTablesMatch(t2, t1, true) then
-			return false
-		end
-	end
-	return true
-end
-
-local function isATable(value)
-	return type(value) == "table"
-end
-
-local function isEqual(v1, v2)
-	if isATable(v1) and isATable(v2) then
-		return doTablesMatch(v1, v2)
-	end
-	return v1 == v2
-end
-
-local function findValue(tab, value)
-	for i,v in pairs(tab) do
-		if isEqual(v, value) then
-			return i
-		end
-	end
-end
 
 
 
@@ -71,14 +26,10 @@ function User.new(dataStoreName, key)
 	self._maid = maid
 	
 	-- Main
-	self.temp = {}
-	self.perm = {}
-	self.backup = {}
-	self._data = {}
-	maid:give(TableModifiers.apply(self.temp))
-	maid:give(TableModifiers.apply(self.perm))
-	maid:give(TableModifiers.apply(self.backup))
-	maid:give(TableModifiers.apply(self._data))
+	self.temp = maid:give(State.new())
+	self.perm = maid:give(State.new())
+	self.backup = maid:give(State.new())
+	self._data = maid:give(State.new())
 	
 	-- Config
 	local currentTick = tick()
@@ -89,7 +40,6 @@ function User.new(dataStoreName, key)
 	self.autoSaveInterval = 60
 	self.maxRetries = 3
 	self.cooldown = 8
-	self.transformLoadDataTo = self.perm
 	self.transformingLoadData = false
 	
 	-- Setup information
@@ -160,15 +110,18 @@ function User:loadAsync()
 	else
 		self.isNewUser = false
 	end
-	local tableToUpdate = self.transformLoadDataTo or self._data
 	self.transformingLoadData = true
-	self:transformData(data, self.perm, tableToUpdate)
+	self.perm:transformTo(data,  function(name, content)
+		if name:sub(1,1) == "_" then
+			return self._data, "isPrivate"
+		end
+	end)
 	self.transformingLoadData = false
 	
 	-- Find and trigger any backup data
 	local backupData = data._backupData
 	if backupData then
-		self:transformData(backupData, self.backup)
+		self.backup:transformTo(backupData)
 		self._data._backupData = nil
 	end
 	
@@ -314,110 +267,6 @@ function User:initAutoSave(autoSaveInterval)
 		end
 		self.saveLoopInitialized = nil
 	end)()
-end
-
-function User:transformData(data1, data2, dataToUpdate, ignoreNilled)
-	-- This compares data1 and data2 and deserialises and merges the changes into dataToUpdate
-	if not dataToUpdate then
-		dataToUpdate = data2
-	end
-	-- account for nilled values
-	if not ignoreNilled and typeof(data2) == "table" then
-		for name, content in pairs(data2) do
-			local dataToUpdateMain = dataToUpdate
-			local isPrivate = data2 == self.perm and name:sub(1,1) == "_"
-			if isPrivate then
-				dataToUpdateMain = self._data
-			else
-				name = Serializer.deserialize(name)
-			end
-			if data1[name] == nil then
-				dataToUpdateMain:set(name, nil)
-			end
-		end
-	end
-	
-	-- repeat a similar process for present values
-	if typeof(data1) == "table" then
-		for name, content in pairs(data1) do
-			-- don't deseralize hidden values and add them to _data instantly instead
-			local dataToUpdateMain = dataToUpdate
-			local isPrivate = data2 == self.perm and name:sub(1,1) == "_"
-			
-			if isPrivate then
-				dataToUpdateMain = self._data
-			else
-				name = Serializer.deserialize(name)
-				content = Serializer.deserialize(content)
-			end
-			-- Update values
-			local coreValue = data2[name]
-			local bothAreTables = type(coreValue) == "table" and type(content) == "table"
-			if isPrivate or (coreValue ~= content and not bothAreTables) then
-				-- Only set values or keys with values/tables that dont match
-				local oldValueNum = tonumber(coreValue)
-				local newValueNum = tonumber(content)
-				dataToUpdateMain[name] = coreValue
-				if oldValueNum and newValueNum then
-					dataToUpdateMain:increment(name, newValueNum-oldValueNum)
-				else
-					dataToUpdateMain:set(name, content)
-				end
-			else
-				-- For this section, we only want to insert/set/pair *differences*
-				if type(content) == "table" then
-					-- t1 | the table with new information
-					local t1 = content
-					-- t2 | the table we are effectively merging into
-					local original_t2 = (type(coreValue) == "table" and coreValue) or {}
-					local t2 = {}
-					for k,v in pairs(original_t2) do
-						t2[k] = v
-					end
-					if #content > 0 then
-						-- This inserts/removes differences accoridngly using minimal amounts of moves
-						local iterations = (#t1 > #t2 and #t1) or #t2
-						for i = 1, iterations do
-							local V1 = t1[i]
-							local V2 = t2[i]
-							if V1 ~= V2 then
-								local nextV1 = t1[i+1]
-								if nextV1 ~= V2 and V2 ~= nil then
-									table.remove(t2, i)
-									if not ignoreNilled then
-										dataToUpdateMain:remove(name, Serializer.deserialize(V2, true), i)
-									end
-								end
-								local newV2 = t2[i]
-								if V1 ~= nil and newV2 ~= V1 then
-									table.insert(t2, i, V1)
-									dataToUpdateMain:insert(name, Serializer.deserialize(V1, true), i)
-								end
-							end
-						end
-					else
-						-- Only pair keys with values/tables that dont match
-						for k,v in pairs(t1) do
-							if not(t2[k] ~= nil and isEqual(t2[k], v)) then
-								k = Serializer.deserialize(k)
-								v = Serializer.deserialize(v)
-								dataToUpdateMain:pair(name, k, v)
-							end
-						end
-						-- This accounts for nilled values
-						if not ignoreNilled then
-							for k,v in pairs(t2) do
-								if t1[k] == nil then
-									k = Serializer.deserialize(k)
-									dataToUpdateMain:pair(name, k, nil)
-								end
-							end
-						end
-					end
-				end
-			end
-		end
-	end
 end
 
 function User:waitUntilLoaded()

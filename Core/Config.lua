@@ -117,12 +117,17 @@ return {
 	Bans = {
 		---------------------------
 		["0001"] = {
-			reason = "Putting pineapple on pizza",
+			reason = "Putting pineapple on pizza test",
 		},
 		
 		---------------------------
 		["0002"] = {
 			reason = "Used facebook as a verb",
+		},
+		
+		---------------------------
+		["0003"] = {
+			reason = "Test",
 		},
 		
 		---------------------------
