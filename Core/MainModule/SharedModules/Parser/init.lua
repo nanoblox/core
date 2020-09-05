@@ -8,7 +8,6 @@ local Parser = {}
 function Parser:init()
 	-- This is called when the module is easy-loaded (currently easy-loaded from CommandService)
 	-- You can use it for testing, e.g:
-	wait(1)
 	local message = ";globalPaint(red) all"
 	local batches = Parser.parseMessage(message)
 	main.modules.TableUtil.print(batches, "Batches", true)

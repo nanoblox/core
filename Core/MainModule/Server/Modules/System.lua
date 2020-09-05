@@ -138,7 +138,7 @@ function System.new(name, ignoreTempChanges)
 	local requestsList = {}
 	local saveCooldown = 7
 	Thread.spawnNow(function()
-		main:getFramework()
+		main:waitUntilStarted()
 		self.senderSave = main.services.GlobalService:createSender(name.."Save")
 		self.receiverSave = main.services.GlobalService:createReceiver(name.."Save")
 		self.receiverSave.onGlobalEvent:Connect(function(requestUID)
@@ -211,7 +211,7 @@ function System.new(name, ignoreTempChanges)
 		local nextExpiryUpdate = os.time()
 		user.temp.changed:Connect(function(recordKey, record)
 			-- Ignore records labelled as 'nilled' (i.e. within NilledData)
-			local ConfigService = main.services.ConfigService-- or (main:getFramework() and main.services.ConfigService)
+			local ConfigService = main.services.ConfigService or (main:waitUntilStarted() and main.services.ConfigService)
 			if ConfigService then
 				local nilledUser = ConfigService.nilledUser
 				nilledUser:waitUntilLoaded()
@@ -281,6 +281,7 @@ function System.new(name, ignoreTempChanges)
 			-- show the last request
 			local actionUID = DataUtil.generateUID()
 			changedUIDs[recordKey] = actionUID
+			--print(name, recordKey, " self.recordsActionDelay = ", self.recordsActionDelay)
 			if self.recordsActionDelay > 0 then
 				Thread.wait(self.recordsActionDelay)
 			end
@@ -430,9 +431,10 @@ function System.new(name, ignoreTempChanges)
 		
 		
 		-- Tyically when data is set, it is delayed by 0.1 seconds (i.e.
-		-- self.recordsActionDelay) before reaching Display. This combats this
-		-- by wrapping all System methods so that they can bypass this delay
-		-- and ultimately return values instantly
+		-- self.recordsActionDelay). This enables rapid changes to be made within temp and perm,
+		-- without pointlessly updating in the display records. Sometimes this delay is undesirable,
+		-- for instance, when an external user wishes to create a role. To overcome this,  we wrap all 
+		-- System methods so that they can bypass this delay and return values instantly
 		for methodName, method in pairs(System) do
 			if typeof(method) == "function" and methodName ~= "new" then
 				self[methodName] = function(...)

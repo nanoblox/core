@@ -49,8 +49,8 @@ end
 
 
 
--- START
-function RoleService:init()
+-- BEGIN
+function RoleService:begin()
 	-- Create the hidden creator role
 	-- This role is important as it ensures *the owner*
 	-- of the game always has top priority
@@ -297,7 +297,7 @@ RoleService:createRole(true, {
 
 local main = require(game.HDAdmin)
 local RoleService = main.services.RoleService
-local roleKey = "Basic"
+local roleKey = "Admin"
 RoleService:removeRole(roleKey)
 
 

@@ -22,52 +22,54 @@ local DataUtil = main.modules.DataUtil
 
 
 
+-- PUBIC
+-- Create a signal so that MainFramework can complete when all data has loaded been transformed into the
+-- correct tables
+ConfigService.setupComplete = false
+ConfigService.setupCompleteSignal = main.modules.Signal.new()
+
+
+
 -- PRIVATE
 local function isATable(value)
 	return type(value) == "table"
 end
 
-local function updateSystems(func, callInstantly)
+local function updateSystems(func, timeout)
+	local Promise = main.modules.Promise
+	local promises = {}
 	local systems = main.modules.SystemStore:getAllUsers()
 	for i, systemUser in pairs(systems) do
 		if systemUser.key ~= "Config" and systemUser.key ~= "NilledData" then
-			if not callInstantly then
+			table.insert(promises, Promise.async(function(resolve, reject, onCancel)
 				systemUser:waitUntilLoaded()
-			end
-			func(systemUser)
+				func(systemUser)
+				resolve(true)
+			end))
 		end
 	end
-end
-
-local function getServiceFromCategory(categoryName)
-	local serviceName = categoryName:sub(1, #categoryName-1).."Service"
-	local service = main.services[serviceName]
-	return service
+	local completedSignal = main.modules.Signal.new()
+	timeout = timeout or 10
+	Promise.allSettled(promises)
+		:timeout(timeout)
+		:finally(function()
+			completedSignal:Fire()
+		end)
+	completedSignal:Wait()
 end
 
 
 
 -- START
 function ConfigService:start()
-	
-	-- Firstly, update display instantly with default config values
-	local user = ConfigService.user
-	local config = main.config
-	updateSystems(function(systemUser)
-		local categoryName = systemUser.key
-		local configCategory = TableUtil.copy(config[categoryName] or {})
-		print("TRANSFORM 1: ", categoryName)
-		systemUser.recordsActionDelay = 0
-		systemUser:transformData(configCategory, systemUser.temp)
-		systemUser.recordsActionDelay = systemUser.originalRecordsActionDelay
-		print("TRANSFORM 2: ", categoryName)
-	end, true)
 
 	-- Load user and check for recent config update directly from studio
 	-- (i.e. this is the first server to receive the update)
 	-- If present, force save these changes
 	-- The HD Admin plugin automatically saves changes *within studio*
 	-- therefore this is only here as backup (e.g. in case it's disabled)
+	local user = ConfigService.user
+	local config = main.config
 	local latestConfig = ConfigService:getLatestConfig()
 	if not TableUtil.doTablesMatch(config, latestConfig) then
 		user.perm:set("ConfigData", TableUtil.copy(config))
@@ -78,7 +80,7 @@ function ConfigService:start()
 	-- (such as RoleService) into that service's user
 	updateSystems(function(systemUser)
 		local categoryName = systemUser.key
-		local service = getServiceFromCategory(categoryName)
+		local service = ConfigService.getServiceFromCategory(categoryName)
 		if not service then return end
 		local generateRecord = service and service.generateRecord
 		local categoryTable = {}
@@ -89,7 +91,12 @@ function ConfigService:start()
 		-- Then transform systemUser.perm, also ignoring nilled values
 		systemUser:transformData(systemUser.perm, categoryTable, categoryTable, true)
 		-- Finally, update the temp (server) container
+		service.recordsActionDelay = 0
 		systemUser:transformData(categoryTable, systemUser.temp)
+		Thread.spawnNow(function()
+			main.RunService.Heartbeat:Wait()
+			service.recordsActionDelay = service.originalRecordsActionDelay
+		end)
 		-- Remove tm
 		main.modules.TableModifiers.remove(categoryTable)
 		
@@ -131,7 +138,7 @@ function ConfigService:start()
 	-- by listening out for specific changes within NilledData instead of
 	-- the system's data
 	local function pairNilUpdate(categoryName, key, isNilled)
-		local service = getServiceFromCategory(categoryName)
+		local service = ConfigService.getServiceFromCategory(categoryName)
 		if not service then return end
 		local systemUser = service.user
 		if isNilled then
@@ -154,19 +161,30 @@ function ConfigService:start()
 	end)
 	
 	
+	-- Complete
+	ConfigService.setupComplete = true
+	ConfigService.setupCompleteSignal:Fire()
+
+
 	-- This checks for differences between config and latestConfig and
 	-- if present, applies them to the corresponding services
 	main.config = config
 	while true do
+		Thread.wait(10)
 		latestConfig = ConfigService:getLatestConfig()
 		ConfigService:transformChanges(latestConfig, main.config, "temp")
-		Thread.wait(10)
 	end
 end
 
 
 
 -- METHODS
+function ConfigService.getServiceFromCategory(categoryName)
+	local serviceName = categoryName:sub(1, #categoryName-1).."Service"
+	local service = main.services[serviceName]
+	return service
+end
+
 function ConfigService:getLatestConfig()
 	local user = ConfigService.user
 	if user.isLoaded then
@@ -174,7 +192,8 @@ function ConfigService:getLatestConfig()
 	else
 		user:waitUntilLoaded()
 	end
-	return user.perm.ConfigData
+	local configData = user.perm.ConfigData or main.config
+	return configData
 end
 
 function ConfigService:transformChanges(latestConfig, config, permOrTemp)

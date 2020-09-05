@@ -62,8 +62,8 @@ local function playerAdded(player)
 end
 
 
--- Wait until every other service has initialised before starting
-function PlayerService:start()
+-- Wait until every other service has initialised and data loaded before beginning
+function PlayerService:begin()
 	-- Call PlayerAdded when player enters game
 	main.Players.PlayerAdded:Connect(playerAdded)
 	

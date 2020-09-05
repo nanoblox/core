@@ -163,36 +163,71 @@ function main:initiate()
 		moduleData._order = moduleData._order or 100
 		table.insert(orderedServices, module.Name)
 	end
+	
+	-- Define order to call service methods based upon any present '_order' values
 	table.sort(orderedServices, function(a, b) return serviceGroup[a]._order < serviceGroup[b]._order end)
-	for i, moduleName in pairs(orderedServices) do
-		local moduleData = serviceGroup[moduleName]
-		if type(moduleData) == "table" and moduleData.start then
-			Thread.spawnNow(function()
-				moduleData:start()
-			end)
+	local function callServiceMethod(methodName)
+		for i, moduleName in pairs(orderedServices) do
+			local moduleData = serviceGroup[moduleName]
+			local method = moduleData[methodName]
+			if type(moduleData) == "table" and method then
+				Thread.spawnNow(function()
+					method(moduleData)
+				end)
+			end
 		end
 	end
 	
+	-- Once all services initialised, call start
+	callServiceMethod("start")
+	main._started = true
+	if main._startedSignal then
+		main._startedSignal:Fire()
+	end
 	
-	-- COMPLETE
-	main._initiated = true
-	if main._initiatedSignal then
-		main._initiatedSignal:Fire()
+	-- If server, wait for all system data to load, then call :begin()
+	if location == "server" then
+		local ConfigService = main.services.ConfigService
+		if not ConfigService.setupComplete then
+			ConfigService.setupCompleteSignal:Wait()
+		end
+		callServiceMethod("begin")
+	end
+	main._begun = true
+	if main._begunSignal then
+		main._begunSignal:Fire()
 	end
 	
 end
 
 
-function main:getFramework()
-	if not main._initiated then
-		local signal = main._initiatedSignal
-		if not signal then
-			local Signal = require(main.ReplicatedStorage.HDAdmin.Signal)
-			signal = Signal.new()
-			main._initiatedSignal = signal
+
+local function setupSignalLoader(propertyName)
+	if not main[propertyName] then
+		local eventName = propertyName.."Signal"
+		local bindableEvent = main[eventName]
+		if not bindableEvent then
+			bindableEvent = Instance.new("BindableEvent")
+			main[eventName] = bindableEvent
 		end
-		signal:Wait()
+		bindableEvent.Event:Wait()
+		main.RunService.Heartbeat:Wait()
+		if bindableEvent then
+			bindableEvent:Destroy()
+		end
 	end
+end
+
+function main:waitUntilStarted()
+	setupSignalLoader("_started")
+end
+
+function main:waitUntilBegun()
+	setupSignalLoader("_begun")
+end
+
+function main:getFramework()
+	main:waitUntilBegun()
 	return main
 end
 
