@@ -103,11 +103,6 @@ function main:initiate()
 							if childModule then
 								children[index] = nil
 								local childModuleData = loadModule(childModule, moduleData)
-								if rawget(childModuleData, "start") then
-									Thread.spawnNow(function()
-										childModuleData:start()
-									end)
-								end
 								return childModuleData
 							end
 						end
@@ -138,11 +133,6 @@ function main:initiate()
 					local moduleName = module.Name
 					if moduleName == index then
 						local moduleData = loadModule(module, main.modules, true)
-						if rawget(moduleData, "start") then
-							Thread.spawnNow(function()
-								moduleData:start()
-							end)
-						end
 						return moduleData
 					end
 				end
