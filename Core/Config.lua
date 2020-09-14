@@ -152,6 +152,7 @@ return {
 		["Client"] = {
 			prefixes				= {","},
 			argCapsule 				= "(%s)",
+			rgbCapsule 				= "[%s]",
 			collective 				= ",",
 			descriptorSeparator 	= "",
 			spaceSeparator 			= " ",

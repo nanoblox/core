@@ -19,8 +19,8 @@ RoleService.recordAdded:Connect(function(roleUID, record)
 	roles[roleUID] = role
 end)
 
-RoleService.recordRemoved:Connect(function(roleUID)
-	warn(("ROLE '%s' REMOVED!"):format(roleUID))
+RoleService.recordRemoved:Connect(function(roleUID, oldRecord)
+	warn(("ROLE '%s' (UID = %s) REMOVED!"):format((oldRecord and oldRecord.name) or "*No name*", roleUID))
 	local role = roles[roleUID]
 	if role then
 		role:destroy()
@@ -176,7 +176,7 @@ function RoleService:createRole(isGlobal, properties)
 	-- The UID is a string to unqiquely identify each role
 	-- We use this as the key instead of the roles name so that records
 	-- can persist as the same instance even after being renamed
-	local key = properties.UID or DataUtil.generateUID(10)
+	local key = (properties and properties.UID) or DataUtil.generateUID(10)
 	RoleService:createRecord(key, isGlobal, properties)
 	local role = RoleService:getRole(key)
 	return role
@@ -217,14 +217,14 @@ end
 
 function RoleService:updateRole(nameOrUID, propertiesToUpdate)
 	local role = RoleService:getRole(nameOrUID)
-	assert(role, ("role '%s' not found!"):format(nameOrUID))
+	assert(role, ("role '%s' not found!"):format(tostring(nameOrUID)))
 	RoleService:updateRecord(role.UID, propertiesToUpdate)
 	return true
 end
 
 function RoleService:removeRole(nameOrUID)
 	local role = RoleService:getRole(nameOrUID)
-	assert(role, ("role '%s' not found!"):format(nameOrUID))
+	assert(role, ("role '%s' not found!"):format(tostring(nameOrUID)))
 	RoleService:removeRecord(role.UID)
 	return true
 end
@@ -291,14 +291,42 @@ end
 local main = require(game.HDAdmin)
 local RoleService = main.services.RoleService
 RoleService:createRole(true, {
-	name = "Test server role"
+	name = "AAA"
 })
 
 
 local main = require(game.HDAdmin)
+local SystemStore = main.modules.SystemStore
+local user = SystemStore:getUser("User")
+main.modules.TableUtil.print(user._data, "", true)
+
+
+
+local main = require(game.HDAdmin)
 local RoleService = main.services.RoleService
-local roleKey = "Admin"
+local roleKey = "Manager"
 RoleService:removeRole(roleKey)
+
+local main = require(game.HDAdmin)
+local RoleService = main.services.RoleService
+local roleKey = "Manager"
+--RoleService:updateRole(roleKey, {yoo = {math.random(1,10000)}})
+local randomInt = math.random(1,10000)
+print("randomInt = ", randomInt)
+RoleService:updateRole(roleKey, {
+	yoo = {
+		subyooo = {
+			subsubyoooo = {
+				hiMom = randomInt
+			}
+		}
+	}
+})
+
+local main = require(game.HDAdmin)
+local SystemStore = main.modules.SystemStore
+local user = SystemStore:getUser("NilledData")
+main.modules.TableUtil.print(user._data, "", true)
 
 
 local main = require(game.HDAdmin)

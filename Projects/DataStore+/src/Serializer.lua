@@ -76,13 +76,17 @@ dataTypes = {
     ["table"] = {
         serialize = function(property, deepCopy)
             for k, v in pairs(property) do
-                property[k] = Serializer.serialize(v, deepCopy)
+                local newK = Serializer.serialize(k, deepCopy)
+                local newV = Serializer.serialize(v, deepCopy)
+                property[newK] = newV
             end
             return property
 		end,
         deserialize = function(value, deepCopy)
             for k, v in pairs(value) do
-                value[k] = Serializer.deserialize(v, deepCopy)
+                local origK = Serializer.deserialize(k, deepCopy)
+                local origV = Serializer.deserialize(v, deepCopy)
+                value[origK] = origV
             end
             return value
 		end,

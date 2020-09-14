@@ -40,7 +40,6 @@ function User.new(dataStoreName, key)
 	self.autoSaveInterval = 60
 	self.maxRetries = 3
 	self.cooldown = 8
-	self.transformingLoadData = false
 	
 	-- Setup information
 	self.dataStoreName = dataStoreName
@@ -54,6 +53,7 @@ function User.new(dataStoreName, key)
 	self.player = nil
 	self.errorMessageBase = "DataStore+ | Failed to %s DataKey '".. tostring(key).."' ("..dataStoreName.."): "
 	self.startData = {}
+	self.transformingLoadData = false
 	
 	-- AutoSave
 	self.nextAutoSaveTick = currentTick + 5
@@ -70,23 +70,18 @@ function User.new(dataStoreName, key)
 		end)
 	end
 
+	-- Additional data table events
+	self.temp.descendantChanged = self.temp:createDescendantChangedSignal(true)
+	self.perm.descendantChanged = self.perm:createDescendantChangedSignal(true)
+	self.backup.descendantChanged = self.backup:createDescendantChangedSignal(true)
+
 	-- Perm to _Data (serialization)
-	local serEvents = {
-		changed = "set",
-		inserted = "insert",
-		removed = "remove",
-		paired = "pair",
-	}
-	for eventName, methodName in pairs(serEvents) do
-		self.perm[eventName]:Connect(function(...)
-			local packaged = {...}
-			for k,v in pairs(packaged) do
-				packaged[k] = Serializer.serialize(v, true)
-			end
-			self._data[methodName](self._data, table.unpack(packaged))
-			self._data._tableUpdated = true
-		end)
-	end
+	self.perm.descendantChanged:Connect(function(pathwayTable, permKey, permValue)
+		local newPermKey = Serializer.serialize(permKey, true)
+		local newPermValue = Serializer.serialize(permValue, true)
+		self._data:getOrSetup(pathwayTable):set(newPermKey, newPermValue)
+		self._data._tableUpdated = true
+	end)
 
 	return self
 end
@@ -103,16 +98,19 @@ function User:loadAsync()
 		return self.dataStore:GetAsync(self.key)
 	end)
 
-	-- Setup perm; if nothing found, apply start data. Transform _data into perm (i.e. deserialize)
+	-- Setup perm; if nothing found, apply start data, else deserialize loaded data
 	if not data then
 		data = self.startData
 		self.isNewUser = true
 	else
+		data = Serializer.deserialize(data)
 		self.isNewUser = false
 	end
+
+	-- Transform data
 	self.transformingLoadData = true
-	self.perm:transformTo(data,  function(name, content)
-		if name:sub(1,1) == "_" then
+	self.perm:transformTo(data,  function(key, value)
+		if key:sub(1,1) == "_" then
 			return self._data, "isPrivate"
 		end
 	end)

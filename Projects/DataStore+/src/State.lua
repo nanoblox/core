@@ -3,22 +3,7 @@ local replicatedStorage = game:GetService("ReplicatedStorage")
 local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
 local Signal = require(HDAdmin:WaitForChild("Signal"))
 local Maid = require(HDAdmin:WaitForChild("Maid"))
-local Serializer = require(script.Parent.Serializer)
 local activeTables = {}
-local actions = {
-	set = "setted",
-	increment = "incremented",
-	concat = "concatted",
-	insert = "inserted",
-	remove = "removed",
-	pair = "paired",
-	clear = "cleared"
-}
-local changeActions = {
-	set = true,
-	increment = true,
-	concat = true,
-}
 local State = {}
 setmetatable(State, {
 	__mode = "k"}
@@ -69,289 +54,224 @@ local function findValue(tab, value)
 	end
 end
 
+local function deepCopyTableFirstLayer(t)
+	local newT = {}
+	for k,v in pairs(t) do
+		newT[k] = v
+	end
+	return newT
+end
+
 
 
 -- CONSTRUCTOR
 function State.new(props)
 	
 	local newTable = {}
+	local maid = Maid.new()
 	if typeof(props) == "table" then
 		for k,v in pairs(props) do
+			if typeof(v) == "table" then
+				v = maid:give(State.new(v))
+			end
 			newTable[k] = v
 		end
 	end
-	local maid = Maid.new()
 	activeTables[newTable] = maid
 	
 	local eventInstances = {}
-	eventInstances["actionCalled"] = maid:give(Signal.new())
 	eventInstances["changed"] = maid:give(Signal.new())
-	for actionName, eventName in pairs(actions) do
-		local signal = maid:give(Signal.new())
-		eventInstances[eventName] = signal
-		if changeActions[actionName] then
-			maid:give(signal:Connect(function(...)
-				eventInstances.changed:Fire(...)
-			end))
-		end
-	end
 	setmetatable(newTable, {
 		__index = function(this, index)
 			local newIndex = State[index] or eventInstances[index]
 			return newIndex
 		end
 	})
-		
+	
 	return newTable
 end
 
 
 
 -- METHODS
-function State:get(stat)
-	return self[stat]
-end
-
-function State:find(stat, value)
-	local tab = self[stat]
-	if type(tab) == "table" then
-		if #tab == 0 then return tab[value] end
-		for i,v in pairs(tab) do
-			if v == value then
-				return true
-			end
+function State:get(...)
+	local pathwayTable = {...}
+	if type(pathwayTable[1]) == "table" then
+		pathwayTable = ...
+	end
+	local max = #pathwayTable
+	local value = self
+	if max == 0 then
+		return value
+	end
+	for i, key in pairs(pathwayTable) do
+		value = value[key]
+		if not (i == max or (type(value) == "table" and value.isState)) then
+			return nil
 		end
 	end
-	return false
+	return value
 end
 
-function State:len(stat)
-	local value = self[stat]
-	local typeActions = {
-		["table"] = function()
-			local function getTotalHashes(v)
-				local l = 0
-				for _, _ in pairs(v) do
-					l = l + 1
-				end
-				return l
-			end
-			return(((#value > 0) and #value) or getTotalHashes(value))
-		end;
-		["string"] = function()
-			return #stat
-		end;
-	}
-	local typeAction = typeActions[type(value)]
-	return((typeAction and typeAction()) or 0)
+function State:getOrSetup(...)
+	local pathwayTable = {...}
+	if type(pathwayTable[1]) == "table" then
+		pathwayTable = ...
+	end
+	local value = self
+	for i, key in pairs(pathwayTable) do
+		local nextValue = value[key]
+		if type(nextValue) ~= "table" then
+			nextValue = value:set(key, {})
+		end
+		value = nextValue
+	end
+	return value
+end
+
+function State:find(...)
+	local pathwayTable = {...}
+	if type(pathwayTable[1]) == "table" then
+		pathwayTable = ...
+	end
+	local max = #pathwayTable
+	local value = pathwayTable[max]
+	table.remove(pathwayTable, max)
+	max = max - 1
+	local tab = self
+	if max > 0 then
+		tab = self:get(table.unpack(pathwayTable))
+	end
+	if type(tab) == "table" then
+		if #tab == 0 then return tab[value] end
+		local index = table.find(tab, value)
+		return index
+	end
+	return nil
+end
+
+function State:len()
+	local length = #self
+	if length > 0 then
+		return length
+	end
+	local count = 0
+	for k,v in pairs(self) do
+		count = count + 1
+	end
+	return count
 end
 
 function State:set(stat, value)
-	local actionName = "set"
-	local eventName = actions[actionName]
 	local oldValue = self[stat]
+	if type(value) == "table" then
+		-- Convert tables and descending tables into States
+		local thisMaid = activeTables[self]
+		value = thisMaid:give(State.new(value))
+	elseif value == nil and type(oldValue) == "table" and oldValue.isState then
+		-- Destroy State and descending States
+		oldValue:destroy()
+	end
 	self[stat] = value
-	self.actionCalled:Fire(actionName, stat, value)
-	self[eventName]:Fire(stat, value, oldValue)
+	self.changed:Fire(stat, value, oldValue)
 	return value
 end
 
 function State:increment(stat, value)
 	value = tonumber(value) or 1
-	local actionName = "increment"
-	local eventName = actions[actionName]
 	local oldValue = self[stat] or 0
 	local newValue = oldValue + value
-	self[stat] = newValue
-	self.actionCalled:Fire(actionName, stat, value)
-	self[eventName]:Fire(stat, value)
+	self:set(stat, newValue)
 	return newValue
 end
 
-function State:insert(stat, value, pos)
-	local actionName = "insert"
-	local eventName = actions[actionName]
-	local tab = (type(self[stat]) == "table" and self[stat])
-	if not tab then
-		tab = {}
-		self:set(stat, tab)
-	end
-	pos = pos or #tab+1
-	table.insert(tab, pos, value)
-	self[stat] = tab
-	self.actionCalled:Fire(actionName, stat, value, pos)
-	self[eventName]:Fire(stat, value, pos)
-	return tab
-end
-
-function State:remove(stat, value, pos)
-	local actionName = "remove"
-	local eventName = actions[actionName]
-	local tab = self[stat]
-	if not tab then
-		return
-	end
-	local exactV = tab[pos]
-	if exactV and exactV == value then
-		table.remove(tab, pos)
-	else
-		for i,v in pairs(tab) do
-			if v == value then
-				table.remove(tab, i)
-				break
-			end
-		end
-	end
-	self.actionCalled:Fire(actionName, stat, value, pos)
-	self.removed:Fire(stat, value, pos)
-end
-
-function State:pair(stat, key, value)
-	local actionName = "pair"
-	local eventName = actions[actionName]
-	local originalTab = self[stat]
-	local tab = (type(originalTab) == "table" and originalTab)
-	if not tab then
-		tab = {}
-		self:set(stat, tab)
-	end
-	local originalValue = tab[key]
-	tab[key] = value
-	self[stat] = tab
-	self.actionCalled:Fire(actionName, stat, key, value)
-	self.paired:Fire(stat, key, value, originalValue)
-	return tab
-end
-
-function State:concat(stat, value)
-	local actionName = "concat"
-	local eventName = actions[actionName]
-	local oldValue = self[stat] or ""
-	local newValue = oldValue.. tostring(value)
-	self[stat] = newValue
-	self.actionCalled:Fire(actionName, stat, value)
-	self.concatted:Fire(stat, newValue, oldValue)
+function State:decrement(stat, value)
+	value = tonumber(value) or 1
+	local oldValue = self[stat] or 0
+	local newValue = oldValue - value
+	self:set(stat, newValue)
 	return newValue
+end
+
+function State:insert(value, pos)
+	local lastIndex = #self+1
+	pos = (tonumber(pos) and pos <= lastIndex and pos) or lastIndex
+	local startIndex = pos
+	local previousValue = self[startIndex]
+	local nextValue = value
+	for i = startIndex, lastIndex do
+		self:set(i, nextValue)
+		nextValue = previousValue
+		previousValue = self[i+1]
+	end
+	return value
+end
+
+function State:remove(pos)
+	local lastIndex = #self
+	pos = tonumber(pos) or lastIndex
+	if pos > lastIndex then
+		return false
+	end
+	self:set(pos, nil)
+	local startIndex = pos
+	for i = startIndex, lastIndex do
+		local nextValue = self[i+1]
+		self:set(i, nextValue)
+	end
+	return true
 end
 
 function State:clear()
-	local actionName = "clear"
-	local eventName = actions[actionName]
 	for k,v in pairs(self) do
-		--self[k] = nil
 		self:set(k, nil)
 	end
-	self.actionCalled:Fire(actionName)
-	self.cleared:Fire()
 end
 
-function State:destroy()
-	local maid = activeTables[self]
-	if maid then
-		maid:clean()
-		return true
-	end
-	return false
-end
-
-
--- The following giant deduces the differences between two sets of data
+-- The following deduces the differences between two sets of data
 -- and applies these differences to the third table using the States
--- setter methods (such as :set, :insert, etc)
+-- set method
 local function transformData(data1, data2, dataToUpdate, ignoreNilled, modifier)
+	-- data1 is typically the 'incoming' or 'new' data, while data2 is typically the 'existing' data
 	if not dataToUpdate then
 		dataToUpdate = data2
 	end
 	
-	-- account for nilled values
-	if not ignoreNilled and typeof(data2) == "table" then
-		for name, content in pairs(data2) do
-			local dataToUpdateMain = (modifier and modifier(name, content)) or dataToUpdate
-			name = Serializer.deserialize(name)
-			if data1[name] == nil then
-				dataToUpdateMain:set(name, nil)
+	-- If a value is present in data2, but not in data1, then nil it
+	if not ignoreNilled then
+		local function compareNilled(tab2, tab1, tabToUpdate)
+			if typeof(tab2) == "table" and typeof(tab1) == "table" then
+				for key, tab2value in pairs(tab2) do
+					local tab1value = tab1[key]
+					local tabToUpdateMain = (tabToUpdate == dataToUpdate and modifier and modifier(key, tab2value)) or tabToUpdate
+					if tab1value == nil then
+						tabToUpdateMain:set(key, nil)
+					else
+						compareNilled(tab2value, tab1value, (tabToUpdateMain and tabToUpdateMain[key]))
+					end
+				end
 			end
 		end
+		compareNilled(data2, data1, dataToUpdate)
 	end
 	
-	-- repeat a similar process for present values
-	if typeof(data1) == "table" then
-		for name, content in pairs(data1) do
-			-- don't deseralize hidden values and add them to _data instantly instead
-			local dataToUpdateMain, extra = (modifier and modifier(name, content)) or dataToUpdate, nil
-			local isPrivate = extra == "isPrivate"
-			if not isPrivate then
-				name = Serializer.deserialize(name)
-				content = Serializer.deserialize(content)
-			end
-			-- Update values
-			local coreValue = data2[name]
-			local bothAreTables = type(coreValue) == "table" and type(content) == "table"
-			if isPrivate or (coreValue ~= content and not bothAreTables) then
-				-- Only set values or keys with values/tables that dont match
-				local oldValueNum = tonumber(coreValue)
-				local newValueNum = tonumber(content)
-				dataToUpdateMain[name] = coreValue
-				if oldValueNum and newValueNum then
-					dataToUpdateMain:increment(name, newValueNum-oldValueNum)
+	-- If a value is present in data1, but DIFFERENT *or* not in data2, then set it	
+	local function comparePresent(tab1, tab2, tabToUpdate)
+		if typeof(tab1) == "table" then
+			for key, tab1value in pairs(tab1) do
+				local tabToUpdateMain, extra = (tabToUpdate == dataToUpdate and modifier and modifier(key, tab1value)) or tabToUpdate, nil
+				local isPrivate = extra == "isPrivate"
+				local tab2value = tab2[key]
+				local bothAreTables = type(tab1value) == "table" and type(tab2value) == "table"
+				if isPrivate or (not bothAreTables and tab1value ~= tab2value) then
+					tabToUpdateMain:set(key, tab1value)
 				else
-					dataToUpdateMain:set(name, content)
-				end
-			else
-				-- For this section, we only want to insert/set/pair *differences*
-				if type(content) == "table" then
-					-- t1 | the table with new information
-					local t1 = content
-					-- t2 | the table we are effectively merging into
-					local original_t2 = (type(coreValue) == "table" and coreValue) or {}
-					local t2 = {}
-					for k,v in pairs(original_t2) do
-						t2[k] = v
-					end
-					if #content > 0 then
-						-- This inserts/removes differences accoridngly using minimal amounts of moves
-						local iterations = (#t1 > #t2 and #t1) or #t2
-						for i = 1, iterations do
-							local V1 = t1[i]
-							local V2 = t2[i]
-							if V1 ~= V2 then
-								local nextV1 = t1[i+1]
-								if nextV1 ~= V2 and V2 ~= nil then
-									table.remove(t2, i)
-									if not ignoreNilled then
-										dataToUpdateMain:remove(name, Serializer.deserialize(V2, true), i)
-									end
-								end
-								local newV2 = t2[i]
-								if V1 ~= nil and newV2 ~= V1 then
-									table.insert(t2, i, V1)
-									dataToUpdateMain:insert(name, Serializer.deserialize(V1, true), i)
-								end
-							end
-						end
-					else
-						-- Only pair keys with values/tables that dont match
-						for k,v in pairs(t1) do
-							if not(t2[k] ~= nil and isEqual(t2[k], v)) then
-								k = Serializer.deserialize(k)
-								v = Serializer.deserialize(v)
-								dataToUpdateMain:pair(name, k, v)
-							end
-						end
-						-- This accounts for nilled values
-						if not ignoreNilled then
-							for k,v in pairs(t2) do
-								if t1[k] == nil then
-									k = Serializer.deserialize(k)
-									dataToUpdateMain:pair(name, k, nil)
-								end
-							end
-						end
-					end
+					comparePresent(tab1value, tab2value, (tabToUpdateMain and tabToUpdateMain[key]))
 				end
 			end
 		end
 	end
+	comparePresent(data1, data2, dataToUpdate)
 end
 
 function State:transformTo(data1, modifier)
@@ -365,6 +285,58 @@ end
 function State:transformDifferences(data1, data2, modifier)
 	transformData(data1, data2, self, false, modifier)
 end
+
+-- This creates a signal that is fired when descendant tables
+-- (and itself optionally) are changed. The first value returned
+-- is a 'pathwayTable', followed by the normal .changed return values.
+-- A pathway table enables you to get the table that was originally
+-- called, from the listening table, by doing
+-- ``self:get(pathwayTable)``
+function State:createDescendantChangedSignal(includeSelf)
+	local maid = activeTables[self]
+	local signal = maid:give(Signal.new())
+	local function connectToTable(tab, pathwayTable, onlyListenToDescendants)
+		local function connectChild(key, value)
+			if type(value) == "table" then
+				local newPathwayTable = deepCopyTableFirstLayer(pathwayTable)
+				table.insert(newPathwayTable, key)
+				connectToTable(value, newPathwayTable)
+			end
+		end
+		if not onlyListenToDescendants then
+			tab.changed:Connect(function(key, newValue, oldValue)
+				connectChild(key, newValue)
+				----
+				signal:Fire(pathwayTable, key, newValue, oldValue)
+				----
+			end)
+		end
+		for key, value in pairs(tab) do
+			connectChild(key, value)
+		end
+	end
+	local initialPathwayTable = {}
+	connectToTable(self, initialPathwayTable, not includeSelf)
+	return signal
+end
+
+-- This destroys all State Instances (such as Signals) and metatables
+-- associated with the table, so that only normal keys and values remain
+function State:destroy()
+	local maid = activeTables[self]
+	if maid then
+		maid:clean()
+		setmetatable(self, {__index = nil})
+		return true
+	end
+	return false
+end
+
+
+
+-- ADDITIONAL
+State.isState = true
+
 
 
 return State

@@ -111,12 +111,17 @@ function ConfigService:start()
 				if main.config[categoryName][key] ~= nil then
 					-- Record value as nilled
 					oldValue = oldValue or {}
-					nilledUser.perm:pair(categoryName, key, oldValue)
+					local nilledCategory = nilledUser.perm[categoryName]
+					if nilledCategory == nil then
+						nilledCategory = nilledUser.perm:set(categoryName, {})
+					end
+					nilledCategory:set(key, oldValue)
 				end
 				
 			elseif nilledUser.perm:find(categoryName, key) then
 				-- Unnil value
-				nilledUser.perm:pair(categoryName, key, nil)
+				local nilledCategory = nilledUser.perm[categoryName]
+				nilledCategory:set(key, nil)
 				-- Sometimes an unnilled value is added after the temp
 				-- record, therefore the temp record gets blocked.
 				-- This checks to see if the temp record is present
@@ -136,7 +141,7 @@ function ConfigService:start()
 	-- server B will not detect this change. This therefore, fixes that issue,
 	-- by listening out for specific changes within NilledData instead of
 	-- the system's data
-	local function pairNilUpdate(categoryName, key, isNilled)
+	local function setNilUpdate(categoryName, key, isNilled)
 		local service = ConfigService.getServiceFromCategory(categoryName)
 		if not service then return end
 		local systemUser = service.user
@@ -146,15 +151,14 @@ function ConfigService:start()
 				systemUser.temp:set(key, nil)
 			end
 		end
-		--]]
 	end
-	nilledUser.perm.paired:Connect(function(categoryName, key, isNilled)
-		pairNilUpdate(categoryName, key, isNilled)
-	end)
 	nilledUser.perm.changed:Connect(function(categoryName, tab)
 		if type(tab) == "table" then
+			tab.changed:Connect(function(key, isNilled)
+				setNilUpdate(categoryName, key, isNilled)
+			end)
 			for key, isNilled in pairs(tab) do
-				pairNilUpdate(categoryName, key, isNilled)
+				setNilUpdate(categoryName, key, isNilled)
 			end
 		end
 	end)
