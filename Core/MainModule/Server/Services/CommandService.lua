@@ -11,20 +11,40 @@ local commands = {}
 
 -- BEGIN
 function CommandService:begin()
-	-- This is just to test the parser
-	local Parser = main.modules.Parser
+	--!!
+	local Parser = main.modules.Parser --!!! This is just to test the parser
+	--!!
+	-- Grab default commands
+	local Commands = main.modules.Commands
+	for name, details in pairs(Commands.dictionary) do
+		CommandService:createCommand(false, name, details)
+	end
+	-- Setup auto sorters
+	self.records:setTable("array", function(mirrorTable)
+		local recordsArray = {}
+		for key, record in pairs(mirrorTable) do
+			table.insert(recordsArray, record)
+		end
+		return recordsArray
+	end)
+	self.records:setTable("sortedNameLengthArray", function(mirrorTable)
+		table.sort(mirrorTable, function(a, b) print(a.name.." > ".. b.name) return #a.name > #b.name end)
+		return mirrorTable
+	end, self.records:getTable("array"))
 end
 
 
 
 -- EVENTS
 CommandService.recordAdded:Connect(function(commandName, record)
+	warn(("COMMAND '%s' ADDED!"):format(commandName))
 	local command = Command.new(record)
 	command.name = commandName
 	commands[commandName] = command
 end)
 
 CommandService.recordRemoved:Connect(function(commandName)
+	warn(("COMMAND '%s' REMOVED!"):format(commandName))
 	local command = commands[commandName]
 	if command then
 		command:destroy()
@@ -33,6 +53,7 @@ CommandService.recordRemoved:Connect(function(commandName)
 end)
 
 CommandService.recordChanged:Connect(function(commandName, propertyName, propertyValue, propertyOldValue)
+	warn(("BAN '%s' CHANGED %s to %s"):format(commandName, tostring(propertyName), tostring(propertyValue)))
 	local command = commands[commandName]
 	if command then
 		command[propertyName] = propertyValue
@@ -90,6 +111,75 @@ function CommandService:removeCommand(name)
 	CommandService:removeRecord(name)
 	return true
 end
+
+function CommandService.chatCommand(user, message)
+	print(user.name, "chatted: ", message)
+	local batches = main.modules.Parser.parseMessage(message)
+	if type(batches) == "table" then
+		for i, batch in pairs(batches) do
+			local approved, noticeDetails = CommandService.verifyBatch(user, batch)
+			if approved then
+				CommandService.executeBatch(user, batch)
+			end
+			for _, detail in pairs(noticeDetails) do
+				local method = main.services.MessageService[detail[1]]
+				method(user.player, detail[2])
+			end
+		end
+	end
+end
+
+function CommandService.verifyBatch(user, batch)
+	local approved = true
+	local details = {}
+
+	local jobId = batch.jobId
+	local batchCommands = batch.commands
+	local modifiers = batch.modifiers
+	local qualifiers = batch.qualifiers
+	
+	-- Global
+	if modifiers.global then
+		table.insert(details, {"notice", {
+			text = "Executing global command...",
+			error = true,
+		}})
+	end
+
+	-- !!! Error example
+	table.insert(details, {"notice", {
+		text = "You do not have permission to do that!",
+		error = true,
+	}})
+
+	return approved, details
+end
+
+function CommandService.executeBatch(user, batch)
+	
+end
+
+
+--[[
+
+local batch = {
+	jobId = game.JobId;
+	commands = {
+		noobify = {"red"},
+		goldify = {"red"},
+	},
+	modifiers = {
+		global = {},
+		random = {},
+	},
+	qualifiers = {
+		random = {"ben", "matt", "sam"},
+		me = true,
+		nonadmins = true,
+	},
+}
+
+]]
 
 
 

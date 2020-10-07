@@ -159,8 +159,8 @@ function main:initiate()
 	local function callServiceMethod(methodName)
 		for i, moduleName in pairs(orderedServices) do
 			local moduleData = serviceGroup[moduleName]
-			local method = moduleData[methodName]
-			if type(moduleData) == "table" and method then
+			local method = type(moduleData) == "table" and moduleData[methodName]
+			if method then
 				Thread.spawnNow(function()
 					method(moduleData)
 				end)
@@ -168,7 +168,18 @@ function main:initiate()
 		end
 	end
 	
-	-- Once all services initialised, call start
+	-- Once all services initialised, create relavent remotes and call start
+	for i, moduleName in pairs(orderedServices) do
+		local moduleData = serviceGroup[moduleName]
+		local remotes = type(moduleData) == "table" and moduleData.remotes
+		if type(remotes) == "table" then
+			for int, val in ipairs(remotes) do
+				local remoteName = moduleName.."_"..val
+				remotes[val] = main.services.RemoteService:createRemote(remoteName)
+				remotes[i] = nil
+			end
+		end
+	end
 	callServiceMethod("start")
 	main._started = true
 	if main._startedSignal then

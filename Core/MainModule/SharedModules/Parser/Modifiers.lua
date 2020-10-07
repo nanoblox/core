@@ -8,6 +8,17 @@ Modifiers.array = {
 	
 	-----------------------------------
 	{
+		names = {"undo", "un", "u-", "revoke"},
+		description	= "",
+		action = function()
+			
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
 		names = {"loop", "repeat", "l-"},
 		description	= "",
 		action = function(iterations, reiterateDelayAmount)

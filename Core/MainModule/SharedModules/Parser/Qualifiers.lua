@@ -20,7 +20,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"_user"},
+		names = {"users", "user"},
+		hidden = true,
 		description	= "Default action, returns players with matching shorthand names.",
 		getTargets = function(caller, shorthandString)
 			local targets = {}
@@ -389,7 +390,7 @@ end
 
 
 -- OTHER
-Qualifiers.defaultQualifier = Qualifiers.dictionary["_user"]
+Qualifiers.defaultQualifier = Qualifiers.dictionary["user"]
 
 
 

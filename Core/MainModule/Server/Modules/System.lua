@@ -200,7 +200,9 @@ function System.new(name, ignoreTempChanges)
 	-- necessary service-object events
 	if not ignoreTempChanges then
 		local realRecords = {}
-		self.records = {}
+		----
+		self.records = main.modules.State.new()
+		----
 		self.recordAdded = maid:give(Signal.new())
 		self.recordRemoved = maid:give(Signal.new())
 		self.recordChanged = maid:give(Signal.new())
@@ -283,7 +285,7 @@ function System.new(name, ignoreTempChanges)
 						realRecords[recordKey] = nil
 					end
 				end
-				self.records[recordKey] = recordValue
+				self.records:set(recordKey, recordValue)
 				-- Data may change rapidly - filter these rapid changes and only
 				-- show the last request
 				local actionUID = DataUtil.generateUID()
