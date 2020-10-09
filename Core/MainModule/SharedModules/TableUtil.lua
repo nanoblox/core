@@ -496,5 +496,20 @@ TableUtil.decodeJSON = DecodeJSON
 TableUtil.doTablesMatch = DoTablesMatch
 
 
+--[[
+	local list = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}
+	local index = 1
+	for _ = 1, #list do
+		local v = list[index]
+		if v%4 == 0 then
+			print(v, "(Removed!)")
+			table.remove(list, index)
+		else
+			index = index + 1
+			print(v)
+		end
+	end
+]]
+
 
 return TableUtil

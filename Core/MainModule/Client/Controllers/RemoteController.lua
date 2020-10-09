@@ -1,13 +1,13 @@
 -- LOCAL
 local main = require(game.HDAdmin)
-local module = {}
+local RemoteController = {}
 local remotes = {}
 local ERROR_START = "HD Admin | RemoteController | "
 local remotesStorage = main.client.Remotes
 
 
 -- METHODS
-function module:getRemote(name)
+function RemoteController.getRemote(name)
 	local remote = remotes[name]
 	if not remote then
 		local remoteFolder = remotesStorage:FindFirstChild(name)
@@ -41,4 +41,4 @@ remotesStorage.ChildRemoved:Connect(function(child)
 end)
 
 
-return module
+return RemoteController

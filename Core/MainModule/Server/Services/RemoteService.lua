@@ -1,11 +1,11 @@
 -- LOCAL
 local main = require(game.HDAdmin)
-local module = {}
+local RemoteService = {}
 local remotes = {}
 
 
 -- METHODS
-function module:createRemote(name, requestLimit, refreshInterval)
+function RemoteService.createRemote(name, requestLimit, refreshInterval)
 	assert(not remotes[name], ("remote '%s' already exists!"):format(name))
 	local remote = main.modules.Remote.new(name, requestLimit, refreshInterval)
 	remote.folder.Parent = main.client.Remotes
@@ -13,7 +13,7 @@ function module:createRemote(name, requestLimit, refreshInterval)
 	return remote
 end
 
-function module:getRemote(name)
+function RemoteService.getRemote(name)
 	local remote = remotes[name]
 	if not remote then
 		return false
@@ -21,7 +21,16 @@ function module:getRemote(name)
 	return remote
 end
 
-function module:removeRemote(name)
+
+function RemoteService.getRemotes()
+	local allRemotes = {}
+	for name, remote in pairs(remotes) do
+		table.insert(allRemotes, remote)
+	end
+	return allRemotes
+end
+
+function RemoteService.removeRemote(name)
 	local remote = remotes[name]
 	assert(remote, ("remote '%s' not found!"):format(name))
 	remote:destroy()
@@ -30,4 +39,4 @@ function module:removeRemote(name)
 end
 
 
-return module
+return RemoteService

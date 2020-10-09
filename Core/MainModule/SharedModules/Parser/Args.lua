@@ -8,9 +8,11 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"player"},
+		name = "player",
+		aliases = {},
 		description	= "",
 		defaultValue = 0,
+		playerArg = true,
 		parse = function(stringToParse)
 			
 		end,
@@ -20,9 +22,11 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"players"},
+		name = "players",
+		aliases = {},
 		description	= "",
 		defaultValue = 0,
+		playerArg = true,
 		parse = function(stringToParse)
 			
 		end,
@@ -32,9 +36,12 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"optionalplayers"},
+		name = "optionalplayers",
+		aliases = {},
 		description	= "Hides the players argument for general use and only displays it within the preview menu.",
 		defaultValue = 0,
+		playerArg = true,
+		hidden = true,
 		parse = function(stringToParse)
 			
 		end,
@@ -45,7 +52,8 @@ Args.array = {
 	-----------------------------------
 	{
 		-- Consider filters for specific players or broadcast
-		names = {"text", "string", "reason", "question", "teamname"},
+		name = "text",
+		aliases = {"string", "reason", "question", "teamname"},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -57,7 +65,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"code", "lua"},
+		name = "code",
+		aliases = {"lua"},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -69,7 +78,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"number", "integer", "studs", "speed", "intensity"},
+		name = "number",
+		aliases = {"integer", "studs", "speed", "intensity"},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -81,7 +91,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"degrees"},
+		name = "degrees",
+		aliases = {},
 		description	= "",
 		defaultValue = 180,
 		parse = function(stringToParse)
@@ -93,7 +104,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"role"},
+		name = "role",
+		aliases = {},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -105,7 +117,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"colour", "color", "color3", "uigradient", "colorgradient", "gradient"},
+		name = "color",
+		aliases = {"colour", "color3", "uigradient", "colorgradient", "gradient"},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -117,7 +130,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"bool", "boolean", "trueOrFalse", "yesOrNo"},
+		name = "bool",
+		aliases = {"boolean", "trueOrFalse", "yesOrNo"},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -129,7 +143,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"stat", "statName"},
+		name = "stat",
+		aliases = {"statName"},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -141,7 +156,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"scale"}, -- Consider scale limits
+		name = "scale", -- Consider scale limits
+		aliases = {},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -153,7 +169,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"gearId"}, -- Consider gear limits
+		name = "gearId", -- Consider gear limits
+		aliases = {},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -165,7 +182,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"user", "username", "userid", "playerid", "playername"},
+		name = "user",
+		aliases = {"username", "userid", "playerid", "playername"},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -177,7 +195,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"team"},
+		name = "team",
+		aliases = {},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -189,7 +208,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"teamcolor"},
+		name = "teamcolor",
+		aliases = {},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -201,7 +221,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"material"},
+		name = "material",
+		aliases = {},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -213,7 +234,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"tool", "gear", "item"},
+		name = "tool",
+		aliases = {"gear", "item"},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -225,7 +247,8 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		names = {"morph"},
+		name = "morph",
+		aliases = {},
 		description	= "",
 		defaultValue = 0,
 		parse = function(stringToParse)
@@ -243,11 +266,22 @@ Args.array = {
 
 -- DICTIONARY
 -- This means instead of scanning through the array to find a name match
--- you can simply do ``Args.dictionary.ARGUMENT_NAME`` to return its details
+-- you can simply do ``Args.dictionary.ARGUMENT_NAME`` to return its item
 Args.dictionary = {}
-for _, details in pairs(Args.array) do
-	for _, name in pairs(details.names) do
-		Args.dictionary[name] = details
+for _, item in pairs(Args.array) do
+	Args.dictionary[item.name] = item
+	for _, alias in pairs(item.aliases) do
+		Args.dictionary[alias] = item
+	end
+end
+
+
+
+-- SORTED ARRAY(S)
+Args.playerArgsWithoutHiddenDictionary = {}
+for _, item in pairs(Args.array) do
+	if item.playerArg and not item.hidden then
+		Args.playerArgsWithoutHiddenDictionary[item.name] = true
 	end
 end
 

@@ -175,7 +175,7 @@ function main:initiate()
 		if type(remotes) == "table" then
 			for int, val in ipairs(remotes) do
 				local remoteName = moduleName.."_"..val
-				remotes[val] = main.services.RemoteService:createRemote(remoteName)
+				remotes[val] = main.services.RemoteService.createRemote(remoteName)
 				remotes[i] = nil
 			end
 		end

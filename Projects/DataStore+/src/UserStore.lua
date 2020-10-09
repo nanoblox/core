@@ -34,6 +34,7 @@ function UserStore:createUser(originalKey)
 	self.users[key] = user
 	user.player = isPlayer and originalKey
 	user.name = isPlayer and originalKey.Name
+	user.userId = isPlayer and originalKey.UserId
 	coroutine.wrap(function()
 		user:loadAsync()
 	end)()
@@ -63,7 +64,7 @@ function UserStore:getUserByName(name)
 	end
 end
 
-function UserStore:getAllUsers()
+function UserStore:getUsers()
 	local usersArray = {}
 	for key, user in pairs(self.users) do
 		table.insert(usersArray, user)
@@ -96,7 +97,7 @@ function UserStore:getLoadedUserByName(name)
 	end
 end
 
-function UserStore:getAllLoadedUsers()
+function UserStore:getLoadedUsers()
 	local usersArray = {}
 	for key, user in pairs(self.users) do
 		if user.isLoaded then

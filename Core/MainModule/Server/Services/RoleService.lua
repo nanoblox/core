@@ -55,7 +55,7 @@ function RoleService:begin()
 	-- This role is important as it ensures *the owner*
 	-- of the game always has top priority
 	local creatorRoleUID = DataUtil.generateUID(10)
-	RoleService:createRole(false, {
+	RoleService.createRole(false, {
 		UID = creatorRoleUID,
 		name = "Creator_"..creatorRoleUID,
 		_order = 0,
@@ -172,25 +172,25 @@ function RoleService.generateRecord()
 	}
 end
 
-function RoleService:createRole(isGlobal, properties)
+function RoleService.createRole(isGlobal, properties)
 	-- The UID is a string to unqiquely identify each role
 	-- We use this as the key instead of the roles name so that records
 	-- can persist as the same instance even after being renamed
 	local key = (properties and properties.UID) or DataUtil.generateUID(10)
 	RoleService:createRecord(key, isGlobal, properties)
-	local role = RoleService:getRole(key)
+	local role = RoleService.getRole(key)
 	return role
 end
 
-function RoleService:getRole(nameOrUID)
-	local role = RoleService:getRoleByUID(nameOrUID)
+function RoleService.getRole(nameOrUID)
+	local role = RoleService.getRoleByUID(nameOrUID)
 	if not role then
-		role = RoleService:getRoleByName(nameOrUID)
+		role = RoleService.getRoleByName(nameOrUID)
 	end
 	return role
 end
 
-function RoleService:getRoleByUID(roleUID)
+function RoleService.getRoleByUID(roleUID)
 	local role = roles[roleUID]
 	if not role then
 		return false
@@ -198,7 +198,7 @@ function RoleService:getRoleByUID(roleUID)
 	return role
 end
 
-function RoleService:getRoleByName(name)
+function RoleService.getRoleByName(name)
 	for roleUID, role in pairs(roles) do
 		if role.name == name then
 			return role
@@ -207,7 +207,7 @@ function RoleService:getRoleByName(name)
 	return false
 end
 
-function RoleService:getAllRoles()
+function RoleService.getRoles()
 	local allRoles = {}
 	for name, role in pairs(roles) do
 		table.insert(allRoles, role)
@@ -215,15 +215,15 @@ function RoleService:getAllRoles()
 	return allRoles
 end
 
-function RoleService:updateRole(nameOrUID, propertiesToUpdate)
-	local role = RoleService:getRole(nameOrUID)
+function RoleService.updateRole(nameOrUID, propertiesToUpdate)
+	local role = RoleService.getRole(nameOrUID)
 	assert(role, ("role '%s' not found!"):format(tostring(nameOrUID)))
 	RoleService:updateRecord(role.UID, propertiesToUpdate)
 	return true
 end
 
-function RoleService:removeRole(nameOrUID)
-	local role = RoleService:getRole(nameOrUID)
+function RoleService.removeRole(nameOrUID)
+	local role = RoleService.getRole(nameOrUID)
 	assert(role, ("role '%s' not found!"):format(tostring(nameOrUID)))
 	RoleService:removeRecord(role.UID)
 	return true
@@ -240,7 +240,7 @@ local function sortRoles(tableOfRoleUIDsOrNames, approveRole)
 	end
 	local currentOrder, selectedRole = nil, nil
 	for _, roleUID in pairs(arrayOfRoles) do
-		local role = RoleService:getRole(roleUID)
+		local role = RoleService.getRole(roleUID)
 		if role and (selectedRole == nil or approveRole(role._order, currentOrder)) then
 			currentOrder, selectedRole = role._order, role
 		end
@@ -290,7 +290,7 @@ end
 --[[
 local main = require(game.HDAdmin)
 local RoleService = main.services.RoleService
-RoleService:createRole(true, {
+RoleService.createRole(true, {
 	name = "AAA"
 })
 
@@ -305,15 +305,15 @@ main.modules.TableUtil.print(user._data, "", true)
 local main = require(game.HDAdmin)
 local RoleService = main.services.RoleService
 local roleKey = "Manager"
-RoleService:removeRole(roleKey)
+RoleService.removeRole(roleKey)
 
 local main = require(game.HDAdmin)
 local RoleService = main.services.RoleService
 local roleKey = "Manager"
---RoleService:updateRole(roleKey, {yoo = {math.random(1,10000)}})
+--RoleService.updateRole(roleKey, {yoo = {math.random(1,10000)}})
 local randomInt = math.random(1,10000)
 print("randomInt = ", randomInt)
-RoleService:updateRole(roleKey, {
+RoleService.updateRole(roleKey, {
 	yoo = {
 		subyooo = {
 			subsubyoooo = {
@@ -332,7 +332,7 @@ main.modules.TableUtil.print(user._data, "", true)
 local main = require(game.HDAdmin)
 local RoleService = main.services.RoleService
 local roleKeyOrName = "Mod"
-print(RoleService:getRole(roleKeyOrName))
+print(RoleService.getRole(roleKeyOrName))
 
 --]]
 return RoleService

@@ -333,17 +333,16 @@ end
 -- For instance, it may be desirable to retrieve a table of commands in descending order by name length
 -- Instead of sorting a new commands table every time a command is requested (which could be a lot!),
 -- only sort the table when its changed, then retrieve doing ``originalTable:getTable("sortedTableName")``
-function State:setTable(tableName, sortFunction, copySpecificTable)
+function State:setTable(tableName, sortFunction, changeFirst)
 	local activeTable = activeTables[self]
 	if activeTable then
 		local maid = activeTable.maid
 		local hiddenKeys = activeTable.hiddenKeys
-		local mirrorTable = deepCopyTable(copySpecificTable or self)
-		local event = (copySpecificTable and self.changed) or self.changedFirst
+		local event = (changeFirst and self.changedFirst) or self.changed
 		maid:give(event:Connect(function()
-			hiddenKeys._tables[tableName] = sortFunction(mirrorTable)
+			hiddenKeys._tables[tableName] = sortFunction()
 		end))
-		hiddenKeys._tables[tableName] = sortFunction(mirrorTable)
+		hiddenKeys._tables[tableName] = sortFunction()
 	end
 end
 

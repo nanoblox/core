@@ -38,7 +38,7 @@ end
 local function updateSystems(func, timeout)
 	local Promise = main.modules.Promise
 	local promises = {}
-	local systems = main.modules.SystemStore:getAllUsers()
+	local systems = main.modules.SystemStore:getUsers()
 	for i, systemUser in pairs(systems) do
 		if systemUser.key ~= "Config" and systemUser.key ~= "NilledData" then
 			table.insert(promises, Promise.async(function(resolve, reject, onCancel)
@@ -70,7 +70,7 @@ function ConfigService:start()
 	-- therefore this is only here as backup (e.g. in case it's disabled)
 	local user = ConfigService.user
 	local config = main.config
-	local latestConfig = ConfigService:getLatestConfig()
+	local latestConfig = ConfigService.getLatestConfig()
 	if not TableUtil.doTablesMatch(config, latestConfig) then
 		user.perm:set("ConfigData", TableUtil.copy(config))
 		user:saveAsync()
@@ -174,8 +174,8 @@ function ConfigService:start()
 	main.config = config
 	while true do
 		Thread.wait(10)
-		latestConfig = ConfigService:getLatestConfig()
-		ConfigService:transformChanges(latestConfig, main.config, "temp")
+		latestConfig = ConfigService.getLatestConfig()
+		ConfigService.transformChanges(latestConfig, main.config, "temp")
 	end
 end
 
@@ -188,7 +188,7 @@ function ConfigService.getServiceFromCategory(categoryName)
 	return service
 end
 
-function ConfigService:getLatestConfig()
+function ConfigService.getLatestConfig()
 	local user = ConfigService.user
 	if user.isLoaded then
 		user:loadAsync()
@@ -199,7 +199,7 @@ function ConfigService:getLatestConfig()
 	return configData
 end
 
-function ConfigService:transformChanges(latestConfig, config, permOrTemp)
+function ConfigService.transformChanges(latestConfig, config, permOrTemp)
 	local latestConfigCopy = TableUtil.copy(latestConfig)
 	updateSystems(function(systemUser)
 		local categoryName = systemUser.key

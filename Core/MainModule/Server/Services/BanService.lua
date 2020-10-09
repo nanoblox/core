@@ -15,7 +15,7 @@ BanService.recordAdded:Connect(function(recordKey, record)
 	-- Kick player if present
 	local player = targetUserId and main.Players:GetPlayerByUserId(targetUserId)
 	if player then
-		BanService:kick(player)
+		BanService.kick(player)
 	end
 	-- Update any clients with 
 end)
@@ -42,7 +42,7 @@ function BanService.playerAddedMethod(player)
 			local data = (record._global == false and systemUser.temp) or systemUser.perm
 			BanService:decideData(record._global):set(key, nil)
 		elseif record.accurate == true then
-			BanService:kick(player)
+			BanService.kick(player)
 			-- Returning false blocks the user from loading
 			-- (which is no longer necessary as the user has been kicked)
 			return false
@@ -63,15 +63,15 @@ function BanService.playerLoadedMethod(player, user)
 	local record = BanService:getRecord(player.UserId)
 	if record and record.accurate == false then
 		local RoleService = main.services.RoleService
-		local callersHighestRole = RoleService:getRole(record.callerHighestRoleUID)
+		local callersHighestRole = RoleService.getRole(record.callerHighestRoleUID)
 		local targetsHighestRole = RoleService.getHighestRole(user.perm.roles)
 		if not RoleService.isSenior(callersHighestRole, targetsHighestRole) then
 			-- the banner did not have permission, unban user (target)
-			BanService:unban(player.UserId)
+			BanService.unban(player.UserId)
 		else
 			-- the caller had permission, approve ban
-			BanService:changeRecord(player.UserId, {accurate = true})
-			BanService:kick(player)
+			BanService:updateRecord(player.UserId, {accurate = true})
+			BanService.kick(player)
 		end
 	end
 	return true
@@ -114,7 +114,7 @@ function BanService.verifyBan(targetUserId, callerUser)
 	return true
 end
 
-function BanService:ban(targetUserId, callerUser, isGlobal, properties)
+function BanService.ban(targetUserId, callerUser, isGlobal, properties)
 	-- Verify user can ban target
 	local canBanTarget, warning = BanService.verifyBan(targetUserId, callerUser)
 	if not canBanTarget then
@@ -128,29 +128,38 @@ function BanService:ban(targetUserId, callerUser, isGlobal, properties)
 		properties.accurate = false
 	end
 	-- Create ban
-	BanService:createBan(targetUserId, isGlobal, properties)
+	BanService.createBan(targetUserId, isGlobal, properties)
 	return true
 end
 
-function BanService:createBan(targetUserId, isGlobal, properties)
+function BanService.createBan(targetUserId, isGlobal, properties)
 	local key = tostring(targetUserId)
 	local record = BanService:createRecord(key, isGlobal, properties)
 	return record
 end
 
-function BanService:updateBan(targetUserId, propertiesToUpdate)
+function BanService.getBan(targetUserId)
+	local key = tostring(targetUserId)
+	return BanService:getRecord(key)
+end
+
+function BanService.getBans()
+	return BanService:getRecords()
+end
+
+function BanService.updateBan(targetUserId, propertiesToUpdate)
 	local key = tostring(targetUserId)
 	BanService:updateRecord(key, propertiesToUpdate)
 	return true
 end
 
-function BanService:removeBan(targetUserId)
+function BanService.removeBan(targetUserId)
 	local key = tostring(targetUserId)
 	BanService:removeRecord(key)
 	return true
 end
 
-function BanService:kick(player)
+function BanService.kick(player)
 	local record = BanService:getRecord(player.UserId)
 	if not record then
 		return false
@@ -196,25 +205,25 @@ end
 local main = require(game.HDAdmin)
 local BanService = main.services.BanService
 local targetId = 46088788--math.random(1,10000)
-BanService:createBan(targetId, true, {
+BanService.createBan(targetId, true, {
 	reason = "Hello world tes123"
 })
 
 local main = require(game.HDAdmin)
 local BanService = main.services.BanService
 local targetId = 46088788
-BanService:updateBan(targetId, {_global = true, reason = math.random(1,1000)})
+BanService.updateBan(targetId, {_global = true, reason = math.random(1,1000)})
 
 local main = require(game.HDAdmin)
 local BanService = main.services.BanService
 local targetId = 46088788
-BanService:removeBan(targetId)
+BanService.removeBan(targetId)
 
 local main = require(game.HDAdmin)
 local BanService = main.services.BanService
 local targetId = 46088788
-print(BanService:getRecord(targetId))
-print(BanService:getRecord(targetId)._global)
+print(BanService.getBan(targetId))
+print(BanService.getBan(targetId)._global)
 
 --]]
 

@@ -10,13 +10,13 @@ Raining Tacos Example:
 local GlobalService = main.services.GlobalService
 local UNIQUE_EVENT_NAME = "RainingTacos"
 
-local receiver = GlobalService:createReceiver(UNIQUE_EVENT_NAME)
+local receiver = GlobalService.createReceiver(UNIQUE_EVENT_NAME)
 receiver.onGlobalEvent:Connect(function(playerName)
 	print(playerName.." made all servers rain tacos!")
 	--> Rain tacos
 end)
 
-local sender = GlobalService:createSender(UNIQUE_EVENT_NAME)
+local sender = GlobalService.createSender(UNIQUE_EVENT_NAME)
 local function whenAPlayerPurchasesAnItemToMakeEverywhereRainRacos(player)
 	sender:fireAllServers(player.Name)
 end
@@ -93,7 +93,7 @@ GlobalService.flushed = Signal.new()
 
 
 -- METHODS (SENDERS)
-function GlobalService:getMessageDelay(messageNumber)
+function GlobalService.getMessageDelay(messageNumber)
 	local maxMessagesPerMinute = GlobalService.maxMessagesPerMinute
 	local ignoreFirstPercentile = GlobalService.ignoreFirstPercentile
 	local ignoredMessages = maxMessagesPerMinute * ignoreFirstPercentile
@@ -105,7 +105,7 @@ function GlobalService:getMessageDelay(messageNumber)
 	return messageDelay
 end
 
-function GlobalService:updateMessagesThisMinute()
+function GlobalService.updateMessagesThisMinute()
 	local currentTick = tick()
 	if currentTick > nextRefresh then
 		nextRefresh = currentTick + 60
@@ -113,12 +113,12 @@ function GlobalService:updateMessagesThisMinute()
 	end
 end
 
-function GlobalService:incrementMessages(amount)
+function GlobalService.incrementMessages(amount)
 	messagesThisMinute = messagesThisMinute + amount
-	self:updateMessagesThisMinute()
+	GlobalService.updateMessagesThisMinute()
 end
 
-function GlobalService:addRecord(record)
+function GlobalService.addRecord(record)
 	-- Apply invocation details
 	local invocationUID = record.iui
 	if invocationUID then
@@ -130,7 +130,7 @@ function GlobalService:addRecord(record)
 		local invocationTimeout = 3
 		local dataFromServers = {}
 		local function informSender()
-			local sender = self:getSender(record.name)
+			local sender = GlobalService.getSender(record.name)
 			if not sender then
 				return "No sender present"
 			end
@@ -193,15 +193,15 @@ function GlobalService:addRecord(record)
 	end
 	
 	-- Insert detail, and set release countdown if first detail
-	self:flushRecord(record)
+	GlobalService.flushRecord(record)
 end
 
-function GlobalService:flushRecord(record)
+function GlobalService.flushRecord(record)
 	if publishing then
 		published:Wait()
 	end
 	local recordSize = getDataSize(record)
-	local maxMessageSize = self.maxMessageSize
+	local maxMessageSize = GlobalService.maxMessageSize
 	if recordSize > maxMessageSize then
 		finishRecord(record)
 		return "Abort record, too large"
@@ -210,35 +210,35 @@ function GlobalService:flushRecord(record)
 	if allRecordsSize + recordSize > maxMessageSize then
 		Thread.spawnNow(function()
 			GlobalService.flushed:Wait()
-			self:flushRecord(record)
+			GlobalService.flushRecord(record)
 		end)
 		return "Limit per message reached, queue record until next flush"
 	end
 	table.insert(records, record)
 	if #records == 1 then
-		local delayTime = self:getMessageDelay(messagesThisMinute)
+		local delayTime = GlobalService.getMessageDelay(messagesThisMinute)
 		main.RunService.Heartbeat:Wait()
-		Thread.delay(delayTime, self.publishRecords, self, records)
+		Thread.delay(delayTime, GlobalService.publishRecords, GlobalService, records)
 	end
 end
 
-function GlobalService:verifyCanPublish(recordsToFlush)
-	self:updateMessagesThisMinute()
+function GlobalService.verifyCanPublish(recordsToFlush)
+	GlobalService.updateMessagesThisMinute()
 	local dataSize = getDataSize(recordsToFlush)
-	if dataSize > self.maxMessageSize then
+	if dataSize > GlobalService.maxMessageSize then
 		return false, "Message size too large; send smaller requests."
 	end
-	local exceededMessageLimit = messagesThisMinute > self.maxMessagesPerMinute
+	local exceededMessageLimit = messagesThisMinute > GlobalService.maxMessagesPerMinute
 	if exceededMessageLimit then
 		return false, "Exceeded permitted global requests per minute."
 	end
 	return true
 end
 
-function GlobalService:publishRecords(recordsToFlush)
+function GlobalService.publishRecords(recordsToFlush)
 	
 	local function updateUsers(success, warning)
-		local users = main.modules.PlayerStore:getAllUsers()
+		local users = main.modules.PlayerStore:getUsers()
 		for _, user in pairs(users) do
 			--[[
 			if user.temp:get("pendingGlobalRequest") then
@@ -249,17 +249,17 @@ function GlobalService:publishRecords(recordsToFlush)
 			end--]]
 		end
 		records = {}
-		self.flushed:Fire()
+		GlobalService.flushed:Fire()
 	end
 	
 	local function reflushImportantRecords()
-		local exceededMessageLimit = messagesThisMinute > self.maxMessagesPerMinute
+		local exceededMessageLimit = messagesThisMinute > GlobalService.maxMessagesPerMinute
 		local delayTime = (exceededMessageLimit and nextRefresh + 1 - tick()) or 0
 		Thread.delay(delayTime, function()
 			local cumulativeDataSize = 0
 			for _, record in pairs(recordsToFlush) do
 				if record.fr then
-					self:flushRecord(record)
+					GlobalService.flushRecord(record)
 				else
 					finishRecord(record)
 				end
@@ -268,7 +268,7 @@ function GlobalService:publishRecords(recordsToFlush)
 	end
 	
 	-- Block message publishing if any limits exceeded
-	local canPublish, warning = self:verifyCanPublish(recordsToFlush)
+	local canPublish, warning = GlobalService.verifyCanPublish(recordsToFlush)
 	if not canPublish then
 		updateUsers(canPublish, warning)
 		reflushImportantRecords()
@@ -296,10 +296,10 @@ function GlobalService:publishRecords(recordsToFlush)
 			for _, record in pairs(recordsToFlush) do
 				finishRecord(record)
 			end
-			self.published:Fire()
+			GlobalService.published:Fire()
 		end)
-		:catch(function(warning)
-			updateUsers(false, warning)
+		:catch(function(warningError)
+			updateUsers(false, warningError)
 			reflushImportantRecords()
 		end)
 		:finally(function()
@@ -308,7 +308,7 @@ function GlobalService:publishRecords(recordsToFlush)
 		end)
 end
 
-function GlobalService:createSender(name)
+function GlobalService.createSender(name)
 	
 	-- Setup
 	assert(not senders[name], ("sender '%s' already exists!"):format(name))
@@ -327,7 +327,7 @@ function GlobalService:createSender(name)
 			args = table.pack(...), -- Specified arguments
 			finished = Signal.new() -- Just before the record is published or aborted, call this, then destroy
 		}
-		self:addRecord(record)
+		GlobalService.addRecord(record)
 		if isInvocation then
 			local invocationTopic = getInvocationTopic(name, invocationUID)
 			local invocationSignal = Signal.new()
@@ -343,7 +343,7 @@ function GlobalService:createSender(name)
 	return sender
 end
 
-function GlobalService:getSender(name)
+function GlobalService.getSender(name)
 	local sender = senders[name]
 	if not sender then
 		return false
@@ -351,7 +351,7 @@ function GlobalService:getSender(name)
 	return sender
 end
 
-function GlobalService:getAllSenders()
+function GlobalService.getSenders()
 	local allSenders = {}
 	for name, sender in pairs(senders) do
 		table.insert(allSenders, sender)
@@ -359,7 +359,7 @@ function GlobalService:getAllSenders()
 	return allSenders
 end
 
-function GlobalService:removeSender(name)
+function GlobalService.removeSender(name)
 	local sender = senders[name]
 	assert(sender, ("sender '%s' not found!"):format(name))
 	sender:destroy()
@@ -384,7 +384,7 @@ function GlobalService:start()
 			table.remove(record.args, 1)
 		end
 		local action = requestType:sub(1,1)
-		local receiver = self:getReceiver(record.name)
+		local receiver = GlobalService.getReceiver(record.name)
 		if not receiver then
 			return "Receiver not found"
 		end
@@ -418,7 +418,7 @@ function GlobalService:start()
 		local jobId = data.jobId
 		local newRecords = data.records
 		-- Reset messagesThisMinute if 60 seconds elapsed
-		self:incrementMessages(1)
+		GlobalService.incrementMessages(1)
 		-- Execute appropriate records
 		for _, record in pairs(newRecords) do
 			executeRecord(jobId, record)
@@ -429,7 +429,7 @@ function GlobalService:start()
 		end)
 end
 
-function GlobalService:createReceiver(name)
+function GlobalService.createReceiver(name)
 	assert(not receivers[name], ("receiver '%s' already exists!"):format(name))
 	local receiver = Receiver.new(name)
 	receiver.name = name
@@ -437,7 +437,7 @@ function GlobalService:createReceiver(name)
 	return receiver
 end
 
-function GlobalService:getReceiver(name)
+function GlobalService.getReceiver(name)
 	local receiver = receivers[name]
 	if not receiver then
 		return false
@@ -445,7 +445,7 @@ function GlobalService:getReceiver(name)
 	return receiver
 end
 
-function GlobalService:getAllReceivers()
+function GlobalService.getReceivers()
 	local allReceivers = {}
 	for name, receiver in pairs(receivers) do
 		table.insert(allReceivers, receiver)
@@ -453,7 +453,7 @@ function GlobalService:getAllReceivers()
 	return allReceivers
 end
 
-function GlobalService:removeReceiver(name)
+function GlobalService.removeReceiver(name)
 	local receiver = receivers[name]
 	assert(receiver, ("sender '%s' already exists!"):format(name))
 	receiver:destroy()

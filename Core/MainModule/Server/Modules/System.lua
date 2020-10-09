@@ -140,8 +140,8 @@ function System.new(name, ignoreTempChanges)
 	local saveCooldown = 7
 	Thread.spawnNow(function()
 		main:waitUntilStarted()
-		self.senderSave = main.services.GlobalService:createSender(name.."Save")
-		self.receiverSave = main.services.GlobalService:createReceiver(name.."Save")
+		self.senderSave = main.services.GlobalService.createSender(name.."Save")
+		self.receiverSave = main.services.GlobalService.createReceiver(name.."Save")
 		self.receiverSave.onGlobalEvent:Connect(function(requestUID)
 			table.insert(requestsList, requestUID)
 			local readyToSaveSignal = myUIDs[requestUID]
@@ -157,8 +157,8 @@ function System.new(name, ignoreTempChanges)
 				self.senderLoad:fireAllServers(requestUID, requestsList)
 			end
 		end)
-		self.senderLoad = main.services.GlobalService:createSender(name.."Load")
-		self.receiverLoad = main.services.GlobalService:createReceiver(name.."Load")
+		self.senderLoad = main.services.GlobalService.createSender(name.."Load")
+		self.receiverLoad = main.services.GlobalService.createReceiver(name.."Load")
 		self.receiverLoad.onGlobalEvent:Connect(function(requestUID, globalRequestsList)
 			if requestsList[1] ~= requestUID then
 				-- Update new servers which may not have a complete request log
@@ -450,7 +450,7 @@ function System:getRecord(key)
 	return record
 end
 
-function System:getAllRecords()
+function System:getRecords()
 	local recordsArray = {}
 	for key, record in pairs(self.records) do
 		table.insert(recordsArray, record)

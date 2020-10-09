@@ -19,10 +19,10 @@ return {
 		aliases	= {},
 		prefixes = {},
 		args = {"Player"},
-		invoke = function(self, caller, args)
+		invoke = function(this, caller, args)
 			
 		end,
-		revoke = function(self, caller, args)
+		revoke = function(this, caller, args)
 			
 		end,
 	};
@@ -35,10 +35,10 @@ return {
 		aliases	= {},
 		prefixes = {},
 		args = {"Player"},
-		invoke = function(self, caller, args)
+		invoke = function(this, caller, args)
 			
 		end,
-		revoke = function(self, caller, args)
+		revoke = function(this, caller, args)
 			
 		end;
 	};
