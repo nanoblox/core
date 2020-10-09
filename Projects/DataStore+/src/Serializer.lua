@@ -22,19 +22,6 @@ dataTypes = {
     },
     ["Color3"] = {
         identifier = "c",
-        --[[ I need values to be 100% precise on both ends; converting to hex does not achieve this
-        serialize = function(property)
-			local r = math.floor(property.r*255+.5)
-            local g = math.floor(property.g*255+.5)
-            local b = math.floor(property.b*255+.5)
-            return ("%02x%02x%02x"):format(r, g, b)
-		end,
-		deserialize = function(value)
-			local r, g, b = value:match("(..)(..)(..)")
-            r, g, b = tonumber(r, 16), tonumber(g, 16), tonumber(b, 16)
-            return Color3.fromRGB(r, g, b)
-        end,
-        --]]
         serialize = function(property)
 			return tostring(property)
 		end,
@@ -63,6 +50,38 @@ dataTypes = {
             return CFrame.new(unpack(tValue))
 		end,
     },
+    ["Ray"] = {
+        identifier = "r",
+        serialize = function(property)
+            return tostring(property)
+        end,
+        deserialize = function(value)
+            local components = multiSplit(value)
+            local origin, direction = Serializer.serialize(components[1]), Serializer.serialize(components[2])
+            return Ray.new(origin, direction)
+        end
+    },
+    ["Region3"] = {
+        identifier = "g",
+        serialize = function(property)
+            return tostring(property)
+        end,
+        deserialize = function(value)
+            local components = value:split("; ")
+            local cframe, size = Serializer.serialize(components[1]), Serializer.serialize(components[2])
+            return Region3.new(cframe, size)
+        end
+    },
+    ["Vector2"] = {
+        identifier = "w",
+        serialize = function(property)
+            return tostring(property)
+		end,
+        deserialize = function(value)
+            local tValue = value:split(",")
+			return Vector3.new(tValue[1], tValue[2])
+		end,
+    },
     ["Vector3"] = {
         identifier = "v",
         serialize = function(property)
@@ -72,6 +91,27 @@ dataTypes = {
             local tValue = value:split(",")
 			return Vector3.new(tValue[1], tValue[2], tValue[3])
 		end,
+    },
+    ["UDim"] = {
+        identifier = "u",
+        serialize = function(property)
+            return tostring(property)
+		end,
+        deserialize = function(value)
+            local tValue = value:split(",")
+			return Vector3.new(tValue[1], tValue[2])
+		end,
+    },
+    ["UDim2"] = {
+        identifier = "q",
+        serialize = function(property)
+            return tostring(property)
+        end,
+        deserialize = function(value)
+            local components = multiSplit(value)
+            local x, y = Serializer.serialize(components[1]), Serializer.serialize(components[2])
+            return UDim2.new(x, y)
+        end
     },
     ["table"] = {
         serialize = function(property, deepCopy)
@@ -99,6 +139,10 @@ local function deepCopyOnce(property)
         newProperty[k] = v
     end
     return newProperty
+end
+
+local function multiSplit(value)
+    return value:sub(1, #value-1):split("}, {")
 end
 
 
