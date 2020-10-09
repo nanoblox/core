@@ -153,6 +153,11 @@ function CommandService.verifyBatch(user, batch)
 end
 
 function CommandService.executeBatch(user, batch)
+	----
+	batch.commands = batch.commands or {}
+	batch.modifiers = batch.modifiers or {}
+	batch.qualifiers = batch.qualifiers or {}
+	----
 	local Modifiers = main.modules.Modifiers
 	for _, item in pairs(Modifiers.sortedOrderArrayWithOnlyPreAction) do
 		local continueExecution = item.preAction(user, batch)
@@ -161,19 +166,52 @@ function CommandService.executeBatch(user, batch)
 		end
 	end
 	local Args = main.modules.Args
-	local isPerm = batch.modifiers.perm ~= nil and batch.modifiers.perm ~= false
+	local Qualifiers = main.modules.Qualifiers
+	local isPermModifier = batch.modifiers.perm
+	local isGlobalModifier = batch.modifiers.wasGlobal
 	for commandName, arguments in pairs(batch.commands) do
 		local command = CommandService.getCommand(commandName)
 		local isCorePlayerArg = Args.playerArgsWithoutHiddenDictionary[string.lower(command.args[1])]
 		local ActiveCommandService = main.services.ActiveCommandService
 		local properties = ActiveCommandService.generateRecord()
-		----
-		properties.userId = 0 -- !!! Detemine
 		properties.commandName = commandName
 		properties.commandArgs = arguments or properties.commandArgs
 		properties.qualifiers = batch.qualifiers or properties.qualifiers
-		----
-		main.services.ActiveCommandService.createActiveCommand(isPerm, properties)
+		-- Its important to split commands into specific users for most cases so that the command can
+		-- be easily reapplied if the player rejoins (for ones where the perm modifier is present)
+		-- The one exception for this is when a global modifier is present. In this scenerio, don't save
+		-- specific targets, simply use the qualifiers instead to select a general audience relevant for
+		-- the particular server at time of exection.
+		-- e.g. ``;permLoopKillAll`` will save each specific target within that server and permanetly loop kill them
+		-- while ``;globalLoopKillAll`` will permanently save the loop kill action and execute this within all
+		-- servers repeatidly
+		local addToPerm = false
+		local splitIntoUsers = false
+		if isPermModifier then
+			if isGlobalModifier then
+				addToPerm = true
+			elseif isCorePlayerArg then
+				addToPerm = true
+				splitIntoUsers = true
+			end
+		else
+			splitIntoUsers = isCorePlayerArg
+		end
+		if not splitIntoUsers then
+			main.services.ActiveCommandService.createActiveCommand(addToPerm, properties)
+		else
+			local targetsDict = {}
+			for qualifierName, qualifierArgs in pairs(batch.qualifiers) do
+				local targets = Qualifiers.dictionary[qualifierName]
+				for _, plr in pairs(targets) do
+					targetsDict[plr] = true
+				end
+			end
+			for plr, _ in pairs(targetsDict) do
+				properties.userId = plr.UserId
+				main.services.ActiveCommandService.createActiveCommand(addToPerm, properties)
+			end
+		end
 	end
 end
 
