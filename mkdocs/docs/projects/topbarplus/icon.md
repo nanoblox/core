@@ -21,6 +21,13 @@ icon:setLabel(text)
 Expands the icon and sets a piece of text that appears next to the image. Setting to ``nil`` or ``""`` will remove the label.
 
 --------------------
+### setCaption
+```lua
+icon:setCaption(text)
+```
+Creates a box that appears below the icon when hovered over. Setting to ``nil`` or ``""`` will remove the caption.
+
+--------------------
 ### setTip
 ```lua
 icon:setTip(tip)
@@ -306,6 +313,11 @@ A dictionary describing the icons theme. To change, use ``icon:setTheme()``.
 | **notification**    | *ToggleDetails*  | (See below)                                    |
 | **amount**          | *ToggleDetails*  | (See below)                                    |
 | **gradient**        | *ToggleDetails*  | (See below)                                    |
+| **captionContainer**        | *ToggleDetails*  | (See below)                                    |
+| **captionBackground**        | *ToggleDetails*  | (See below)                                    |
+| **captionText**        | *ToggleDetails*  | (See below)                                    |
+| **captionOverline**        | *ToggleDetails*  | (See below)                                    |
+
 
 ***ToggleDetails***
 
@@ -392,7 +404,15 @@ icon.name
 The icon creation name.
 
 --------------------
+### captionTween
+```lua
+icon.captionTween
+```
+A function that is called every time an icons caption is highlighted and unhighlighted to make it fade in or out.
+
+--------------------
 ### tip
+*(read only)*
 ```lua
 icon.tip
 ```

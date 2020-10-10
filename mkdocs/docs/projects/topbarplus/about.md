@@ -57,6 +57,24 @@ shopIcon:notify() -- Prompt a notification
 !!!warning
     Likewise, if using a 'toggle menu', you must ensure its ScreenGui has ``ResetOnSpawn`` set to ``false``, or that you are calling Icon:setToggleMenu(guiObject) every time the player respawns, for the menu to persist.
 
+----------------------------------------------
+
+# Captions
+A caption is a box that appears below the icon when highlighted on computer and console.
+
+<a><img src="https://doy2mn9upadnk.cloudfront.net/uploads/default/optimized/4X/a/0/2/a02488b53cb7361458c9564686608342e4b615b6_2_828x452.gif" width="50%"/></a>
+
+To apply a caption, simply do:
+```lua
+icon:setCaption(text)
+```
+To remove a caption, set its text to ``""`` or ``nil``:
+```lua
+icon:setCaption(nil)
+```
+
+----------------------------------------------
+
 # Tips
 A tip is a label containing a short message that appears when an icon is highlighted on computer and console.
 
@@ -78,6 +96,8 @@ icon:setControllerTip(message)
 <a><img src="https://i.ibb.co/ZxbR9yK/icon-controller-Tip.png" width="50%"/></a>
 
 To test controller mode on PC, simply plug-in a controller and press the console icon that pops up to the right of the topbar.
+
+----------------------------------------------
 
 # Dropdowns
 A dropdown is a collection of 'options' that appear when an icon is right-clicked on PC or long-pressed on mobile:
@@ -123,6 +143,8 @@ icon:createDropdown({
 
 For more information on creating and utilising a dropdown, see ``Icon:createDropdown()``.
 
+----------------------------------------------
+
 # Labels
 A label is a piece of text that sits next to the icons image. 
 
@@ -136,6 +158,8 @@ To remove a label, set its text to ``""`` or ``nil``:
 ```lua
 icon:setLabel(nil)
 ```
+
+----------------------------------------------
 
 # Themes
 Themes are easily adaptable tables of information that can be applied to icons to enhance their appearance and behaviour.
