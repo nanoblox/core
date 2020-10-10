@@ -505,9 +505,11 @@ function Icon:setTheme(themeDetails)
 				if objectName == "gradient" then
 					gradientEnabled = true
 				end
-				local oppositeKey = oppositeGroup[key]
-				if not oppositeKey then
-					oppositeGroup[key] = group[key]
+				if oppositeGroup then
+					local oppositeKey = oppositeGroup[key]
+					if not oppositeKey then
+						oppositeGroup[key] = group[key]
+					end
 				end
 				group[key] = value
 			end
