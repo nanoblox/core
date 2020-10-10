@@ -41,7 +41,7 @@ local forceTopbarDisabled = false
 local previousTopbarEnabled = checkTopbarEnabled()
 local menuOpen
 local topbarUpdating = false
-local robloxStupidOffset = 0
+local robloxStupidOffset = 32
 
 
 
