@@ -93,22 +93,16 @@ function Icon.new(name, imageId, order, label)
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 			}
 		},
-		
-		--None of these below should be changed using themeing, instead set properties directly with self.objects.
 		["captionContainer"] = {
-			selected = {},
 			deselected = {},
 		},
 		["captionBackground"] = {
-			selected = {},
 			deselected = {},
 		},
 		["captionText"] = {
-			selected = {},
 			deselected = {},
 		},
 		["captionOverline"] = {
-			selected = {},
 			deselected = {},
 		}
 	}
@@ -532,22 +526,24 @@ function Icon:applyThemeToObject(objectName, toggleStatus)
 	local object = self.objects[objectName]
 	if object then
 		local propertiesTable = self.theme[objectName][(toggleStatus or self.toggleStatus)]
-		local toggleTweenInfo = self.theme.toggleTweenInfo
-		local invalidProperties = {"Image","Color","NumberSequence","Text"}
-		local finalPropertiesTable = {}
-		local noTweenTable = {}
-		for propName, propValue in pairs(propertiesTable) do
-			if propName == "Transparency" and object:IsA("UIGradient") then
-				object[propName] = propValue
+		if propertiesTable then
+			local toggleTweenInfo = self.theme.toggleTweenInfo
+			local invalidProperties = {"Image","Color","NumberSequence","Text"}
+			local finalPropertiesTable = {}
+			local noTweenTable = {}
+			for propName, propValue in pairs(propertiesTable) do
+				if propName == "Transparency" and object:IsA("UIGradient") then
+					object[propName] = propValue
+				end
+				if table.find(invalidProperties, propName) then
+					object[propName] = propValue
+				else
+					finalPropertiesTable[propName] = propValue
+				end
 			end
-			if table.find(invalidProperties, propName) then
-				object[propName] = propValue
-			else
-				finalPropertiesTable[propName] = propValue
-			end
+			local tween = tweenService:Create(object, toggleTweenInfo, finalPropertiesTable):Play()
+			debris:AddItem(tween,toggleTweenInfo.Time)
 		end
-		local tween = tweenService:Create(object, toggleTweenInfo, finalPropertiesTable):Play()
-		debris:AddItem(tween,toggleTweenInfo.Time)
 	end
 end
 
