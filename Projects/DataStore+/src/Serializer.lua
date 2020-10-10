@@ -114,7 +114,7 @@ dataTypes = {
 		end,
 		deserialize = function(value)
 			local components = multiSplit(value)
-			local x, y = Serializer.serialize(components[1]), Serializer.serialize(components[2])
+			local x, y = Serializer.deserialize(components[1]), Serializer.deserialize(components[2])
 			return UDim2.new(x, y)
 		end
 	},
