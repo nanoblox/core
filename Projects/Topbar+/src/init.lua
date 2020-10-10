@@ -123,6 +123,67 @@ amount.TextColor3 = Color3.fromRGB(31, 33, 35)
 amount.TextScaled = true
 amount.Parent = notification
 
+--CAPTION
+local caption = Instance.new("Frame")
+caption.Name = "Caption"
+caption.Position = UDim2.new(0.5,0,1,4)
+caption.BackgroundTransparency = 1
+caption.AnchorPoint = Vector2.new(0.5,0)
+caption.ClipsDescendants = true
+caption.ZIndex = 100
+caption.Visible = false
+caption.Parent = iconContainer
+
+local captionBackground = Instance.new("Frame")
+captionBackground.Name = "Background"
+captionBackground.BackgroundTransparency = 0.5
+captionBackground.BorderSizePixel = 0
+captionBackground.BackgroundColor3 = Color3.new(0,0,0)
+captionBackground.AnchorPoint = Vector2.new(0.5,0.5)
+captionBackground.Position = UDim2.new(0.5,0,0.5,0)
+captionBackground.Size = UDim2.new(1,0,1,0)
+captionBackground.ZIndex = 101
+captionBackground.Parent = caption
+
+local captionText = Instance.new("TextLabel")
+captionText.BackgroundTransparency = 1
+captionText.Font = Enum.Font.GothamSemibold
+captionText.TextScaled = true
+captionText.TextSize = 12
+captionText.Position = UDim2.new(0,3,0.12,3)
+captionText.Size = UDim2.new(1,-6,0.8,-6)
+captionText.ZIndex = 102
+captionText.TextColor3 = Color3.new(1,1,1)
+captionText.Parent = caption
+
+local captionUiCorner = Instance.new("UICorner")
+captionUiCorner.CornerRadius = UDim.new(0.25,0)
+captionUiCorner.Parent = captionBackground
+
+local captionOverlineHolder = Instance.new("Frame")
+captionOverlineHolder.Name = "OverlineHolder"
+captionOverlineHolder.BackgroundTransparency = 1
+captionOverlineHolder.AnchorPoint = Vector2.new(0.5,0.5)
+captionOverlineHolder.Position = UDim2.new(0.5,0,-0.5,3)
+captionOverlineHolder.Size = UDim2.new(1,0,1,0)
+captionOverlineHolder.ZIndex = 102
+captionOverlineHolder.ClipsDescendants = true
+captionOverlineHolder.Parent = caption
+
+local captionOverline = Instance.new("Frame")
+captionOverline.Name = "Overline"
+captionOverline.BackgroundTransparency = 0
+captionOverline.BackgroundColor3 = Color3.fromRGB(0,123,255)
+captionOverline.AnchorPoint = Vector2.new(0.5,0.5)
+captionOverline.Position = UDim2.new(0.5,0,1.5,-3)
+captionOverline.Size = UDim2.new(1,0,1,0)
+captionOverline.ZIndex = 102
+captionOverline.Parent = captionOverlineHolder
+
+local overlineUiCorner = Instance.new("UICorner")
+overlineUiCorner.CornerRadius = captionUiCorner.CornerRadius
+overlineUiCorner.Parent = captionOverline
+
 --CREATE DROPDOWN
 local dropdown = Instance.new("Frame")
 dropdown.Name = "Dropdown"

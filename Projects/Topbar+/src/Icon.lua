@@ -33,7 +33,11 @@ function Icon.new(name, imageId, order, label)
 		["corner"] = button.UICorner,
 		["notification"] = button.Notification,
 		["amount"] = button.Notification.Amount,
-		["gradient"] = button.UIGradient
+		["gradient"] = button.UIGradient,
+		["captionContainer"] = container.Caption,
+		["captionBackground"] = container.Caption.Background,
+		["captionText"] = container.Caption.TextLabel,
+		["captionOverline"] = container.Caption.OverlineHolder.Overline
 	}
 	container.Name = name
 	container.Visible = true
@@ -88,6 +92,18 @@ function Icon.new(name, imageId, order, label)
 			deselected = {
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 			}
+		},
+		["captionContainer"] = {
+			deselected = {},
+		},
+		["captionBackground"] = {
+			deselected = {},
+		},
+		["captionText"] = {
+			deselected = {},
+		},
+		["captionOverline"] = {
+			deselected = {},
 		}
 	}
 	self.toggleStatus = "deselected"
@@ -98,6 +114,20 @@ function Icon.new(name, imageId, order, label)
 	self._fakeChatMaid = maid:give(Maid.new())
 	self._hoveringMaid = maid:give(Maid.new())
 	
+	self._captionTweenInfo = TweenInfo.new(0.1,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
+	self._captionTweens = {
+		inTweens = {
+			captionBackgroundTweenIn = maid:give(tweenService:Create(self.objects.captionBackground,self._captionTweenInfo,{BackgroundTransparency = 0.5})),
+			captionTextTweenIn = maid:give(tweenService:Create(self.objects.captionText,self._captionTweenInfo,{TextTransparency = 0})),
+			captionOverlineTweenIn = maid:give(tweenService:Create(self.objects.captionOverline,self._captionTweenInfo,{BackgroundTransparency = 0}))
+		},
+		outTweens = {
+			captionBackgroundTweenOut = maid:give(tweenService:Create(self.objects.captionBackground,self._captionTweenInfo,{BackgroundTransparency = 1})),
+			captionTextTweenOut = maid:give(tweenService:Create(self.objects.captionText,self._captionTweenInfo,{TextTransparency = 1})),
+			captionOverlineTweenOut = maid:give(tweenService:Create(self.objects.captionOverline,self._captionTweenInfo,{BackgroundTransparency = 1}))
+		}
+	}
+
 	self.updated = maid:give(Signal.new())
 	self.selected = maid:give(Signal.new())
 	self.deselected = maid:give(Signal.new())
@@ -107,10 +137,10 @@ function Icon.new(name, imageId, order, label)
 	self.name = name
 	self.tip = ""
 	self.controllerTip = ""
+	self.caption = ""
 	self.imageId = ((imageId == "" and 0) or imageId) or 0
 	self:setImageSize(20)
 	self:setLabel(label)
-	--self:setCellSize(32)
 	self.order = order or 1
 	self.enabled = true
 	self.hovering = false
@@ -122,6 +152,24 @@ function Icon.new(name, imageId, order, label)
 	self.maxTouchTime = 0.5
 	self._isControllerMode = false
 	
+	self.captionTween = function(active)
+		if active then
+			if not self.objects.captionContainer.Visible then
+				self.objects.captionOverline.BackgroundTransparency = 1
+				self.objects.captionBackground.BackgroundTransparency = 1
+				self.objects.captionText.TextTransparency = 1
+				self.objects.captionContainer.Visible = true
+			end
+			for _,tween in next,self._captionTweens.inTweens do
+				tween:Play()
+			end
+		else
+			for _,tween in next,self._captionTweens.outTweens do
+				tween:Play()
+			end
+		end
+	end
+	
 	if userInputService.MouseEnabled or userInputService.GamepadEnabled then
 		button.MouseButton1Click:Connect(function()
 			if self.toggleStatus == "selected" then
@@ -130,6 +178,7 @@ function Icon.new(name, imageId, order, label)
 				if not self._isControllerMode then
 					topbarPlusGui.ToolTip.Visible = false
 				end
+				self.objects.captionContainer.Visible = false
 				self:select()
 			end
 		end)
@@ -180,6 +229,7 @@ function Icon.new(name, imageId, order, label)
 	self._hoverFunctions = {
 		enter = function(x,y)
 			self:updateToolTip(true, Vector2.new(x,y))
+			self:updateCaption(true)
 			self.hoverFunction(true)
 			self.hovering = true
 			self._hoveringMaid:give(button.MouseMoved:Connect(setToolTipPosition))
@@ -187,6 +237,7 @@ function Icon.new(name, imageId, order, label)
 		end,
 		leave = function(x,y)
 			self:updateToolTip(false)
+			self:updateCaption(false)
 			self.hoverFunction(false)
 			self.hovering = false
 			self._hoveringMaid:clean()
@@ -244,6 +295,17 @@ function Icon:updateToolTip(visibility, position)
 	tipContainer.Visible = (visibility and self.toggleStatus == "deselected" and tip ~= "")
 end
 
+function Icon:updateCaption(visibility)
+	local caption = self.caption
+	local textSize = textService:GetTextSize(caption,12,Enum.Font.GothamSemibold,Vector2.new(1000,20-6))
+	self.objects.captionContainer.Size = UDim2.new(0,textSize.X+22,0,25)
+	self.objects.captionText.Text = caption
+	if self.captionTween then
+		self.captionTween((visibility and self.toggleStatus == "deselected" and caption ~= ""))
+	end
+	--self.objects.captionContainer.Visible = (visibility and self.toggleStatus == "deselected" and caption ~= "")
+end
+
 function Icon:updateStateOverlay(transparency, color)
 	local stateOverlay = self.objects.button.Parent.StateOverlay
 	stateOverlay.ImageTransparency = transparency or 1
@@ -278,6 +340,17 @@ end
 
 function Icon:setControllerTip(tip)
 	self:setTip(tip, "controllerTip")
+end
+
+function Icon:setCaption(caption)
+	local newCaption = ""
+	if caption then
+		assert(typeof(caption) == "string","Expected string, got "..typeof(caption))
+	end
+	self.caption = caption
+	if self.hovering then
+		self:updateCaption(caption)
+	end
 end
 
 function Icon:setCornerRadius(scale,offset)
@@ -432,9 +505,11 @@ function Icon:setTheme(themeDetails)
 				if objectName == "gradient" then
 					gradientEnabled = true
 				end
-				local oppositeKey = oppositeGroup[key]
-				if not oppositeKey then
-					oppositeGroup[key] = group[key]
+				if oppositeGroup then
+					local oppositeKey = oppositeGroup[key]
+					if not oppositeKey then
+						oppositeGroup[key] = group[key]
+					end
 				end
 				group[key] = value
 			end
@@ -453,22 +528,24 @@ function Icon:applyThemeToObject(objectName, toggleStatus)
 	local object = self.objects[objectName]
 	if object then
 		local propertiesTable = self.theme[objectName][(toggleStatus or self.toggleStatus)]
-		local toggleTweenInfo = self.theme.toggleTweenInfo
-		local invalidProperties = {"Image","Color","NumberSequence","Text"}
-		local finalPropertiesTable = {}
-		local noTweenTable = {}
-		for propName, propValue in pairs(propertiesTable) do
-			if propName == "Transparency" and object:IsA("UIGradient") then
-				object[propName] = propValue
+		if propertiesTable then
+			local toggleTweenInfo = self.theme.toggleTweenInfo
+			local invalidProperties = {"Image","Color","NumberSequence","Text"}
+			local finalPropertiesTable = {}
+			local noTweenTable = {}
+			for propName, propValue in pairs(propertiesTable) do
+				if propName == "Transparency" and object:IsA("UIGradient") then
+					object[propName] = propValue
+				end
+				if table.find(invalidProperties, propName) then
+					object[propName] = propValue
+				else
+					finalPropertiesTable[propName] = propValue
+				end
 			end
-			if table.find(invalidProperties, propName) then
-				object[propName] = propValue
-			else
-				finalPropertiesTable[propName] = propValue
-			end
+			local tween = tweenService:Create(object, toggleTweenInfo, finalPropertiesTable):Play()
+			debris:AddItem(tween,toggleTweenInfo.Time)
 		end
-		local tween = tweenService:Create(object, toggleTweenInfo, finalPropertiesTable):Play()
-		debris:AddItem(tween,toggleTweenInfo.Time)
 	end
 end
 
