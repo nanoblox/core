@@ -41,6 +41,7 @@ local forceTopbarDisabled = false
 local previousTopbarEnabled = checkTopbarEnabled()
 local menuOpen
 local topbarUpdating = false
+local robloxStupidOffset = 0
 
 
 
@@ -226,7 +227,7 @@ function IconController:setTopbarEnabled(bool, forceBool)
 				end
 				topbar.TopbarContainer.Visible = true
 				topbar.TopbarContainer:TweenPosition(
-					UDim2.new(0,0,0,5),
+					UDim2.new(0,0,0,5 + robloxStupidOffset),
 					Enum.EasingDirection.Out,
 					Enum.EasingStyle.Quad,
 					0.1,
@@ -263,7 +264,7 @@ function IconController:setTopbarEnabled(bool, forceBool)
 				end)
 				indicator.Image = "rbxassetid://5278151071"
 				indicator:TweenPosition(
-					UDim2.new(0.5,0,0,targetOffset),
+					UDim2.new(0.5,0,0,targetOffset + robloxStupidOffset),
 					Enum.EasingDirection.Out,
 					Enum.EasingStyle.Quad,
 					0.1,
@@ -280,7 +281,7 @@ function IconController:setTopbarEnabled(bool, forceBool)
 			guiService.AutoSelectGuiEnabled = true
 			guiService:RemoveSelectionGroup("TopbarPlus")
 			topbar.TopbarContainer:TweenPosition(
-				UDim2.new(0,0,0,-topbar.TopbarContainer.Size.Y.Offset),
+				UDim2.new(0,0,0,-topbar.TopbarContainer.Size.Y.Offset + robloxStupidOffset),
 				Enum.EasingDirection.Out,
 				Enum.EasingStyle.Quad,
 				0.1,
@@ -337,7 +338,7 @@ function IconController:enableControllerMode(bool)
 			controllerOptionIcon:setEnabled(true)
 		end
 		toolTip.AnchorPoint = Vector2.new(0.5,0)
-		toolTip.Position = UDim2.new(0.5,0,0,topbar.TopbarContainer.Size.Y.Offset+60)
+		toolTip.Position = UDim2.new(0.5,0,0,topbar.TopbarContainer.Size.Y.Offset+60 + robloxStupidOffset)
 	else
 		if userInputService.GamepadEnabled and controllerOptionIcon then
 			--mouse user but might want to use controller
