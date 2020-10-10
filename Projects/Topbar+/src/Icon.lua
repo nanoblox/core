@@ -298,7 +298,7 @@ end
 function Icon:updateCaption(visibility)
 	local caption = self.caption
 	local textSize = textService:GetTextSize(caption,12,Enum.Font.GothamSemibold,Vector2.new(1000,20-6))
-	self.objects.captionContainer.Size = UDim2.new(0,textSize.X+6,0,20)
+	self.objects.captionContainer.Size = UDim2.new(0,textSize.X+22,0,25)
 	self.objects.captionText.Text = caption
 	if self.captionTween then
 		self.captionTween((visibility and self.toggleStatus == "deselected" and caption ~= ""))
