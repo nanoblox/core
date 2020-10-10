@@ -28,8 +28,19 @@ function SettingsService.generateRecord(key)
 		
 		---------------------------
 		["System"] = {
-			-- Gear
-			restrictedGear = {},
+			
+			libraryIDs = { -- Gear, Sounds, Images, etc
+				blacklist = {},
+				whitelist = {},
+			},
+			catalogIDs = { -- Accessories, Faces, etc
+				blacklist = {},
+				whitelist = {},
+			},
+			bundleIDs = { -- Bundles
+				blacklist = {},
+				whitelist = {},
+			},
 			
 			-- Warning System
 			warnExpiryTime = 604800, -- 1 week

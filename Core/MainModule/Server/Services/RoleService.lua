@@ -106,7 +106,8 @@ function RoleService.generateRecord()
 		globalsLimit = 5,
 		limitScale = true,
 		scaleLimit = 5,
-		limitGear = true,
+		limitBlacklistedIDs = true,
+		limitToWhitelistedIDs = false, 
 		
 		-- Individual Powers
 		canUseAll = false,
