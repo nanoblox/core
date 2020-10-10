@@ -332,10 +332,12 @@ function IconController:enableControllerMode(bool)
 			details.icon._previousAlignment = details.icon.alignment
 			details.icon:setMid()
 		end
-		if controllerOptionIcon and not userInputService.MouseEnabled then
-			controllerOptionIcon:setEnabled(false)
-		else
-			controllerOptionIcon:setEnabled(true)
+		if controllerOptionIcon then -- !!! check this out
+			if not userInputService.MouseEnabled then
+				controllerOptionIcon:setEnabled(false)
+			else
+				controllerOptionIcon:setEnabled(true)
+			end
 		end
 		toolTip.AnchorPoint = Vector2.new(0.5,0)
 		toolTip.Position = UDim2.new(0.5,0,0,topbar.TopbarContainer.Size.Y.Offset+60 + robloxStupidOffset)

@@ -297,6 +297,9 @@ end
 
 function Icon:updateCaption(visibility)
 	local caption = self.caption
+	if not caption then
+		return
+	end
 	local textSize = textService:GetTextSize(caption,12,Enum.Font.GothamSemibold,Vector2.new(1000,20-6))
 	self.objects.captionContainer.Size = UDim2.new(0,textSize.X+22,0,25)
 	self.objects.captionText.Text = caption
@@ -343,13 +346,13 @@ function Icon:setControllerTip(tip)
 end
 
 function Icon:setCaption(caption)
-	local newCaption = ""
-	if caption then
-		assert(typeof(caption) == "string","Expected string, got "..typeof(caption))
+	local newCaption = caption or ""
+	if newCaption then
+		assert(typeof(newCaption) == "string","Expected string, got "..typeof(newCaption))
 	end
-	self.caption = caption
+	self.caption = newCaption
 	if self.hovering then
-		self:updateCaption(caption)
+		self:updateCaption(newCaption)
 	end
 end
 
