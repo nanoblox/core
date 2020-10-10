@@ -3,7 +3,7 @@ local Serializer = {}
 local identifiersToDetails = {}
 
 local function multiSplit(value)
-	return value:sub(1, #value-1):split("}, {")
+	return value:sub(2, #value-1):split("}, {")
 end
 
 local dataTypes
