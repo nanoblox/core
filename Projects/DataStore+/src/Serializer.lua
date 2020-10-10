@@ -1,6 +1,11 @@
 -- LOCAL
 local Serializer = {}
 local identifiersToDetails = {}
+
+local function multiSplit(value)
+	return value:sub(1, #value-1):split("}, {")
+end
+
 local dataTypes
 dataTypes = {
 	["string"] = {
@@ -57,18 +62,18 @@ dataTypes = {
 		end,
 		deserialize = function(value)
 			local components = multiSplit(value)
-			local origin, direction = Serializer.serialize(components[1]), Serializer.serialize(components[2])
+			local origin, direction = Serializer.deserialize(components[1]), Serializer.deserialize(components[2])
 			return Ray.new(origin, direction)
 		end
 	},
 	["Region3"] = {
-		identifier = "e",
+		identifier = "g",
 		serialize = function(property)
 			return tostring(property)
 		end,
 		deserialize = function(value)
 			local components = value:split("; ")
-			local cframe, size = Serializer.serialize(components[1]), Serializer.serialize(components[2])
+			local cframe, size = Serializer.deserialize(components[1]), Serializer.deserialize(components[2])
 			return Region3.new(cframe, size)
 		end
 	},
@@ -93,7 +98,7 @@ dataTypes = {
 		end,
 	},
 	["UDim"] = {
-		identifier = "w",
+		identifier = "u",
 		serialize = function(property)
 			return tostring(property)
 		end,
@@ -139,10 +144,6 @@ local function deepCopyOnce(property)
 		newProperty[k] = v
 	end
 	return newProperty
-end
-
-local function multiSplit(value)
-	return value:sub(1, #value-1):split("}, {")
 end
 
 
