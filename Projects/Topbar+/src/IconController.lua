@@ -332,7 +332,7 @@ function IconController:enableControllerMode(bool)
 			details.icon._previousAlignment = details.icon.alignment
 			details.icon:setMid()
 		end
-		if controllerOptionIcon then -- !!! check this out
+		if controllerOptionIcon then
 			if not userInputService.MouseEnabled then
 				controllerOptionIcon:setEnabled(false)
 			else
