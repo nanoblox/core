@@ -436,20 +436,23 @@ function IconController:createFakeChat(theme)
 			icon:notify(icon.selected)
 		end))
 		-- Mimic visibility when StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, state) is called
-		icon._fakeChatMaid:give(ChatMain.CoreGuiEnabled:connect(function(newState)
-			if icon.ignoreVisibilityStateChange then
-				return "ignoreVisibilityStateChange enabled"
-			end
-			local topbarEnabled = checkTopbarEnabled()
-			if topbarEnabled ~= previousTopbarEnabled then
-				return "SetCore was called instead of SetCoreGuiEnabled"
-			end
-			if not icon.enabled and userInputService:IsKeyDown(Enum.KeyCode.LeftShift) and userInputService:IsKeyDown(Enum.KeyCode.P) then
-				icon:setEnabled(true)
-			else
-				setIconEnabled(newState)
-			end
-		end))
+		coroutine.wrap(function()
+			runService.Heartbeat:Wait()
+			icon._fakeChatMaid:give(ChatMain.CoreGuiEnabled:connect(function(newState)
+				if icon.ignoreVisibilityStateChange then
+					return "ignoreVisibilityStateChange enabled"
+				end
+				local topbarEnabled = checkTopbarEnabled()
+				if topbarEnabled ~= previousTopbarEnabled then
+					return "SetCore was called instead of SetCoreGuiEnabled"
+				end
+				if not icon.enabled and userInputService:IsKeyDown(Enum.KeyCode.LeftShift) and userInputService:IsKeyDown(Enum.KeyCode.P) then
+					icon:setEnabled(true)
+				else
+					setIconEnabled(newState)
+				end
+			end))
+		end)()
 	end
 	theme = (theme and deepCopy(theme)) or (self.gameTheme and deepCopy(self.gameTheme)) or {}
 	theme.image = theme.image or {}
