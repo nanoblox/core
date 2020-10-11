@@ -236,54 +236,68 @@ local selectedColor = Color3.fromRGB(0, 170, 255)
 local selectedColorDarker = Color3.fromRGB(0, 120, 180)
 local theme = {
 	
-    -- TOGGLE EFFECT
-    ["toggleTweenInfo"] = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-
-    -- OBJECT PROPERTIES
-    ["button"] = {
-        selected = {
-            ImageTransparency = 0.1,
-            ImageColor3 = Color3.fromRGB(255, 255, 255)--selectedColor,
-        },
-    },
-    ["image"] = {
-        selected = {
-            ImageColor3 = Color3.fromRGB(255, 255, 255),
-        },
-        deselected = {
-            ImageColor3 = Color3.fromRGB(255, 255, 255),
-        },
-    },
-    ["notification"] = {
-        selected = {
-            Image = "http://www.roblox.com/asset/?id=4882430005",
-            ImageColor3 = Color3.fromRGB(255, 255, 255),
-        },
-        deselected = {
-            Image = "http://www.roblox.com/asset/?id=4882430005",
-            ImageColor3 = selectedColor,
-
-        },
-    },
-    ["amount"] = {
-        selected = {
-            TextColor3 = selectedColor,
-        },
-        deselected = {
-            TextColor3 = Color3.fromRGB(255, 255, 255),
+	-- TOGGLE EFFECT
+	["toggleTweenInfo"] = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	
+	-- OBJECT PROPERTIES
+	["button"] = {
+		selected = {
+			ImageTransparency = 0.1,
+			ImageColor3 = Color3.fromRGB(255, 255, 255)--selectedColor,
+		},
+	},
+	["image"] = {
+		selected = {
+			ImageColor3 = Color3.fromRGB(255, 255, 255),
+		},
+		deselected = {
+			ImageColor3 = Color3.fromRGB(255, 255, 255),
+		},
+	},
+	["notification"] = {
+		selected = {
+			Image = "http://www.roblox.com/asset/?id=4882430005",
+			ImageColor3 = Color3.fromRGB(255, 255, 255),
+		},
+		deselected = {
+			Image = "http://www.roblox.com/asset/?id=4882430005",
+			ImageColor3 = selectedColor,
+			
+		},
+	},
+	["amount"] = {
+		selected = {
+			TextColor3 = selectedColor,
+		},
+		deselected = {
+			TextColor3 = Color3.fromRGB(255, 255, 255),
 		},
 	},
 	["gradient"] = {
 		selected = {
 			Color = ColorSequence.new(selectedColor, selectedColorDarker),
 			Rotation = 90,
-        },
+		},
 	},
 	["label"] = {
 		selected = {
 			TextColor3 = Color3.fromRGB(255, 255, 255),
-        },
-    },
+		},
+	},
+	["captionContainer"] = {
+		deselected = {},
+	},
+	["captionBackground"] = {
+		deselected = {},
+	},
+	["captionText"] = {
+		deselected = {},
+	},
+	["captionOverline"] = {
+		deselected = {
+			BackgroundColor3 = selectedColor
+		},
+	}
 }
 iconController:setGameTheme(theme)
 ```
