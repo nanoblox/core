@@ -32,19 +32,28 @@ function LongtermService.generateRecord(targetUserId)
 	}
 end
 
-function LongtermService:createLongterm(targetUserId, isGlobal, properties)
+function LongtermService.createLongterm(targetUserId, isGlobal, properties)
 	local key = tostring(targetUserId)
 	local record = LongtermService:createRecord(key, isGlobal, properties)
 	return record
 end
 
-function LongtermService:updateLongterm(targetUserId, propertiesToUpdate)
+function LongtermService.getLongterm(targetUserId)
+	local key = tostring(targetUserId)
+	return LongtermService:getRecord(key)
+end
+
+function LongtermService.getLongterms()
+	return LongtermService:getRecords()
+end
+
+function LongtermService.updateLongterm(targetUserId, propertiesToUpdate)
 	local key = tostring(targetUserId)
 	LongtermService:updateRecord(key, propertiesToUpdate)
 	return true
 end
 
-function LongtermService:removeLongterm(targetUserId)
+function LongtermService.removeLongterm(targetUserId)
 	local key = tostring(targetUserId)
 	LongtermService:removeRecord(key)
 	return true

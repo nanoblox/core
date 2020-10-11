@@ -5,7 +5,7 @@ local function isNonadmin(user)
 	local totalNonadmins = 0
 	local totalRoles = 0
 	for roleUID, roleDetails in pairs(user.roles) do
-		local role = main.services.RoleService:getRoleByUID(roleUID)
+		local role = main.services.RoleService.getRoleByUID(roleUID)
 		if role.nonadmin == true then
 			totalNonadmins = totalNonadmins + 1
 		end
@@ -20,7 +20,9 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"_user"},
+		name = "users",
+		aliases = {"user"},
+		hidden = true,
 		description	= "Default action, returns players with matching shorthand names.",
 		getTargets = function(caller, shorthandString)
 			local targets = {}
@@ -38,7 +40,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"me", "you"},
+		name = "me",
+		aliases = {"you"},
 		description	= "You!",
 		getTargets = function(caller)
 			return {caller.player}
@@ -49,7 +52,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"all", "everyone"},
+		name = "all",
+		aliases = {"everyone"},
 		description	= "Every player in a server.",
 		getTargets = function(caller)
 			return main.Players:GetPlayers()
@@ -60,7 +64,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"random"},
+		name = "random",
+		aliases = {},
 		description	= "One randomly selected player from a pool. To define a pool, do ``random(qualifier1,qualifier2,...)``. If not defined, the pool defaults to 'all'.",
 		getTargets = function(caller, ...)
 			local subQualifiers = table.pack(...)
@@ -83,7 +88,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"others"},
+		name = "others",
+		aliases = {},
 		description	= "Every player in a server except you.",
 		getTargets = function(caller)
 			local targets = {}
@@ -100,7 +106,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"radius"},
+		name = "radius",
+		aliases = {},
 		description	= "Players within x amount of studs from you. To specify studs, do ``radius(studs)``. If not defined, studs defaults to '10'.",
 		getTargets = function(caller, radiusString)
 			local targets = {}
@@ -119,7 +126,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"team", "teams", "$"},
+		name = "team",
+		aliases = {"teams", "$"},
 		description	= "Players within the specified team(s).",
 		getTargets = function(caller, ...)
 			local targets = {}
@@ -150,14 +158,15 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"role", "roles", "@"},
+		name = "role",
+		aliases = {"roles", "@"},
 		description	= "Players who have the specified role(s).",
 		getTargets = function(caller, ...)
 			local targets = {}
 			local roleNames = table.pack(...)
 			local selectedRoleUIDs = {}
 			if #roleNames == 0 then return {} end
-			for _, role in pairs(main.services.RoleService:getAllRoles()) do
+			for _, role in pairs(main.services.RoleService.getRoles()) do
 				local roleName = string.lower(role.name)
 				local roleUID = role.UID
 				for _, selectedRoleName in pairs(roleNames) do
@@ -167,7 +176,7 @@ Qualifiers.array = {
 				end
 			end
 			if #selectedRoleUIDs == 0 then return {} end
-			for i, user in pairs(main.modules.PlayerStore:getAllUsers()) do
+			for i, user in pairs(main.modules.PlayerStore:getUsers()) do
 				local function isValidUser()
 					for _, roleUID in pairs(selectedRoleUIDs) do
 						if user.roles[roleUID] then
@@ -188,7 +197,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"percent", "percentage", "%"},
+		name = "percent",
+		aliases = {"percentage", "%"},
 		description	= "Randomly selects x percent of players within a server. To define the percentage, do ``percent(number)``. If not defined, the percent defaults to '50'.",
 		getTargets = function(caller, percentString)
 			local targets = {}
@@ -213,11 +223,12 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"admins"},
+		name = "admins",
+		aliases = {},
 		description	= "Selects all admins",
 		getTargets = function(caller)
 			local targets = {}
-			for i, user in pairs(main.modules.PlayerStore:getAllUsers()) do
+			for i, user in pairs(main.modules.PlayerStore:getUsers()) do
 				if not isNonadmin(user) then
 					table.insert(targets, user.player)
 				end
@@ -230,11 +241,12 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"nonadmins"},
+		name = "nonadmins",
+		aliases = {},
 		description	= "Selects all nonadmins",
 		getTargets = function(caller)
 			local targets = {}
-			for i, user in pairs(main.modules.PlayerStore:getAllUsers()) do
+			for i, user in pairs(main.modules.PlayerStore:getUsers()) do
 				if isNonadmin(user) then
 					table.insert(targets, user.player)
 				end
@@ -247,7 +259,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"premium", "prem"},
+		name = "premium",
+		aliases = {"prem"},
 		description	= "Players with Roblox Premium membership",
 		getTargets = function(caller)
 			local targets = {}
@@ -264,7 +277,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"friends"},
+		name = "friends",
+		aliases = {},
 		description	= "Players you are friends with",
 		getTargets = function(caller)
 			local targets = {}
@@ -281,7 +295,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"nonfriends"},
+		name = "nonfriends",
+		aliases = {},
 		description	= "Players you are not friends with",
 		getTargets = function(caller)
 			local targets = {}
@@ -298,7 +313,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"r6"},
+		name = "r6",
+		aliases = {},
 		description	= "Players with an R6 character rig",
 		getTargets = function(caller)
 			local targets = {}
@@ -316,7 +332,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"r15"},
+		name = "r15",
+		aliases = {},
 		description	= "Players with an R15 character rig",
 		getTargets = function(caller)
 			local targets = {}
@@ -334,7 +351,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"rthro"},
+		name = "rthro",
+		aliases = {},
 		description	= "Players with a Body Type value greater than or equal to 90%",
 		getTargets = function(caller)
 			local targets = {}
@@ -353,7 +371,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		names = {"nonrthro"},
+		name = "nonrthro",
+		aliases = {},
 		description	= "Players with a Body Type value less than 90%",
 		getTargets = function(caller)
 			local targets = {}
@@ -378,18 +397,19 @@ Qualifiers.array = {
 
 -- DICTIONARY
 -- This means instead of scanning through the array to find a name match
--- you can simply do ``Qualifiers.dictionary.QUALIFIER_NAME`` to return its details
+-- you can simply do ``Qualifiers.dictionary.QUALIFIER_NAME`` to return its item
 Qualifiers.dictionary = {}
-for _, details in pairs(Qualifiers.array) do
-	for _, name in pairs(details.names) do
-		Qualifiers.dictionary[name] = details
+for _, item in pairs(Qualifiers.array) do
+	Qualifiers.dictionary[item.name] = item
+	for _, alias in pairs(item.aliases) do
+		Qualifiers.dictionary[alias] = item
 	end
 end
 
 
 
 -- OTHER
-Qualifiers.defaultQualifier = Qualifiers.dictionary["_user"]
+Qualifiers.defaultQualifier = Qualifiers.dictionary["user"]
 
 
 

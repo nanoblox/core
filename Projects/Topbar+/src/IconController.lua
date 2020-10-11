@@ -10,14 +10,14 @@ local Icon = require(script.Parent.Icon)
 local topbarIcons = {}
 local fakeChatName = "_FakeChat"
 local function deepCopy(original)
-    local copy = {}
-    for k, v in pairs(original) do
-        if type(v) == "table" then
-            v = deepCopy(v)
-        end
-        copy[k] = v
-    end
-    return copy
+	local copy = {}
+	for k, v in pairs(original) do
+		if type(v) == "table" then
+			v = deepCopy(v)
+		end
+		copy[k] = v
+	end
+	return copy
 end
 local function getChatMain()
 	return players.LocalPlayer.PlayerScripts:WaitForChild("ChatScript").ChatMain
@@ -41,6 +41,7 @@ local forceTopbarDisabled = false
 local previousTopbarEnabled = checkTopbarEnabled()
 local menuOpen
 local topbarUpdating = false
+local robloxStupidOffset = 32
 
 
 
@@ -104,7 +105,7 @@ function IconController:createIcon(name, imageId, order, withText)
 	end
 	local function updateIcon()
 		assert(iconDetails, ("Failed to update Icon '%s': icon not found."):format(name))
-
+		
 		if topbarUpdating then -- This prevents the topbar updating and shifting icons more than it needs to
 			return false
 		end
@@ -193,7 +194,7 @@ function IconController:createIcon(name, imageId, order, withText)
 		icon._previousAlignment = icon.alignment
 		icon:setMid()
 	end
-
+	
 	return icon
 end
 
@@ -226,7 +227,7 @@ function IconController:setTopbarEnabled(bool, forceBool)
 				end
 				topbar.TopbarContainer.Visible = true
 				topbar.TopbarContainer:TweenPosition(
-					UDim2.new(0,0,0,5),
+					UDim2.new(0,0,0,5 + robloxStupidOffset),
 					Enum.EasingDirection.Out,
 					Enum.EasingStyle.Quad,
 					0.1,
@@ -263,7 +264,7 @@ function IconController:setTopbarEnabled(bool, forceBool)
 				end)
 				indicator.Image = "rbxassetid://5278151071"
 				indicator:TweenPosition(
-					UDim2.new(0.5,0,0,targetOffset),
+					UDim2.new(0.5,0,0,targetOffset + robloxStupidOffset),
 					Enum.EasingDirection.Out,
 					Enum.EasingStyle.Quad,
 					0.1,
@@ -280,7 +281,7 @@ function IconController:setTopbarEnabled(bool, forceBool)
 			guiService.AutoSelectGuiEnabled = true
 			guiService:RemoveSelectionGroup("TopbarPlus")
 			topbar.TopbarContainer:TweenPosition(
-				UDim2.new(0,0,0,-topbar.TopbarContainer.Size.Y.Offset),
+				UDim2.new(0,0,0,-topbar.TopbarContainer.Size.Y.Offset + robloxStupidOffset),
 				Enum.EasingDirection.Out,
 				Enum.EasingStyle.Quad,
 				0.1,
@@ -331,13 +332,15 @@ function IconController:enableControllerMode(bool)
 			details.icon._previousAlignment = details.icon.alignment
 			details.icon:setMid()
 		end
-		if controllerOptionIcon and not userInputService.MouseEnabled then
-			controllerOptionIcon:setEnabled(false)
-		else
-			controllerOptionIcon:setEnabled(true)
+		if controllerOptionIcon then
+			if not userInputService.MouseEnabled then
+				controllerOptionIcon:setEnabled(false)
+			else
+				controllerOptionIcon:setEnabled(true)
+			end
 		end
 		toolTip.AnchorPoint = Vector2.new(0.5,0)
-		toolTip.Position = UDim2.new(0.5,0,0,topbar.TopbarContainer.Size.Y.Offset+60)
+		toolTip.Position = UDim2.new(0.5,0,0,topbar.TopbarContainer.Size.Y.Offset+60 + robloxStupidOffset)
 	else
 		if userInputService.GamepadEnabled and controllerOptionIcon then
 			--mouse user but might want to use controller
@@ -433,20 +436,23 @@ function IconController:createFakeChat(theme)
 			icon:notify(icon.selected)
 		end))
 		-- Mimic visibility when StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, state) is called
-		icon._fakeChatMaid:give(ChatMain.CoreGuiEnabled:connect(function(newState)
-			if icon.ignoreVisibilityStateChange then
-				return "ignoreVisibilityStateChange enabled"
-			end
-			local topbarEnabled = checkTopbarEnabled()
-			if topbarEnabled ~= previousTopbarEnabled then
-				return "SetCore was called instead of SetCoreGuiEnabled"
-			end
-			if not icon.enabled and userInputService:IsKeyDown(Enum.KeyCode.LeftShift) and userInputService:IsKeyDown(Enum.KeyCode.P) then
-				icon:setEnabled(true)
-			else
-				setIconEnabled(newState)
-			end
-		end))
+		coroutine.wrap(function()
+			runService.Heartbeat:Wait()
+			icon._fakeChatMaid:give(ChatMain.CoreGuiEnabled:connect(function(newState)
+				if icon.ignoreVisibilityStateChange then
+					return "ignoreVisibilityStateChange enabled"
+				end
+				local topbarEnabled = checkTopbarEnabled()
+				if topbarEnabled ~= previousTopbarEnabled then
+					return "SetCore was called instead of SetCoreGuiEnabled"
+				end
+				if not icon.enabled and userInputService:IsKeyDown(Enum.KeyCode.LeftShift) and userInputService:IsKeyDown(Enum.KeyCode.P) then
+					icon:setEnabled(true)
+				else
+					setIconEnabled(newState)
+				end
+			end))
+		end)()
 	end
 	theme = (theme and deepCopy(theme)) or (self.gameTheme and deepCopy(self.gameTheme)) or {}
 	theme.image = theme.image or {}
@@ -474,7 +480,7 @@ function IconController:setGameTheme(theme)
 	self.gameTheme = theme
 	local icons = self:getAllIcons()
 	for _, icon in pairs(icons) do
-	    icon:setTheme(theme)
+		icon:setTheme(theme)
 	end
 end
 

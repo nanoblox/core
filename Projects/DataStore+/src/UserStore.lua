@@ -27,21 +27,22 @@ end
 
 
 -- METHODS
-function UserStore:createUser(key)
-	local key, isPlayer = getKey(key)
+function UserStore:createUser(originalKey)
+	local key, isPlayer = getKey(originalKey)
 	assert(not self.users[key], ("user '%s' already exists!"):format(key))
 	local user = User.new(self.dataStoreName, key)
 	self.users[key] = user
-	user.player = isPlayer and key
-	user.name = isPlayer and key.Name
+	user.player = isPlayer and originalKey
+	user.name = isPlayer and originalKey.Name
+	user.userId = isPlayer and originalKey.UserId
 	coroutine.wrap(function()
 		user:loadAsync()
 	end)()
 	return user
 end
 
-function UserStore:getUser(key)
-	local key = getKey(key)
+function UserStore:getUser(originalKey)
+	local key = getKey(originalKey)
 	return self.users[key]
 end
 
@@ -63,7 +64,7 @@ function UserStore:getUserByName(name)
 	end
 end
 
-function UserStore:getAllUsers()
+function UserStore:getUsers()
 	local usersArray = {}
 	for key, user in pairs(self.users) do
 		table.insert(usersArray, user)
@@ -96,7 +97,7 @@ function UserStore:getLoadedUserByName(name)
 	end
 end
 
-function UserStore:getAllLoadedUsers()
+function UserStore:getLoadedUsers()
 	local usersArray = {}
 	for key, user in pairs(self.users) do
 		if user.isLoaded then
@@ -106,8 +107,8 @@ function UserStore:getAllLoadedUsers()
 	return usersArray
 end
 
-function UserStore:grabData(key)
-	local key = getKey(key)
+function UserStore:grabData(originalKey)
+	local key = getKey(originalKey)
 	local user = User.new(self.dataStoreName, key)
 	local data = user:loadAsync()
 	user:destroy()
@@ -164,8 +165,8 @@ function UserStore:removeLeaderstat(player, statToUnbind)
 	return true
 end
 
-function UserStore:removeUser(key)
-	local key = getKey(key)
+function UserStore:removeUser(originalKey)
+	local key = getKey(originalKey)
 	local user = self:getUser(key)
 	user:saveAsync()
 	user:destroy()

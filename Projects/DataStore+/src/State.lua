@@ -54,12 +54,16 @@ local function findValue(tab, value)
 	end
 end
 
-local function deepCopyTableFirstLayer(t)
-	local newT = {}
+local function deepCopyTable(t)
+	local tCopy = table.create(#t)
 	for k,v in pairs(t) do
-		newT[k] = v
+		if (type(v) == "table") then
+			tCopy[k] = deepCopyTable(v)
+		else
+			tCopy[k] = v
+		end
 	end
-	return newT
+	return tCopy
 end
 
 
@@ -77,16 +81,19 @@ function State.new(props)
 			newTable[k] = v
 		end
 	end
-	activeTables[newTable] = maid
 	
-	local eventInstances = {}
-	eventInstances["changed"] = maid:give(Signal.new())
+	local hiddenKeys = {}
+	hiddenKeys["_tables"] = {}
+	hiddenKeys["changedFirst"] = maid:give(Signal.new())
+	hiddenKeys["changed"] = maid:give(Signal.new())
 	setmetatable(newTable, {
 		__index = function(this, index)
-			local newIndex = State[index] or eventInstances[index]
+			local newIndex = State[index] or hiddenKeys[index]
 			return newIndex
 		end
 	})
+
+	activeTables[newTable] = {maid = maid, hiddenKeys = hiddenKeys} 
 	
 	return newTable
 end
@@ -166,13 +173,14 @@ function State:set(stat, value)
 	local oldValue = self[stat]
 	if type(value) == "table" then
 		-- Convert tables and descending tables into States
-		local thisMaid = activeTables[self]
+		local thisMaid = activeTables[self].maid
 		value = thisMaid:give(State.new(value))
 	elseif value == nil and type(oldValue) == "table" and oldValue.isState then
 		-- Destroy State and descending States
 		oldValue:destroy()
 	end
 	self[stat] = value
+	self.changedFirst:Fire(stat, value, oldValue)
 	self.changed:Fire(stat, value, oldValue)
 	return value
 end
@@ -293,12 +301,12 @@ end
 -- called, from the listening table, by doing
 -- ``self:get(pathwayTable)``
 function State:createDescendantChangedSignal(includeSelf)
-	local maid = activeTables[self]
+	local maid = activeTables[self].maid
 	local signal = maid:give(Signal.new())
 	local function connectToTable(tab, pathwayTable, onlyListenToDescendants)
 		local function connectChild(key, value)
 			if type(value) == "table" then
-				local newPathwayTable = deepCopyTableFirstLayer(pathwayTable)
+				local newPathwayTable = deepCopyTable(pathwayTable)
 				table.insert(newPathwayTable, key)
 				connectToTable(value, newPathwayTable)
 			end
@@ -320,12 +328,39 @@ function State:createDescendantChangedSignal(includeSelf)
 	return signal
 end
 
+
+-- This enables the creation of tables that mirror their target with specified sorted differences
+-- For instance, it may be desirable to retrieve a table of commands in descending order by name length
+-- Instead of sorting a new commands table every time a command is requested (which could be a lot!),
+-- only sort the table when its changed, then retrieve doing ``originalTable:getTable("sortedTableName")``
+function State:setTable(tableName, sortFunction, changeFirst)
+	local activeTable = activeTables[self]
+	if activeTable then
+		local maid = activeTable.maid
+		local hiddenKeys = activeTable.hiddenKeys
+		local event = (changeFirst and self.changedFirst) or self.changed
+		maid:give(event:Connect(function()
+			hiddenKeys._tables[tableName] = sortFunction()
+		end))
+		hiddenKeys._tables[tableName] = sortFunction()
+	end
+end
+
+function State:getTable(tableName)
+	local activeTable = activeTables[self]
+	if activeTable then
+		local hiddenKeys = activeTable.hiddenKeys
+		return hiddenKeys._tables[tableName]
+	end
+end
+
+
 -- This destroys all State Instances (such as Signals) and metatables
 -- associated with the table, so that only normal keys and values remain
 function State:destroy()
-	local maid = activeTables[self]
-	if maid then
-		maid:clean()
+	local activeTable = activeTables[self]
+	if activeTable then
+		activeTable.maid:clean()
 		setmetatable(self, {__index = nil})
 		return true
 	end

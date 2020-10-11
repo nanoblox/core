@@ -25,10 +25,12 @@ function Parser.parseMessage(message)
 	
 	-- Data grabber examples to help you with the parser:
 	local CommandService = (main.isServer and main.services.CommandService) or main.controllers.CommandController
-	local commandRecord = CommandService:getRecord("commandName")
-	local commandRecords = CommandService:getAllRecords()
+	local commandRecord = CommandService.getCommand("commandName")
+	local commandRecords = CommandService.getCommands()
+	local commandNameOrAliasToRecordDictionary = CommandService.getTable("dictionary")
+	local commandRecordsSortedByNameLength = CommandService.getTable("sortedNameAndAliasLengthArray")
 	local SettingService = (main.isServer and main.services.SettingService) or main.controllers.SettingController
-	local clientSettings = SettingService:getRecord("Client")
+	local clientSettings = SettingService.getGroup("Client")
 	local prefixes = clientSettings.prefixes
 	local collective = clientSettings.collective
 	local spaceSeparator = clientSettings.spaceSeparator
@@ -36,7 +38,7 @@ function Parser.parseMessage(message)
 	local argsDictionary = Args.dictionary
 	local Modifiers = main.modules.Parser.Modifiers
 	local modifiersDictionary = Modifiers.dictionary
-	local modifiersSortedArray = Modifiers.sortedArray
+	local modifiersSortedArray = Modifiers.sortedNameAndAliasLengthArray
 	local Qualifiers = main.modules.Parser.Qualifiers
 	local qualifiersDictionary = Qualifiers.dictionary
 

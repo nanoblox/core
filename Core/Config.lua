@@ -158,6 +158,8 @@ return {
 			spaceSeparator 			= " ",
 			batchSeparator 			= " ", -- " | "
 			--
+			previewIncompleteCommands = false,
+			--
 			theme					= "Blue",		-- The default UI theme.
 			noticeSoundId			= 2865227271,	-- The SoundId for notices.
 			noticeVolume			= 0.1,			-- The Volume for notices.

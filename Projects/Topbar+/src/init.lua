@@ -148,12 +148,13 @@ captionBackground.Parent = caption
 local captionText = Instance.new("TextLabel")
 captionText.BackgroundTransparency = 1
 captionText.Font = Enum.Font.GothamSemibold
-captionText.TextScaled = false
+captionText.TextScaled = true
 captionText.TextSize = 12
-captionText.Position = UDim2.new(0,3,0,3)
-captionText.Size = UDim2.new(1,-6,1,-6)
+captionText.Position = UDim2.new(0,3,0.12,3)
+captionText.Size = UDim2.new(1,-6,0.8,-6)
 captionText.ZIndex = 102
 captionText.TextColor3 = Color3.new(1,1,1)
+
 captionText.Parent = caption
 
 local captionUiCorner = Instance.new("UICorner")
@@ -173,7 +174,7 @@ captionOverlineHolder.Parent = caption
 local captionOverline = Instance.new("Frame")
 captionOverline.Name = "Overline"
 captionOverline.BackgroundTransparency = 0
-captionOverline.BackgroundColor3 = Color3.fromRGB(0,123,255)
+captionOverline.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 captionOverline.AnchorPoint = Vector2.new(0.5,0.5)
 captionOverline.Position = UDim2.new(0.5,0,1.5,-3)
 captionOverline.Size = UDim2.new(1,0,1,0)

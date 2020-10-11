@@ -41,7 +41,12 @@ local function playerAdded(player)
 	-- Setup user object
 	local user = PlayerStore:createUser(player)
 	user:initAutoSave()
-	
+
+	-- Listen for chat
+	player.Chatted:Connect(function(message)
+		main.services.CommandService.chatCommand(user, message)
+	end)
+
 	-- Create additional user methods and events
 	user.isRolesLoaded = false
 	user.rolesLoaded = main.modules.Signal.new()

@@ -28,8 +28,19 @@ function SettingsService.generateRecord(key)
 		
 		---------------------------
 		["System"] = {
-			-- Gear
-			restrictedGear = {},
+			
+			libraryIDs = { -- Gear, Sounds, Images, etc
+				blacklist = {},
+				whitelist = {},
+			},
+			catalogIDs = { -- Accessories, Faces, etc
+				blacklist = {},
+				whitelist = {},
+			},
+			bundleIDs = { -- Bundles
+				blacklist = {},
+				whitelist = {},
+			},
 			
 			-- Warning System
 			warnExpiryTime = 604800, -- 1 week
@@ -49,7 +60,15 @@ function SettingsService.generateRecord(key)
 	return defaultRecords[key]
 end
 
-function SettingsService:updateGroup(groupName, propertiesToUpdate)
+function SettingsService.getGroup(groupName)
+	return SettingsService:getRecord(groupName)
+end
+
+function SettingsService.getGroups()
+	return SettingsService:getRecords()
+end
+
+function SettingsService.updateGroup(groupName, propertiesToUpdate)
 	local key = tostring(groupName)
 	SettingsService:updateRecord(key, propertiesToUpdate)
 	return true
