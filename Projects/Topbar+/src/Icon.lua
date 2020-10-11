@@ -307,7 +307,7 @@ function Icon:updateCaption(visibility)
 	local overlineSizeX = 3*sizeMultiplier
 	self.objects.captionOverline.Parent.Position = UDim2.new(0.5,0,-0.5,overlineSizeX)
 	self.objects.captionOverline.Position = UDim2.new(0.5,0,1.5,-overlineSizeX)
-	if self.captionTween then
+	if self.captionTween and not (userInputService.TouchEnabled and not userInputService.MouseEnabled) then
 		self.captionTween((visibility and self.toggleStatus == "deselected" and caption ~= ""))
 	end
 	--self.objects.captionContainer.Visible = (visibility and self.toggleStatus == "deselected" and caption ~= "")
