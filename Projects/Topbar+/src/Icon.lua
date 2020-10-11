@@ -304,7 +304,7 @@ function Icon:updateCaption(visibility)
 	local sizeMultiplier = math.clamp(((self.cellSize or 32)/32),1,2)
 	self.objects.captionText.TextSize = 12*sizeMultiplier
 	local textSize = textService:GetTextSize(caption,self.objects.captionText.TextSize,Enum.Font.GothamSemibold,Vector2.new(1000,20-6))
-	self.objects.captionContainer.Size = UDim2.new(0,textSize.X+6*sizeMultiplier,0,20*sizeMultiplier)
+	self.objects.captionContainer.Size = UDim2.new(0,textSize.X+20*sizeMultiplier,0,25*sizeMultiplier)
 	self.objects.captionText.Text = caption
 	local overlineSizeX = 3*sizeMultiplier
 	self.objects.captionOverline.Parent.Position = UDim2.new(0.5,0,-0.5,overlineSizeX)
