@@ -298,6 +298,9 @@ end
 
 function Icon:updateCaption(visibility)
 	local caption = self.caption
+	if not caption then
+		return
+	end
 	local sizeMultiplier = math.clamp(((self.cellSize or 32)/32),1,2)
 	self.objects.captionText.TextSize = 12*sizeMultiplier
 	local textSize = textService:GetTextSize(caption,self.objects.captionText.TextSize,Enum.Font.GothamSemibold,Vector2.new(1000,20-6))
