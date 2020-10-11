@@ -36,6 +36,9 @@ Modifiers.array = {
 			local modifiers = batch.modifiers
 			local oldGlobal = modifiers.global
 			if oldGlobal then
+				-- Its important to ignore the global modifier in this situation as setting an ActiveCommand to
+				-- perm storage achieves the same effect. Merging both together however would create
+				-- a vicious infinite cycle 
 				modifiers.global = nil
 				modifiers.wasGlobal = oldGlobal
 			end

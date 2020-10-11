@@ -127,7 +127,6 @@ function Icon.new(name, imageId, order, label)
 			captionOverlineTweenOut = maid:give(tweenService:Create(self.objects.captionOverline,self._captionTweenInfo,{BackgroundTransparency = 1}))
 		}
 	}
-	
 	self.updated = maid:give(Signal.new())
 	self.selected = maid:give(Signal.new())
 	self.deselected = maid:give(Signal.new())
@@ -350,13 +349,13 @@ function Icon:setControllerTip(tip)
 end
 
 function Icon:setCaption(caption)
-	local newCaption = ""
-	if caption then
-		assert(typeof(caption) == "string","Expected string, got "..typeof(caption))
+	local newCaption = caption or ""
+	if newCaption then
+		assert(typeof(newCaption) == "string","Expected string, got "..typeof(newCaption))
 	end
-	self.caption = caption
+	self.caption = newCaption
 	if self.hovering then
-		self:updateCaption(caption)
+		self:updateCaption(newCaption)
 	end
 end
 
