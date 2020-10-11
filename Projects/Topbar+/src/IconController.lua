@@ -10,14 +10,14 @@ local Icon = require(script.Parent.Icon)
 local topbarIcons = {}
 local fakeChatName = "_FakeChat"
 local function deepCopy(original)
-    local copy = {}
-    for k, v in pairs(original) do
-        if type(v) == "table" then
-            v = deepCopy(v)
-        end
-        copy[k] = v
-    end
-    return copy
+	local copy = {}
+	for k, v in pairs(original) do
+		if type(v) == "table" then
+			v = deepCopy(v)
+		end
+		copy[k] = v
+	end
+	return copy
 end
 local function getChatMain()
 	return players.LocalPlayer.PlayerScripts:WaitForChild("ChatScript").ChatMain
@@ -105,7 +105,7 @@ function IconController:createIcon(name, imageId, order, withText)
 	end
 	local function updateIcon()
 		assert(iconDetails, ("Failed to update Icon '%s': icon not found."):format(name))
-
+		
 		if topbarUpdating then -- This prevents the topbar updating and shifting icons more than it needs to
 			return false
 		end
@@ -194,7 +194,7 @@ function IconController:createIcon(name, imageId, order, withText)
 		icon._previousAlignment = icon.alignment
 		icon:setMid()
 	end
-
+	
 	return icon
 end
 
@@ -480,7 +480,7 @@ function IconController:setGameTheme(theme)
 	self.gameTheme = theme
 	local icons = self:getAllIcons()
 	for _, icon in pairs(icons) do
-	    icon:setTheme(theme)
+		icon:setTheme(theme)
 	end
 end
 

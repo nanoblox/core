@@ -127,7 +127,6 @@ function Icon.new(name, imageId, order, label)
 			captionOverlineTweenOut = maid:give(tweenService:Create(self.objects.captionOverline,self._captionTweenInfo,{BackgroundTransparency = 1}))
 		}
 	}
-
 	self.updated = maid:give(Signal.new())
 	self.selected = maid:give(Signal.new())
 	self.deselected = maid:give(Signal.new())
@@ -292,7 +291,9 @@ function Icon:updateToolTip(visibility, position)
 		setToolTipPosition(position.X,position.Y)
 	end
 	tipContainer.TextLabel.Text = tip
-	tipContainer.Visible = (visibility and self.toggleStatus == "deselected" and tip ~= "")
+	if not (userInputService.TouchEnabled and not userInputService.MouseEnabled) then
+		tipContainer.Visible = (visibility and self.toggleStatus == "deselected" and tip ~= "")
+	end
 end
 
 function Icon:updateCaption(visibility)
@@ -300,10 +301,15 @@ function Icon:updateCaption(visibility)
 	if not caption then
 		return
 	end
-	local textSize = textService:GetTextSize(caption,12,Enum.Font.GothamSemibold,Vector2.new(1000,20-6))
-	self.objects.captionContainer.Size = UDim2.new(0,textSize.X+22,0,25)
+	local sizeMultiplier = math.clamp(((self.cellSize or 32)/32),1,2)
+	self.objects.captionText.TextSize = 12*sizeMultiplier
+	local textSize = textService:GetTextSize(caption,self.objects.captionText.TextSize,Enum.Font.GothamSemibold,Vector2.new(1000,20-6))
+	self.objects.captionContainer.Size = UDim2.new(0,textSize.X+6*sizeMultiplier,0,20*sizeMultiplier)
 	self.objects.captionText.Text = caption
-	if self.captionTween then
+	local overlineSizeX = 3*sizeMultiplier
+	self.objects.captionOverline.Parent.Position = UDim2.new(0.5,0,-0.5,overlineSizeX)
+	self.objects.captionOverline.Position = UDim2.new(0.5,0,1.5,-overlineSizeX)
+	if self.captionTween and not (userInputService.TouchEnabled and not userInputService.MouseEnabled) then
 		self.captionTween((visibility and self.toggleStatus == "deselected" and caption ~= ""))
 	end
 	--self.objects.captionContainer.Visible = (visibility and self.toggleStatus == "deselected" and caption ~= "")
@@ -409,7 +415,7 @@ end
 
 function Icon:getIconLabelXSize()
 	local size = textService:GetTextSize(self.objects.label.Text,self.objects.label.TextSize,self.objects.label.Font,Vector2.new(10000,self.objects.label.Size.Y))
-	return size.X+((self.objects.image.Visible and self.imageId ~= 0) and self.objects.image.Size.X.Offset+((((self.cellSize or 32)/32)*12)+6) or ((self.cellSize or 32)/32)*12)
+	return size.X+((self.objects.image.Visible and self.imageId ~= 0) and self.objects.image.Size.X.Offset+((((self.cellSize or 32)/32)*12)+(6*(self.cellSize or 32)/32)) or ((self.cellSize or 32)/32)*12)
 end
 
 function Icon:setImageSize(pixelsX, pixelsY)
@@ -431,6 +437,7 @@ function Icon:setCellSize(pixelsX)
 	self.cellSize = pixelsX
 	local notifPosYScale = 0.45
 	if self.objects.label.Text ~= "" then
+		self.objects.label.TextSize = 14*math.clamp((pixelsX/32),1,2.5)
 		self.objects.image.AnchorPoint = Vector2.new(0,0.5)
 		self.objects.image.Position = UDim2.new(0,((self.cellSize or 32)/32)*6,0.5,0)
 		self.objects.label.Position = UDim2.new(0,((self.objects.image.Visible and self.imageId ~= 0) and (((((self.cellSize or 32)/32)*12))+self.objects.image.AbsoluteSize.X) or ((self.cellSize or 32)/32)*6),0.5,0)
@@ -621,7 +628,7 @@ function Icon:notify(clearNoticeEvent)
 				end
 			end
 		end
-
+		
 		local notifComplete = Signal.new()
 		local endEvent = self.endNotifications:Connect(function()
 			notifComplete:Fire()
@@ -629,7 +636,7 @@ function Icon:notify(clearNoticeEvent)
 		local customEvent = clearNoticeEvent:Connect(function()
 			notifComplete:Fire()
 		end)
-			
+		
 		notifComplete:Wait()
 		
 		endEvent:Disconnect()
@@ -640,7 +647,7 @@ function Icon:notify(clearNoticeEvent)
 		if self.totalNotifications < 1 then
 			self.objects.notification.Visible = false
 		end
-
+		
 		if self.dropdown then
 			for _, option in pairs(promptedOptions) do
 				local dNotice = option.notice

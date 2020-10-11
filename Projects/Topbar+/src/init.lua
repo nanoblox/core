@@ -154,6 +154,7 @@ captionText.Position = UDim2.new(0,3,0.12,3)
 captionText.Size = UDim2.new(1,-6,0.8,-6)
 captionText.ZIndex = 102
 captionText.TextColor3 = Color3.new(1,1,1)
+
 captionText.Parent = caption
 
 local captionUiCorner = Instance.new("UICorner")
