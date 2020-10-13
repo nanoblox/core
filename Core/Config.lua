@@ -150,26 +150,27 @@ return {
 	Settings = {
 		---------------------------
 		["Client"] = {
-			prefixes				= {","},
-			argCapsule 				= "(%s)",
-			rgbCapsule 				= "[%s]",
-			collective 				= ",",
-			descriptorSeparator 	= "",
-			spaceSeparator 			= " ",
-			batchSeparator 			= " ", -- " | "
+			prefixes = {","},
+			argCapsule = "(%s)",
+			rgbCapsule = "[%s]",
+			collective = ",",
+			descriptorSeparator = "",
+			spaceSeparator = " ",
+			batchSeparator = " ", -- " | "
 			--
 			previewIncompleteCommands = false,
 			--
-			theme					= "Blue",		-- The default UI theme.
-			noticeSoundId			= 2865227271,	-- The SoundId for notices.
-			noticeVolume			= 0.1,			-- The Volume for notices.
-			noticePitch				= 1,			-- The Pitch/PlaybackSpeed for notices.
-			errorSoundId			= 2865228021,	-- The SoundId for error notifications.
-			errorVolume				= 0.1,			-- The Volume for error notifications.
-			errorPitch				= 1,			-- The Pitch/PlaybackSpeed for error notifications.
-			alertSoundId			= 3140355872,	-- The SoundId for alerts.
-			alertVolume				= 0.5,			-- The Volume for alerts.
-			alertPitch				= 1,			-- The Pitch/PlaybackSpeed for alerts.
+			theme = "",
+			backgroundTransparency 	= 0.1,
+			noticeSoundId = 2865227271,	-- The SoundId for notices.
+			noticeVolume = 0.1,			-- The Volume for notices.
+			noticePitch = 1,			-- The Pitch/PlaybackSpeed for notices.
+			errorSoundId = 2865228021,	-- The SoundId for error notifications.
+			errorVolume = 0.1,			-- The Volume for error notifications.
+			errorPitch = 1,			-- The Pitch/PlaybackSpeed for error notifications.
+			alertSoundId = 3140355872,	-- The SoundId for alerts.
+			alertVolume = 0.5,			-- The Volume for alerts.
+			alertPitch = 1,			-- The Pitch/PlaybackSpeed for alerts.
 		},
 		
 		

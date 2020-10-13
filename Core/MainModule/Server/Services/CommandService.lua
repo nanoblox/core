@@ -16,8 +16,8 @@ function CommandService:begin()
 	-- Setup globals
 	self.executeBatchGloballySender = main.services.GlobalService.createSender("executeBatchGlobally")
 	self.executeBatchGloballyReceiver = main.services.GlobalService.createReceiver("executeBatchGlobally")
-	self.executeBatchGloballyReceiver.onGlobalEvent:Connect(function(user, batch)
-		CommandService.executeBatch(user, batch)
+	self.executeBatchGloballyReceiver.onGlobalEvent:Connect(function(caller, batch)
+		CommandService.executeBatch(caller, batch)
 	end)
 
 	-- Grab default commands
@@ -109,24 +109,24 @@ function CommandService.getTable(name)
 	CommandService.records:getTable(name)
 end 
 
-function CommandService.chatCommand(user, message)
-	print(user.name, "chatted: ", message)
+function CommandService.chatCommand(caller, message)
+	print(caller.name, "chatted: ", message)
 	local batches = main.modules.Parser.parseMessage(message)
 	if type(batches) == "table" then
 		for i, batch in pairs(batches) do
-			local approved, noticeDetails = CommandService.verifyBatch(user, batch)
+			local approved, noticeDetails = CommandService.verifyBatch(caller, batch)
 			if approved then
-				CommandService.executeBatch(user, batch)
+				CommandService.executeBatch(caller, batch)
 			end
 			for _, detail in pairs(noticeDetails) do
 				local method = main.services.MessageService[detail[1]]
-				method(user.player, detail[2])
+				method(caller.player, detail[2])
 			end
 		end
 	end
 end
 
-function CommandService.verifyBatch(user, batch)
+function CommandService.verifyBatch(caller, batch)
 	local approved = true
 	local details = {}
 
@@ -152,7 +152,7 @@ function CommandService.verifyBatch(user, batch)
 	return approved, details
 end
 
-function CommandService.executeBatch(user, batch)
+function CommandService.executeBatch(caller, batch)
 	----
 	batch.commands = batch.commands or {}
 	batch.modifiers = batch.modifiers or {}
@@ -160,7 +160,7 @@ function CommandService.executeBatch(user, batch)
 	----
 	local Modifiers = main.modules.Modifiers
 	for _, item in pairs(Modifiers.sortedOrderArrayWithOnlyPreAction) do
-		local continueExecution = item.preAction(user, batch)
+		local continueExecution = item.preAction(caller, batch)
 		if not continueExecution then
 			return
 		end
@@ -172,11 +172,11 @@ function CommandService.executeBatch(user, batch)
 	for commandName, arguments in pairs(batch.commands) do
 		local command = CommandService.getCommand(commandName)
 		local isCorePlayerArg = Args.playerArgsWithoutHiddenDictionary[string.lower(command.args[1])]
-		local ActiveCommandService = main.services.ActiveCommandService
-		local properties = ActiveCommandService.generateRecord()
+		local TaskService = main.services.TaskService
+		local properties = TaskService.generateRecord()
+		properties.caller = batch.caller or properties.caller
 		properties.commandName = commandName
-		properties.commandArgs = arguments or properties.commandArgs
-		properties.qualifiers = batch.qualifiers or properties.qualifiers
+		properties.args = arguments or properties.args
 		-- Its important to split commands into specific users for most cases so that the command can
 		-- be easily reapplied if the player rejoins (for ones where the perm modifier is present)
 		-- The one exception for this is when a global modifier is present. In this scenerio, don't save
@@ -198,32 +198,27 @@ function CommandService.executeBatch(user, batch)
 			splitIntoUsers = isCorePlayerArg
 		end
 		if not splitIntoUsers then
-			main.services.ActiveCommandService.createActiveCommand(addToPerm, properties)
+			properties.qualifiers = batch.qualifiers or properties.qualifiers
+			main.services.TaskService.createTask(addToPerm, properties)
 		else
-			local targetsDict = {}
-			for qualifierName, qualifierArgs in pairs(batch.qualifiers) do
-				local targets = Qualifiers.dictionary[qualifierName]
-				for _, plr in pairs(targets) do
-					targetsDict[plr] = true
-				end
-			end
-			for plr, _ in pairs(targetsDict) do
+			local targets = Args.dictionary.player:parse(batch.qualifiers)
+			for _, plr in pairs(targets) do
 				properties.userId = plr.UserId
-				main.services.ActiveCommandService.createActiveCommand(addToPerm, properties)
+				main.services.TaskService.createTask(addToPerm, properties)
 			end
 		end
 	end
 end
 
-function CommandService.invokeCommand(user, commandName, ...)
-	CommandService.executeBatch(user, {
+function CommandService.invokeCommand(caller, commandName, ...)
+	CommandService.executeBatch(caller, {
 		commands = {
 			--commandName = args -- !!! what about qualifiers?
 		}
 	})
 end
 
-function CommandService.revokeCommand(user, commandName, qualifier)
+function CommandService.revokeCommand(caller, commandName, qualifier)
 	
 end
 

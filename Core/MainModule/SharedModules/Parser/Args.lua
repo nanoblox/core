@@ -13,8 +13,19 @@ Args.array = {
 		description	= "",
 		defaultValue = 0,
 		playerArg = true,
-		parse = function(stringToParse)
-			
+		parse = function(self, qualifiers)
+			local targetsDict = {}
+			for qualifierName, qualifierArgs in pairs(qualifiers or {}) do
+				local targets = main.modules.Qualifiers.dictionary[qualifierName]
+				for _, plr in pairs(targets) do
+					targetsDict[plr] = true
+				end
+			end
+			local players = {}
+			for plr, _ in pairs(targetsDict) do
+				table.insert(players, plr)
+			end
+			return players
 		end,
 	};
 	
@@ -27,8 +38,8 @@ Args.array = {
 		description	= "",
 		defaultValue = 0,
 		playerArg = true,
-		parse = function(stringToParse)
-			
+		parse = function(self, qualifiers)
+			return main.modules.Args.dictionary.player:parse(qualifiers)
 		end,
 	};
 	
@@ -42,8 +53,18 @@ Args.array = {
 		defaultValue = 0,
 		playerArg = true,
 		hidden = true,
-		parse = function(stringToParse)
-			
+		parse = function(self, qualifiers)
+			if qualifiers == nil then
+				return main.Players:GetPlayers()
+			end
+			local qualifierPresent = false
+			for k,v in pairs(self.qualifiers) do
+				qualifierPresent = true
+			end
+			if not qualifierPresent then
+				return main.Players:GetPlayers()
+			end
+			return main.modules.Args.dictionary.player:parse(qualifiers)
 		end,
 	};
 	
@@ -56,7 +77,7 @@ Args.array = {
 		aliases = {"string", "reason", "question", "teamname"},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -69,7 +90,7 @@ Args.array = {
 		aliases = {"lua"},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -82,7 +103,7 @@ Args.array = {
 		aliases = {"integer", "studs", "speed", "intensity"},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -95,7 +116,7 @@ Args.array = {
 		aliases = {},
 		description	= "",
 		defaultValue = 180,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -108,7 +129,7 @@ Args.array = {
 		aliases = {},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -121,7 +142,7 @@ Args.array = {
 		aliases = {"colour", "color3", "uigradient", "colorgradient", "gradient"},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -134,7 +155,7 @@ Args.array = {
 		aliases = {"boolean", "trueOrFalse", "yesOrNo"},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -147,7 +168,7 @@ Args.array = {
 		aliases = {"statName"},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -160,7 +181,7 @@ Args.array = {
 		aliases = {},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -173,7 +194,7 @@ Args.array = {
 		aliases = {},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -186,7 +207,7 @@ Args.array = {
 		aliases = {"username", "userid", "playerid", "playername"},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -199,7 +220,7 @@ Args.array = {
 		aliases = {},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -212,7 +233,7 @@ Args.array = {
 		aliases = {},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -225,7 +246,7 @@ Args.array = {
 		aliases = {},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -238,7 +259,7 @@ Args.array = {
 		aliases = {"gear", "item"},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};
@@ -251,7 +272,7 @@ Args.array = {
 		aliases = {},
 		description	= "",
 		defaultValue = 0,
-		parse = function(stringToParse)
+		parse = function(self, stringToParse)
 			
 		end,
 	};

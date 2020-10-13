@@ -13,34 +13,6 @@ local enums = {}
 
 
 
--- START
-function EnumHandler:start()
-	local createEnum = self.createEnum
-	createEnum("Servers", {
-		{"Current", 1}, -- This server
-		{"Others", 2}, -- Every server, except this server
-		{"All", 3}, -- Every server
-	})
-	
-	createEnum("RoleType", {
-		{"Perm", 1}, -- Persists until the player leaves
-		{"Time", 2}, -- Persists until the 'giver' (user that gave the role) leaves the server
-		{"Server", 3}, -- Persists until the server ends
-		{"Giver", 4}, -- Remains permanently (until removed)
-		{"Temp", 5}, -- Remains permanently, and syncs with config in studio (i.e.
-		-- is added to the role itself)
-	})
-	
-	--[[
-	createEnum("Color", {
-	    {"White", 1, Color3.fromRGB(255, 255, 255)},
-	    {"Black", 2, Color3.fromRGB(0, 0, 0)},
-	})
-	--]]
-end
-
-
-
 -- METHODS
 function EnumHandler.createEnum(enumName, details)
 	assert(typeof(enumName) == "string", "bad argument #1 - enums must be created using a string name!")
@@ -114,6 +86,49 @@ end
 function EnumHandler.getEnums()
 	return enums
 end
+
+
+
+-- SETUP ENUMS
+local createEnum = EnumHandler.createEnum
+-----------------------------------
+createEnum("Servers", {
+	{"Current", 1}, -- This server
+	{"Others", 2}, -- Every server, except this server
+	{"All", 3}, -- Every server
+})
+
+
+-----------------------------------
+createEnum("RoleType", {
+	{"Perm", 1}, -- Persists until the player leaves
+	{"Time", 2}, -- Persists until the 'giver' (user that gave the role) leaves the server
+	{"Server", 3}, -- Persists until the server ends
+	{"Giver", 4}, -- Remains permanently (until removed)
+	{"Temp", 5}, -- Remains permanently, and syncs with config in studio (i.e.
+	-- is added to the role itself)
+})
+
+
+-----------------------------------
+createEnum("ThreadState", {
+	{"Playing ", 1},
+	{"Paused", 2},
+	{"Completed", 3},
+	{"Cancelled", 4},
+})
+
+
+-----------------------------------
+--[[
+createEnum("Color", {
+	{"White", 1, Color3.fromRGB(255, 255, 255)},
+	{"Black", 2, Color3.fromRGB(0, 0, 0)},
+})
+--]]
+
+
+-----------------------------------
 
 
 

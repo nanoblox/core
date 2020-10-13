@@ -139,8 +139,8 @@ function main:initiate()
 			end
 	    end
 	})
-	Thread = main.modules.Thread
 	main.enum = main.modules.EnumHandler:getEnums()
+	Thread = main.modules.Thread
 	
 	
 	-- SERVICES / CONTROLLERS

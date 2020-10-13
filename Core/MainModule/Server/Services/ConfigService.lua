@@ -146,10 +146,11 @@ function ConfigService:start()
 		if not service then return end
 		local systemUser = service.user
 		if isNilled then
-			Thread.wait(3)
-			if service.records[key] ~= nil and systemUser.perm:get(key) == nil and DataUtil.isEqual(isNilled, nilledUser.perm:find(categoryName, key)) then
-				systemUser.temp:set(key, nil)
-			end
+			Thread.delay(3, function()
+				if service.records[key] ~= nil and systemUser.perm:get(key) == nil and DataUtil.isEqual(isNilled, nilledUser.perm:find(categoryName, key)) then
+					systemUser.temp:set(key, nil)
+				end
+			end)
 		end
 	end
 	nilledUser.perm.changed:Connect(function(categoryName, tab)
@@ -172,11 +173,10 @@ function ConfigService:start()
 	-- This checks for differences between config and latestConfig and
 	-- if present, applies them to the corresponding services
 	main.config = config
-	while true do
-		Thread.wait(10)
+	Thread.loop(10, function()
 		latestConfig = ConfigService.getLatestConfig()
 		ConfigService.transformChanges(latestConfig, main.config, "temp")
-	end
+	end)
 end
 
 

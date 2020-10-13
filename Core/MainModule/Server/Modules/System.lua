@@ -110,13 +110,19 @@ function System.new(name, ignoreTempChanges)
 		local currentTick = tick()
 		if not globalPending and (not globalStartTick or currentTick - globalStartTick > 15) then
 			globalStartTick = currentTick
-			if currentTick < newServerCooldownEnd then
-				Thread.wait(newServerCooldownEnd-currentTick)
-				currentTick = tick()
+			local function fireAway()
+				local requestUID = DataUtil.generateUID(7)
+				myUIDs[requestUID] = Signal.new()
+				self.senderSave:fireAllServers(requestUID)
 			end
-			local requestUID = DataUtil.generateUID(7)
-			myUIDs[requestUID] = Signal.new()
-			self.senderSave:fireAllServers(requestUID)
+			if currentTick < newServerCooldownEnd then
+				Thread.delay(newServerCooldownEnd-currentTick, function()
+					currentTick = tick()
+					fireAway()
+				end)
+			else
+				fireAway()
+			end
 		end
 	end)
 	
@@ -171,13 +177,14 @@ function System.new(name, ignoreTempChanges)
 			else
 				Thread.spawnNow(function() user:loadAsync() end)
 			end
-			Thread.wait(saveCooldown)
-			table.remove(requestsList, 1)
-			local nextRequestUID = requestsList[1]
-			local readyToSaveSignal = myUIDs[nextRequestUID]
-			if readyToSaveSignal then
-				readyToSaveSignal:Fire()
-			end
+			Thread.delay(saveCooldown, function()
+				table.remove(requestsList, 1)
+				local nextRequestUID = requestsList[1]
+				local readyToSaveSignal = myUIDs[nextRequestUID]
+				if readyToSaveSignal then
+					readyToSaveSignal:Fire()
+				end
+			end)
 		end)
 	end)
 	
@@ -291,15 +298,19 @@ function System.new(name, ignoreTempChanges)
 				local actionUID = DataUtil.generateUID()
 				changedUIDs[recordKey] = actionUID
 				--print(name, recordKey, " self.recordsActionDelay = ", self.recordsActionDelay)
+				local function endFunc()
+					if changedUIDs[recordKey] ~= actionUID then
+						return
+					end
+					changedUIDs[recordKey] = nil--]]
+					-- Call action
+					action()
+				end
 				if self.recordsActionDelay > 0 then
-					Thread.wait(self.recordsActionDelay)
+					Thread.delay(self.recordsActionDelay, endFunc)
+				else
+					endFunc()
 				end
-				if changedUIDs[recordKey] ~= actionUID then
-					return
-				end
-				changedUIDs[recordKey] = nil--]]
-				-- Call action
-				action()
 
 			
 			
@@ -333,28 +344,34 @@ function System.new(name, ignoreTempChanges)
 				local actionUID = DataUtil.generateUID()
 				local actionKey = recordKey.." | "..propName
 				pairedUIDs[actionKey] = actionUID
-				if self.recordsActionDelay > 0 then
-					Thread.wait(self.recordsActionDelay)
-				end
-				if pairedUIDs[actionKey] ~= actionUID then
-					return
-				end
-				pairedUIDs[actionKey] = nil
-				-- Expiry checks
-				local currentTime = os.time()
-				if propName == "expiryTime" then
-					if realRecords[recordKey] == nil and newPropValue > currentTime then
-						-- If previously expired and no longer, then re-add
-						user.temp:set(recordKey, self.records[recordKey])
+				
+				local function endFunc()
+					if pairedUIDs[actionKey] ~= actionUID then
 						return
-					elseif newPropValue <= nextExpiryUpdate and not expiryRecordsToWatch[recordKey] then
-						-- Value falls within close-watch range, add to tracking
-						expiryRecordsToWatch[recordKey] = true
 					end
+					pairedUIDs[actionKey] = nil
+					-- Expiry checks
+					local currentTime = os.time()
+					if propName == "expiryTime" then
+						if realRecords[recordKey] == nil and newPropValue > currentTime then
+							-- If previously expired and no longer, then re-add
+							user.temp:set(recordKey, self.records[recordKey])
+							return
+						elseif newPropValue <= nextExpiryUpdate and not expiryRecordsToWatch[recordKey] then
+							-- Value falls within close-watch range, add to tracking
+							expiryRecordsToWatch[recordKey] = true
+						end
+					end
+					-- Call action
+					self.recordChanged:Fire(recordKey, propName, newPropValue, oldPropValue)
+					realRecords[recordKey][propName] = newPropValue
 				end
-				-- Call action
-				self.recordChanged:Fire(recordKey, propName, newPropValue, oldPropValue)
-				realRecords[recordKey][propName] = newPropValue
+				if self.recordsActionDelay > 0 then
+					Thread.delay(self.recordsActionDelay, endFunc)
+				else
+					endFunc()
+				end
+				
 
 			end
 
@@ -370,34 +387,31 @@ function System.new(name, ignoreTempChanges)
 		-- (i.e. within 20 minutes of the current time) are closely watched.
 		-- This precise watch is updated every 20 minutes.
 		
-		Thread.spawnNow(function()
-			while System do
-				local currentTime = os.time()
-				-- Every 20 minutes, determine if any records need close watching
-				if currentTime >= nextExpiryUpdate then
-					nextExpiryUpdate = currentTime + expiryWatchInterval
-					expiryRecordsToWatch = {}
-					for recordKey, record in pairs(realRecords) do
-						if typeof(record) == "table" and record.expiryTime and record.expiryTime <= nextExpiryUpdate then
-							expiryRecordsToWatch[recordKey] = true
-						end
+		Thread.loopUntil(1, function() return not System end, function()
+			local currentTime = os.time()
+			-- Every 20 minutes, determine if any records need close watching
+			if currentTime >= nextExpiryUpdate then
+				nextExpiryUpdate = currentTime + expiryWatchInterval
+				expiryRecordsToWatch = {}
+				for recordKey, record in pairs(realRecords) do
+					if typeof(record) == "table" and record.expiryTime and record.expiryTime <= nextExpiryUpdate then
+						expiryRecordsToWatch[recordKey] = true
 					end
 				end
-				-- Check to see if a closely watched record has expired
-				for recordKey, _ in pairs(expiryRecordsToWatch) do
-					local record = realRecords[recordKey]
-					if not record then
+			end
+			-- Check to see if a closely watched record has expired
+			for recordKey, _ in pairs(expiryRecordsToWatch) do
+				local record = realRecords[recordKey]
+				if not record then
+					expiryRecordsToWatch[recordKey] = nil
+				else
+					local expiryTime = (tonumber(record.expiryTime) and record.expiryTime) or currentTime
+					if expiryTime <= currentTime then
 						expiryRecordsToWatch[recordKey] = nil
-					else
-						local expiryTime = (tonumber(record.expiryTime) and record.expiryTime) or currentTime
-						if expiryTime <= currentTime then
-							expiryRecordsToWatch[recordKey] = nil
-							self.recordRemoved:Fire(recordKey, record)
-							realRecords[recordKey] = nil
-						end
+						self.recordRemoved:Fire(recordKey, record)
+						realRecords[recordKey] = nil
 					end
 				end
-				Thread.wait(1)
 			end
 		end)
 		

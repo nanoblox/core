@@ -36,7 +36,7 @@ Modifiers.array = {
 			local modifiers = batch.modifiers
 			local oldGlobal = modifiers.global
 			if oldGlobal then
-				-- Its important to ignore the global modifier in this situation as setting an ActiveCommand to
+				-- Its important to ignore the global modifier in this situation as setting Task to
 				-- perm storage achieves the same effect. Merging both together however would create
 				-- a vicious infinite cycle 
 				modifiers.global = nil
@@ -54,20 +54,20 @@ Modifiers.array = {
 		aliases = {"g-"},
 		order = 3,
 		description	= "Broadcasts the batch to all servers.",
-		preAction = function(user, batch)
+		preAction = function(caller, batch)
 			local CommandService = main.services.CommandService
 			local modifiers = batch.modifiers
 			local oldGlobal = modifiers.global
-			local userCopy = {}
-			userCopy.name = user.name
-			userCopy.userId = user.userId
-			userCopy.player = {
-				Name = user.name,
-				UserId = user.userId,
+			local callerCopy = {}
+			callerCopy.name = caller.name
+			callerCopy.userId = caller.userId
+			callerCopy.player = {
+				Name = caller.name,
+				UserId = caller.userId,
 			}
 			modifiers.global = nil
 			modifiers.wasGlobal = oldGlobal
-			CommandService.executeBatchGloballySender:fireAllServers(userCopy, batch)
+			CommandService.executeBatchGloballySender:fireAllServers(callerCopy, batch)
 			return false
 		end,
 	};
@@ -79,7 +79,7 @@ Modifiers.array = {
 		name = "undo",
 		aliases = {"un", "u-", "revoke"},
 		order = 4,
-		description	= "Revokes all active commands that match the given command name(s) (and associated player targets if specified). To revoke an active command across all servers, the 'global' modifier must also be included.",
+		description	= "Revokes all tasks that match the given command name(s) (and associated player targets if specified). To revoke a task across all servers, the 'global' modifier must be included.",
 		action = function()
 			
 		end,
