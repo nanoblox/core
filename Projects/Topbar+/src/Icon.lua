@@ -151,7 +151,10 @@ function Icon.new(name, imageId, order, label)
 	self.deselectWhenOtherIconSelected = true
 	self.maxTouchTime = 0.5
 	self._isControllerMode = false
-	
+	self._subIcons = {}
+	self._totalSubIcons = 0
+	self._parentIcons = {}
+
 	self.captionTween = function(active)
 		if active then
 			if not self.objects.captionContainer.Visible then
@@ -328,6 +331,29 @@ function Icon:disableStateOverlay(bool)
 	end
 	local stateOverlay = self.objects.button.Parent.StateOverlay
 	stateOverlay.Visible = not bool
+end
+
+function Icon:addSubIcon(icon)
+	self.deselectWhenOtherIconSelected = false
+	self._subIcons[icon] = true
+	self._totalSubIcons = self._totalSubIcons + 1
+	icon._parentIcons[self] = true
+	icon:setEnabled(false)
+end
+
+function Icon:removeSubIcon(icon)
+	if self._subIcons[icon] then
+		self._subIcons[icon] = nil
+		self._totalSubIcons = self._totalSubIcons - 1
+		if self._totalSubIcons == 0 then
+			if self.totalNotifications > 0 then
+				self.objects.notification.Visible = true
+			end
+			self.deselectWhenOtherIconSelected = true
+		end
+		icon._parentIcons[self] = nil
+		icon:setEnabled(true)
+	end
 end
 
 function Icon:setLabel(text)
@@ -599,6 +625,12 @@ function Icon:select()
 	if self.toggleMenu then
 		setToggleMenuVisible(self,true)
 	end
+	if self._totalSubIcons > 0 then
+		self.objects.notification.Visible = false
+	end
+	for subIcon, _ in pairs(self._subIcons) do
+		subIcon:setEnabled(true)
+	end
 	self.selected:Fire()
 end
 
@@ -610,6 +642,12 @@ function Icon:deselect()
 	if self.toggleMenu then
 		setToggleMenuVisible(self,false)
 	end
+	if self._totalSubIcons > 0 and self.totalNotifications > 0 then
+		self.objects.notification.Visible = true
+	end
+	for subIcon, _ in pairs(self._subIcons) do
+		subIcon:setEnabled(false)
+	end
 	self.deselected:Fire()
 end
 
@@ -617,6 +655,9 @@ function Icon:notify(clearNoticeEvent)
 	coroutine.wrap(function()
 		if not clearNoticeEvent then
 			clearNoticeEvent = self.deselected
+		end
+		for parentIcon, _ in pairs(self._parentIcons) do
+			parentIcon:notify(clearNoticeEvent)
 		end
 		self.totalNotifications = self.totalNotifications + 1
 		self.objects.amount.Text = (self.totalNotifications < 100 and self.totalNotifications) or "99+"
@@ -664,6 +705,7 @@ function Icon:notify(clearNoticeEvent)
 		notifComplete:Disconnect()
 		
 		self.totalNotifications = self.totalNotifications - 1
+		self.objects.amount.Text = self.totalNotifications
 		if self.totalNotifications < 1 then
 			self.objects.notification.Visible = false
 		end
