@@ -9,7 +9,7 @@ Tags.array = {
 	-----------------------------------
 	{
 		name = "abusive",
-		description	= "Potentially harmfu; typically annoying when used frequently",
+		description	= "Potentially harmful; typically annoying when used frequently",
 	};
 	
 	
