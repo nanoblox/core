@@ -384,14 +384,31 @@ function Icon:removeDropdown()
 	end
 end
 
-function Icon:setImage(imageId)
+function Icon:setImage(imageId, status)
 	local textureId = (tonumber(imageId) and "http://www.roblox.com/asset/?id="..imageId) or imageId
-	self.imageId = (textureId == "" and 0) or textureId
-	self.objects.image.Image = textureId
-	self.theme.image = self.theme.image or {}
-	self.theme.image.selected = self.theme.image.selected or {}
-	self.theme.image.selected.Image = textureId
-	self:setCellSize()
+	local newStatus = status or "selected"
+	local function updateThemeSegment(statusName)
+		self.theme.image = self.theme.image or {}
+		self.theme.image[statusName] = self.theme.image[statusName] or {}
+		self.theme.image[statusName].Image = textureId
+	end
+	updateThemeSegment(newStatus)
+	if status == nil then
+		updateThemeSegment("deselected")
+	end
+	if status == nil or status == self.toggleStatus then
+		self.imageId = (textureId == "" and 0) or textureId
+		self.objects.image.Image = textureId
+		self:setCellSize()
+	end
+end
+
+function Icon:setDeselectedImage(imageId)
+	self:setImage(imageId, "deselected")
+end
+
+function Icon:setSelectedImage(imageId)
+	self:setImage(imageId, "selected")
 end
 
 function Icon:setOrder(order)

@@ -379,7 +379,7 @@ function updateDevice()
 	IconController:enableControllerMode()
 end
 
-function IconController:createFakeChat(theme)
+function IconController:createFakeChat()
 	local chatMainModule = getChatMain()
 	local ChatMain = require(chatMainModule)
 	local iconName = fakeChatName
@@ -454,11 +454,7 @@ function IconController:createFakeChat(theme)
 			end))
 		end)()
 	end
-	theme = (theme and deepCopy(theme)) or (self.gameTheme and deepCopy(self.gameTheme)) or {}
-	theme.image = theme.image or {}
-	theme.image.selected = theme.image.selected or {}
-	theme.image.selected.Image = "rbxasset://textures/ui/TopBar/chatOn.png"
-	icon:setTheme(theme)
+	icon:setSelectedImage("rbxasset://textures/ui/TopBar/chatOn.png")
 	icon:setImageSize(20)
 	icon:setToggleFunction(function()
 		local isSelected = icon.toggleStatus == "selected"
