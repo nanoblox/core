@@ -78,6 +78,18 @@ function TaskService.getTasks()
 	return allTasks
 end
 
+function TaskService.getTasksWithCommandName(commandName)
+	
+end
+
+function TaskService.getTasksWithUserId(userId)
+	
+end
+
+function TaskService.getTasksWithCommandNameAndUserId(commandName, userId)
+	
+end
+
 function TaskService.updateTask(UID, propertiesToUpdate)
 	local task = TaskService.getRole(UID)
 	assert(task, ("task '%s' not found!"):format(tostring(UID)))
