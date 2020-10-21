@@ -5,6 +5,7 @@ local userInputService = game:GetService("UserInputService")
 local starterGui = game:GetService("StarterGui")
 local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
 local Maid = require(HDAdmin:WaitForChild("Maid"))
+local Signal = require(HDAdmin:WaitForChild("Signal"))
 
 local dropdown = {}
 dropdown.__index = dropdown
@@ -16,12 +17,18 @@ function dropdown.new(icon, options)
 	local maid = Maid.new()
 	self._maid = maid
 	self._tempConnections = maid:give(Maid.new())
+	self.closed = maid:give(Signal.new())
+	self.opened = maid:give(Signal.new())
+	self.isOpen = false
 	self.icon = icon
 	self.dropdownContainer = self.icon.objects.container.Parent.Parent.Dropdown
 	self.options = {}
 	self.bringBackPlayerlist = false
 	self.bringBackChat = false
 	self.settings = {
+		bindToIcon = false,
+		closeWhenClicked = true,
+		closeWhenClickedAway = true,
 		canHidePlayerlist = true,
 		canHideChat = true,
 		tweenSpeed = 0.2,
@@ -43,19 +50,24 @@ function dropdown.new(icon, options)
 		contentProvider:PreloadAsync(preload)
 	end)()
 	
+	local function open(input)
+		local position = input and Vector2.new(input.Position.X,input.Position.Y)
+		if self.isOpen then self:hide() return end
+		self:open(position)
+	end
 	maid:give(self.icon.objects.button.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton2 then
-			local position = Vector2.new(input.Position.X,input.Position.Y)
-			self:show(position)
+			open(input)
 		end
 		input:Destroy()
 	end))
 	maid:give(self.icon.objects.button.TouchLongPress:Connect(function(positions,state)
 		if state == Enum.UserInputState.Begin then
-			self:show()
+			open()
 		end
 	end))
 	
+	self:close()
 	self:update()
 	return self
 end
@@ -115,15 +127,23 @@ function dropdown:createOption(option)
 		optionContainer.BackgroundTransparency = 1
 	end)
 	optionContainer.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 and option.clicked then
-			option.clicked()
-			self:hide()
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			if option.clicked then
+				option.clicked()
+			end
+			if self.settings.closeWhenClicked then
+				self:close()
+			end
 		end
 		input:Destroy()
 	end)
 	optionContainer.TouchTap:Connect(function()
-		option.data.clicked()
-		self:hide()
+		if option.clicked then
+			option.clicked()
+		end
+		if self.settings.closeWhenClicked then
+			self:close()
+		end
 	end)
 
 	optionContainer.Parent = script.Temp
@@ -154,11 +174,6 @@ end
 
 function dropdown:update()
 	local dropdownContainer = self.dropdownContainer
-	
-	if dropdownContainer.Visible then
-		self:hide()
-	end
-
 	if not dropdownContainer then return end
 	dropdownContainer.Background.BackgroundColor3 = self.settings.backgroundColor
 	dropdownContainer.Background.BottomRoundedRect.ImageColor3 = self.settings.backgroundColor
@@ -185,20 +200,49 @@ function dropdown:update()
 	end
 end
 
-function dropdown:set(setting,value)
-	if self.settings[setting] then
+local settingActions = {
+	["bindToIcon"] = function(self, value)
+		if value then
+			self._maid.bindToIconSelected = self.icon.selected:Connect(function()
+				if not self.isOpen then
+					self:open()
+				end
+			end)
+			self._maid.bindToIconDeselected = self.icon.deselected:Connect(function()
+				if self.isOpen then
+					self:close()
+				end
+			end)
+			self._maid.bindToIconOpened = self.opened:Connect(function()
+				self.icon:select()
+			end)
+			self._maid.bindToIconClosed = self.closed:Connect(function()
+				self.icon:deselect()
+			end)
+		else
+			self._maid.bindToIconSelected = nil
+			self._maid.bindToIconDeselected = nil
+			self._maid.bindToIconOpened = nil
+			self._maid.bindToIconClosed = nil
+		end
+	end
+}
+function dropdown:set(setting, value)
+	if self.settings[setting] ~= nil then
 		self.settings[setting] = value
+		local settingAction = settingActions[setting]
+		if settingAction then
+			settingAction(self, value)
+		end
 	end
 end
 
-function dropdown:isOpen()
-	if self.icon then
-		return self.dropdownContainer.Visible
+function dropdown:close()
+	if not self.isOpen then
+		return
 	end
-	return false
-end
+	self.isOpen = false
 
-function dropdown:hide()
 	self._tempConnections:clean()
 	if self.bringBackPlayerlist then
 		starterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList,true)
@@ -223,16 +267,21 @@ function dropdown:hide()
 			end
 		end
 	)
+	self.closed:Fire()
 end
+dropdown.hide = dropdown.close
 
 local function ToScale(offsetUDim2,viewportSize)
 	return UDim2.new(offsetUDim2.X.Offset/viewportSize.X,0,offsetUDim2.Y.Offset/viewportSize.Y,0)
 end
 
-function dropdown:show(position)
+function dropdown:open(position)
+	if self.isOpen then
+		return
+	end
+	self.isOpen = true
+
 	local dropdownContainer = self.dropdownContainer
-	if dropdownContainer.Visible then self:hide() return end
-	
 	if position then
 		dropdownContainer.Position = UDim2.new(0,position.X,0,math.clamp(position.Y+36,36,10000000))
 	else
@@ -299,42 +348,50 @@ function dropdown:show(position)
 		true
 	)
 	
-	local cancelCD = true
-	delay(0.5,function()
-		cancelCD = false
-	end)
-	
-	self._tempConnections:give(userInputService.InputBegan:Connect(function(input,gpe)
-		if not cancelCD and (input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.MouseButton2
-		or input.UserInputType == Enum.UserInputType.MouseWheel
-		or input.UserInputType == Enum.UserInputType.MouseButton3
-		or input.UserInputType == Enum.UserInputType.Touch)
-		then
-			local isOn = false
-			for i,v in pairs(dropdownContainer.Parent.Parent:GetGuiObjectsAtPosition(input.Position.X,input.Position.Y)) do
-				if v:IsDescendantOf(dropdownContainer) then
-					isOn = true
-					break
+	local connection1
+	connection1 = self._tempConnections:give(runService.Heartbeat:Connect(function()
+		connection1:Disconnect()
+		self._tempConnections:give(userInputService.InputBegan:Connect(function(input,gpe)
+			if input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.MouseButton2
+			or input.UserInputType == Enum.UserInputType.MouseWheel
+			or input.UserInputType == Enum.UserInputType.MouseButton3
+			or input.UserInputType == Enum.UserInputType.Touch
+			then
+				local isOn = false
+				for i,v in pairs(dropdownContainer.Parent.Parent:GetGuiObjectsAtPosition(input.Position.X,input.Position.Y)) do
+					if v:IsDescendantOf(dropdownContainer) then
+						isOn = true
+						break
+					end
+				end
+				if not isOn and self.settings.closeWhenClickedAway then
+					if not(self.settings.bindToIcon and self.icon.hovering) then
+						self:close()
+					end
 				end
 			end
-			if not isOn then
-				self:hide()
-			end
-		end
-		input:Destroy()
+			input:Destroy()
+		end))
 	end))
 	
-	if userInputService.MouseEnabled and not runService:IsStudio() then
-		self._tempConnections:give(userInputService.WindowFocusReleased:Connect(function()
-			self:hide()
-		end))
-	end
+	local connection2
+	connection2 = self._tempConnections:give(runService.Heartbeat:Connect(function()
+		connection2:Disconnect()
+		if userInputService.MouseEnabled and not runService:IsStudio() then
+			self._tempConnections:give(userInputService.WindowFocusReleased:Connect(function()
+				self:close()
+			end))
+		end
+	end))
 	
+	self.opened:Fire()
+
 end
+dropdown.show = dropdown.open
 
 function dropdown:destroy()
-	self:hide()
+	self:close()
 	self._maid:clean()
 end
 

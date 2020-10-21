@@ -107,6 +107,7 @@ function Icon.new(name, imageId, order, label)
 		}
 	}
 	self.toggleStatus = "deselected"
+	self.isSelected = false
 	self:applyThemeToAllObjects()
 	
 	local maid = Maid.new()
@@ -575,6 +576,7 @@ end
 
 function Icon:select()
 	self.toggleStatus = "selected"
+	self.isSelected = true
 	self:applyThemeToAllObjects()
 	self.toggleFunction()
 	if self.toggleMenu then
@@ -585,6 +587,7 @@ end
 
 function Icon:deselect()
 	self.toggleStatus = "deselected"
+	self.isSelected = false
 	self:applyThemeToAllObjects()
 	self.toggleFunction()
 	if self.toggleMenu then
