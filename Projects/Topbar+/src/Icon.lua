@@ -3,6 +3,7 @@ local tweenService = game:GetService("TweenService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local debris = game:GetService("Debris")
 local userInputService = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
 local textService = game:GetService("TextService")
 local guiService = game:GetService("GuiService")
 local player = game:GetService("Players").LocalPlayer
@@ -13,6 +14,7 @@ local iconTemplate = topbarContainer["_IconTemplate"]
 local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
 local Signal = require(HDAdmin:WaitForChild("Signal"))
 local Maid = require(HDAdmin:WaitForChild("Maid"))
+local THUMB_OFFSET = 65
 local Icon = {}
 Icon.__index = Icon
 
@@ -144,6 +146,7 @@ function Icon.new(name, imageId, order, label)
 	self.order = order or 1
 	self.enabled = true
 	self.hovering = false
+	self.draggingFinger = false
 	self.alignment = "left"
 	self.totalNotifications = 0
 	self.toggleFunction = function() end
@@ -173,11 +176,11 @@ function Icon.new(name, imageId, order, label)
 		end
 	end
 	
-	if userInputService.MouseEnabled or userInputService.GamepadEnabled then
+	--if userInputService.MouseEnabled or userInputService.GamepadEnabled then
 		button.MouseButton1Click:Connect(function()
 			if self.toggleStatus == "selected" then
 				self:deselect()
-			else
+			elseif not self.draggingFinger then
 				if not self._isControllerMode then
 					topbarPlusGui.ToolTip.Visible = false
 				end
@@ -191,6 +194,7 @@ function Icon.new(name, imageId, order, label)
 		button.MouseButton1Up:Connect(function()
 			self:updateStateOverlay(0.9, Color3.new(1, 1, 1))
 		end)
+		--[[
 	elseif userInputService.TouchEnabled then
 		local inputs = {}
 		button.InputBegan:Connect(function(input)
@@ -217,11 +221,33 @@ function Icon.new(name, imageId, order, label)
 			if check then
 				if self.toggleStatus == "selected" then
 					self:deselect()
-				else
+				elseif not self.draggingFinger then
 					self:select()
 				end
 			end
 			input:Destroy()
+		end)
+		--]]
+	if userInputService.TouchEnabled then
+		-- For when a finger is dragging accross screen
+		local dragCount = 0
+		userInputService.TouchMoved:Connect(function(touch, touchingAnObject)
+			if touchingAnObject and not self.draggingFinger then
+				return
+			end
+			self.draggingFinger = true
+			dragCount = dragCount + 1
+			local finishTime = tick() + 0.15
+			local connection
+			connection = runService.Heartbeat:Connect(function()
+				if tick() > finishTime then
+					connection:Disconnect()
+					dragCount = dragCount - 1
+					if dragCount == 0 then
+						self.draggingFinger = false
+					end
+				end
+			end)
 		end)
 	end
 	
@@ -265,6 +291,10 @@ function Icon.new(name, imageId, order, label)
 	return self
 end
 
+local function isMobile()
+	return (userInputService.TouchEnabled and not userInputService.MouseEnabled)
+end
+
 
 
 -- METHODS
@@ -279,7 +309,11 @@ function setToolTipPosition(x,y)
 		x = posX
 		y = posY
 	end
-	
+	if isMobile() then
+		y = y + THUMB_OFFSET + 40
+		x = x - tipContainer.Size.X.Offset/2
+	end
+
 	tipContainer.Position = UDim2.new(0,x,0,y)
 end
 
@@ -292,12 +326,15 @@ function Icon:updateToolTip(visibility, position)
 	local textSize = textService:GetTextSize(tip,12,Enum.Font.GothamSemibold,Vector2.new(1000,20-6))
 	tipContainer.Size = UDim2.new(0,textSize.X+6,0,20)
 	if position and not self._isControllerMode then
-		setToolTipPosition(position.X,position.Y)
+		setToolTipPosition(position.X, position.Y)
 	end
 	tipContainer.TextLabel.Text = tip
-	if not (userInputService.TouchEnabled and not userInputService.MouseEnabled) then
-		tipContainer.Visible = (visibility and self.toggleStatus == "deselected" and tip ~= "")
+	--
+	if isMobile() and not self.draggingFinger then
+		visibility = false
 	end
+	--
+	tipContainer.Visible = (visibility and self.toggleStatus == "deselected" and tip ~= "")
 end
 
 function Icon:updateCaption(visibility)
@@ -309,11 +346,24 @@ function Icon:updateCaption(visibility)
 	self.objects.captionText.TextSize = 12*sizeMultiplier
 	local textSize = textService:GetTextSize(caption,self.objects.captionText.TextSize,Enum.Font.GothamSemibold,Vector2.new(1000,20-6))
 	self.objects.captionContainer.Size = UDim2.new(0,textSize.X+20*sizeMultiplier,0,25*sizeMultiplier)
+	---
+	local y = 4
+	if isMobile() then
+		y = y + THUMB_OFFSET
+		if not self.draggingFinger then
+			visibility = false
+		end
+	--
+	end
+	local oldPos = self.objects.captionContainer.Position
+	local newPos = UDim2.new(oldPos.X.Scale, oldPos.X.Offset, oldPos.Y.Scale, y)
+	self.objects.captionContainer.Position = newPos
+	---
 	self.objects.captionText.Text = caption
 	local overlineSizeX = 3*sizeMultiplier
 	self.objects.captionOverline.Parent.Position = UDim2.new(0.5,0,-0.5,overlineSizeX)
 	self.objects.captionOverline.Position = UDim2.new(0.5,0,1.5,-overlineSizeX)
-	if self.captionTween and not (userInputService.TouchEnabled and not userInputService.MouseEnabled) then
+	if self.captionTween then
 		self.captionTween((visibility and self.toggleStatus == "deselected" and caption ~= ""))
 	end
 	--self.objects.captionContainer.Visible = (visibility and self.toggleStatus == "deselected" and caption ~= "")
