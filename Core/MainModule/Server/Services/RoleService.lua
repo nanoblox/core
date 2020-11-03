@@ -113,6 +113,7 @@ function RoleService.generateRecord()
 		canUseAll = false,
 		canUseCommandsOnOthers = true,
 		canUseCommandsOnFriends = true,
+		canUseMultiModifiers = true, -- Modifiers which impact more than 1 person at a time
 		canUseGlobalModifier = false,
 		canUseLoopModifier = false,
 		canUseCmdbar1 = false,
@@ -123,11 +124,13 @@ function RoleService.generateRecord()
 		
 		-- Client Permissions & Pages
 		canBlockAll = false,
+		canBlockSeniors = false,
 		canBlockPeers = false,
 		canBlockJuniors = true,
 		
 		canViewAll = false,
 		canEditAll = false,
+		canEditGlobally = false,
 		canViewUnusableCommands = true,
 		canEditCommands = false,
 		canViewRolesList = true,

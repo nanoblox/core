@@ -66,31 +66,30 @@ local function getScaleMultiplier()
 	end
 end
 
-local function updateIconCellSize(icon, controllerEnabled)
+local function updateIconSize(icon, controllerEnabled)
 	if not controllerEnabled then
-		icon:setCellSize(icon._originalCellSize)
-		icon._originalCellSize = nil
+		local currentSize, originalSize = icon:get("iconSize", nil, "original")
+		icon:set("iconSize", originalSize)
 		return
 	end
-	local cellSize = icon._originalCellSize or icon.cellSize
-	icon._originalCellSize = cellSize
+	local currentSize, originalSize = icon:get("iconSize", nil, "original")
+	local newOriginalSize = originalSize or currentSize
 	local scaleMultiplier = getScaleMultiplier()
-	icon:setCellSize(cellSize*scaleMultiplier)
+	local finalSize = UDim2.new(0, newOriginalSize.X.Offset*scaleMultiplier, 0, newOriginalSize.Y.Offset*scaleMultiplier)
+	icon:set("iconSize", finalSize)
 end
 
-function IconController:createIcon(name, imageId, order, withText)
+function IconController.createIcon(name, order, imageId, labelText)
 	
 	-- Verify data
 	assert(not topbarIcons[name], ("icon '%s' already exists!"):format(name))
 	
 	-- Create and record icon
-	local icon = Icon.new(name, imageId, order, withText)
-	local iconDetails = {name = name, icon = icon, order = icon.order}
-	topbarIcons[name] = iconDetails
-	icon:setOrder(icon.order)
+	local icon = Icon.new(name, order, imageId, labelText)
+	topbarIcons[name] = icon
 	
 	-- Apply game theme if found
-	local gameTheme = self.gameTheme
+	local gameTheme = IconController.gameTheme
 	if gameTheme then
 		icon:setTheme(gameTheme)
 	end
@@ -98,13 +97,14 @@ function IconController:createIcon(name, imageId, order, withText)
 	-- Events
 	local gap = 12
 	local function getIncrement(otherIcon)
-		local container = otherIcon.objects.container
-		local sizeX = container.Size.X.Offset
+		--local container = otherIcon.instances.iconContainer
+		--local sizeX = container.Size.X.Offset
+		local sizeX = otherIcon:get("iconSize").X.Offset
 		local increment = (sizeX + gap)
 		return increment
 	end
 	local function updateIcon()
-		assert(iconDetails, ("Failed to update Icon '%s': icon not found."):format(name))
+		assert(icon, ("Failed to update Icon '%s': icon not found."):format(name))
 		
 		if topbarUpdating then -- This prevents the topbar updating and shifting icons more than it needs to
 			return false
@@ -113,7 +113,6 @@ function IconController:createIcon(name, imageId, order, withText)
 		runService.Heartbeat:Wait()
 		topbarUpdating = false
 		
-		iconDetails.order = icon.order or 1
 		local defaultIncrement = 44
 		local alignmentDetails = {
 			left = {
@@ -147,9 +146,9 @@ function IconController:createIcon(name, imageId, order, withText)
 				--reverseSort = true
 			},
 		}
-		for _, details in pairs(topbarIcons) do
-			if details.icon.enabled == true then
-				table.insert(alignmentDetails[details.icon.alignment].records, details)
+		for _, otherIcon in pairs(topbarIcons) do
+			if otherIcon.enabled == true then
+				table.insert(alignmentDetails[otherIcon:get("alignment")].records, otherIcon)
 			end
 		end
 		for alignment, alignmentInfo in pairs(alignmentDetails) do
@@ -162,14 +161,14 @@ function IconController:createIcon(name, imageId, order, withText)
 				end
 			end
 			local totalIconX = 0
-			for i, details in pairs(records) do
-				local increment = getIncrement(details.icon)
+			for i, otherIcon in pairs(records) do
+				local increment = getIncrement(otherIcon)
 				totalIconX = totalIconX + increment
 			end
 			local offsetX = alignmentInfo.getStartOffset(totalIconX)
-			for i, details in pairs(records) do
-				local container = details.icon.objects.container
-				local increment = getIncrement(details.icon)
+			for i, otherIcon in pairs(records) do
+				local container = otherIcon.instances.iconContainer
+				local increment = getIncrement(otherIcon)
 				container.Position = UDim2.new(alignmentInfo.startScale, offsetX, 0, 4)
 				offsetX = offsetX + increment
 			end
@@ -181,31 +180,37 @@ function IconController:createIcon(name, imageId, order, withText)
 		updateIcon()
 	end)
 	icon.selected:Connect(function()
-		local allIcons = self:getAllIcons()
+		local allIcons = IconController.getIcons()
 		for _, otherIcon in pairs(allIcons) do
-			if icon.deselectWhenOtherIconSelected and otherIcon ~= icon and otherIcon.deselectWhenOtherIconSelected and otherIcon.toggleStatus == "selected" then
+			if icon.deselectWhenOtherIconSelected and otherIcon ~= icon and otherIcon.deselectWhenOtherIconSelected and otherIcon:getToggleState() == "selected" then
 				otherIcon:deselect()
 			end
 		end
 	end)
 	
 	if isControllerMode() then
-		updateIconCellSize(icon, true)
-		icon._previousAlignment = icon.alignment
+		updateIconSize(icon, true)
 		icon:setMid()
 	end
 	
 	return icon
 end
 
-function IconController:setTopbarEnabled(bool, forceBool)
+function IconController.createIconBySettings(dictionaryOfSettings)
+	local icon = IconController.createIcon()
+	for settingName, settingValue in pairs(dictionaryOfSettings) do
+		icon:set(settingName, settingValue)
+	end
+	return icon
+end
+
+function IconController.setTopbarEnabled(bool, forceBool)
 	if forceBool == nil then
 		forceBool = true
 	end
 	local topbar = getTopbarPlusGui()
 	if not topbar then return end
 	local indicator = topbar.Indicator
-	local toolTip = topbar.ToolTip
 	if forceBool and not bool then
 		forceTopbarDisabled = true
 	elseif forceBool and bool then
@@ -237,15 +242,15 @@ function IconController:setTopbarEnabled(bool, forceBool)
 				guiService.CoreGuiNavigationEnabled = false
 				guiService.GuiNavigationEnabled = true
 				
-				local selectObject
+				local selectIcon
 				local targetOffset = 0
 				runService.Heartbeat:Wait()
 				local indicatorSizeTrip = 50 --indicator.AbsoluteSize.Y * 2
-				for name,details in pairs(topbarIcons) do
-					local container = details.icon.objects.container
+				for name, otherIcon in pairs(topbarIcons) do
+					local container = otherIcon.instances.iconContainer
 					if container.Visible then
-						if not selectObject or details.order > selectObject.order then
-							selectObject = details
+						if not selectIcon or otherIcon:get("order") > selectIcon:get("order") then
+							selectIcon = otherIcon
 						end
 					end
 					local newTargetOffset = -27 + container.AbsoluteSize.Y + indicatorSizeTrip
@@ -260,7 +265,7 @@ function IconController:setTopbarEnabled(bool, forceBool)
 					guiService:CloseInspectMenu()
 				end
 				delay(0.15,function()
-					guiService.SelectedObject = selectObject.icon.objects.container
+					guiService.SelectedObject = selectIcon.instances.iconContainer
 				end)
 				indicator.Image = "rbxassetid://5278151071"
 				indicator:TweenPosition(
@@ -298,7 +303,6 @@ function IconController:setTopbarEnabled(bool, forceBool)
 				0.1,
 				true
 			)
-			toolTip.Visible = false
 		end
 	else
 		local topbarContainer = topbar.TopbarContainer
@@ -310,12 +314,11 @@ function IconController:setTopbarEnabled(bool, forceBool)
 	end
 end
 
-function IconController:enableControllerMode(bool)
+function IconController.enableControllerMode(bool)
 	local topbar = getTopbarPlusGui()
 	if not topbar then return end
 	local indicator = topbar.Indicator
-	local toolTip = topbar.ToolTip
-	local controllerOptionIcon = IconController:getIcon("_TopbarControllerOption")
+	local controllerOptionIcon = IconController.getIcon("_TopbarControllerOption")
 	if bool then
 		topbar.TopbarContainer.Position = UDim2.new(0,0,0,5)
 		topbar.TopbarContainer.Visible = false
@@ -326,11 +329,9 @@ function IconController:enableControllerMode(bool)
 		indicator.Visible = checkTopbarEnabled()
 		local isConsole = isConsoleMode()
 		indicator.Position = UDim2.new(0.5,0,0,5)
-		for name,details in pairs(topbarIcons) do
-			local icon = details.icon
-			updateIconCellSize(icon, true)
-			details.icon._previousAlignment = details.icon.alignment
-			details.icon:setMid()
+		for name, otherIcon in pairs(topbarIcons) do
+			updateIconSize(otherIcon, true)
+			otherIcon:setMid()
 		end
 		if controllerOptionIcon then
 			if not userInputService.MouseEnabled then
@@ -339,8 +340,6 @@ function IconController:enableControllerMode(bool)
 				controllerOptionIcon:setEnabled(true)
 			end
 		end
-		toolTip.AnchorPoint = Vector2.new(0.5,0)
-		toolTip.Position = UDim2.new(0.5,0,0,topbar.TopbarContainer.Size.Y.Offset+60 + robloxStupidOffset)
 	else
 		if userInputService.GamepadEnabled and controllerOptionIcon then
 			--mouse user but might want to use controller
@@ -349,41 +348,38 @@ function IconController:enableControllerMode(bool)
 			controllerOptionIcon:setEnabled(false)
 		end
 		local isConsole = isConsoleMode()
-		for name,details in pairs(topbarIcons) do
-			local icon = details.icon
-			updateIconCellSize(icon, false)
-			if details.icon._previousAlignment then
-				details.icon.alignment = details.icon._previousAlignment or "left"
-				details.icon.updated:Fire()
+		for name, otherIcon in pairs(topbarIcons) do
+			updateIconSize(otherIcon, false)
+			local previousAlignment = otherIcon:get("alignment", nil, "previous")
+			if previousAlignment then
+				otherIcon:set("alignment", previousAlignment)
 			end
 		end
 		topbar.TopbarContainer.Position = UDim2.new(0,0,0,0)
 		topbar.TopbarContainer.Visible = checkTopbarEnabled()
 		indicator.Visible = false
-		toolTip.AnchorPoint = Vector2.new(0,1)
 	end
-	toolTip.Visible = false
 end
 
 function updateDevice()
 	if isControllerMode() then
-		for _,icon in pairs(topbarIcons) do
-			icon.icon._isControllerMode = true
+		for _, icon in pairs(topbarIcons) do
+			icon._isControllerMode = true
 		end
-		IconController:enableControllerMode(true)
+		IconController.enableControllerMode(true)
 		return
 	end
 	for _,icon in pairs(topbarIcons) do
-		icon.icon._isControllerMode = false
+		icon._isControllerMode = false
 	end
-	IconController:enableControllerMode()
+	IconController.enableControllerMode()
 end
 
-function IconController:createFakeChat()
+function IconController.createFakeChat()
 	local chatMainModule = getChatMain()
 	local ChatMain = require(chatMainModule)
 	local iconName = fakeChatName
-	local icon = self:getIcon(iconName)
+	local icon = IconController.getIcon(iconName)
 	local function displayChatBar(visibility)
 		icon.ignoreVisibilityStateChange = true
 		ChatMain.CoreGuiEnabled:fire(visibility)
@@ -401,7 +397,7 @@ function IconController:createFakeChat()
 		icon.ignoreVisibilityStateChange = nil
 	end
 	if not icon then
-		icon = self:createIcon(iconName, "rbxasset://textures/ui/TopBar/chatOff.png", -1)
+		icon = IconController.createIcon(iconName, -1, "rbxasset://textures/ui/TopBar/chatOff.png")
 		-- Open chat via Slash key
 		icon._fakeChatMaid:give(userInputService.InputEnded:connect(function(inputObject, gameProcessedEvent)
 			if gameProcessedEvent then
@@ -454,58 +450,59 @@ function IconController:createFakeChat()
 			end))
 		end)()
 	end
-	icon:setSelectedImage("rbxasset://textures/ui/TopBar/chatOn.png")
+	icon:setImage("rbxasset://textures/ui/TopBar/chatOn.png", "selected")
 	icon:setImageSize(20)
-	icon:setToggleFunction(function()
-		local isSelected = icon.toggleStatus == "selected"
-		displayChatBar(isSelected)
+	icon.deselected:Connect(function()
+		displayChatBar(false)
+	end)
+	icon.selected:Connect(function()
+		displayChatBar(true)
 	end)
 	setIconEnabled(starterGui:GetCoreGuiEnabled("Chat"))
 	return icon
 end
 
-function IconController:removeFakeChat()
-	local icon = IconController:getIcon(fakeChatName)
+function IconController.removeFakeChat()
+	local icon = IconController.getIcon(fakeChatName)
 	local enabled = icon.enabled
 	icon._fakeChatMaid:clean()
 	starterGui:SetCoreGuiEnabled("Chat", enabled)
-	IconController:removeIcon(fakeChatName)
+	IconController.removeIcon(fakeChatName)
 end
 
-function IconController:setGameTheme(theme)
-	self.gameTheme = theme
-	local icons = self:getAllIcons()
+function IconController.setGameTheme(theme)
+	IconController.gameTheme = theme
+	local icons = IconController.getIcons()
 	for _, icon in pairs(icons) do
 		icon:setTheme(theme)
 	end
 end
 
-function IconController:setDisplayOrder(value)
+function IconController.setDisplayOrder(value)
 	local topbarPlusGui = getTopbarPlusGui()
 	value = tonumber(value) or topbarPlusGui.DisplayOrder
 	topbarPlusGui.DisplayOrder = value
 end
 
-function IconController:getIcon(name)
-	local iconDetails = topbarIcons[name]
-	if not iconDetails then
+function IconController.getIcon(name)
+	local icon = topbarIcons[name]
+	if not icon then
 		return false
 	end
-	return iconDetails.icon
+	return icon
 end
 
-function IconController:getAllIcons()
+function IconController.getIcons()
 	local allIcons = {}
-	for _, details in pairs(topbarIcons) do
-		table.insert(allIcons, details.icon)
+	for _, otherIcon in pairs(topbarIcons) do
+		table.insert(allIcons, otherIcon)
 	end
 	return allIcons
 end
 
-function IconController:removeIcon(name)
-	local iconDetails = topbarIcons[name]
-	assert(iconDetails, ("icon '%s' not found!"):format(name))
-	local icon = iconDetails.icon
+function IconController.removeIcon(name)
+	local icon = topbarIcons[name]
+	assert(icon, ("icon '%s' not found!"):format(name))
 	icon:setEnabled(false)
 	icon:deselect()
 	icon.updated:Fire()
@@ -518,7 +515,7 @@ end
 
 -- BEHAVIOUR
 local function updateTopbar()
-	local icons = IconController:getAllIcons()
+	local icons = IconController.getIcons()
 	for i, icon in pairs(icons) do
 		if i == 1 then
 			icon.updated:Fire()
@@ -537,24 +534,24 @@ coroutine.wrap(function()
 		end
 		previousTopbarEnabled = topbarEnabled
 		if isControllerMode() then
-			IconController:setTopbarEnabled(false,false)
+			IconController.setTopbarEnabled(false,false)
 		else
-			IconController:setTopbarEnabled(topbarEnabled,false)
+			IconController.setTopbarEnabled(topbarEnabled,false)
 		end
 		updateTopbar()
 	end)
-	IconController:setTopbarEnabled(checkTopbarEnabled(),false)
+	IconController.setTopbarEnabled(checkTopbarEnabled(),false)
 end)()
 
 guiService.MenuClosed:Connect(function()
 	menuOpen = false
 	if not isControllerMode() then
-		IconController:setTopbarEnabled(IconController.topbarEnabled,false)
+		IconController.setTopbarEnabled(IconController.topbarEnabled,false)
 	end
 end)
 guiService.MenuOpened:Connect(function()
 	menuOpen = true
-	IconController:setTopbarEnabled(false,false)
+	IconController.setTopbarEnabled(false,false)
 end)
 
 --Controller
@@ -568,15 +565,15 @@ userInputService.InputBegan:Connect(function(input,gpe)
 	if not isControllerMode() then return end
 	if input.KeyCode == Enum.KeyCode.DPadDown then
 		if not guiService.SelectedObject and checkTopbarEnabled() then
-			IconController:setTopbarEnabled(true,false)
+			IconController.setTopbarEnabled(true,false)
 		end
 	elseif input.KeyCode == Enum.KeyCode.ButtonB then
-		IconController:setTopbarEnabled(false,false)
+		IconController.setTopbarEnabled(false,false)
 	end
 	input:Destroy()
 end)
 
-local controllerOptionIcon = IconController:createIcon("_TopbarControllerOption","rbxassetid://5278150942", 100)
+local controllerOptionIcon = IconController.createIcon("_TopbarControllerOption", 100, "rbxassetid://5278150942")
 controllerOptionIcon:setRight()
 controllerOptionIcon.deselectWhenOtherIconSelected = false
 controllerOptionIcon:setEnabled(false)
@@ -597,7 +594,7 @@ end)
 local topbar = getTopbarPlusGui()
 topbar.Indicator.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		IconController:setTopbarEnabled(true,false)
+		IconController.setTopbarEnabled(true,false)
 	end
 	input:Destroy()
 end)

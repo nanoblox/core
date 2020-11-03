@@ -105,7 +105,7 @@ Modifiers.array = {
 		name = "delay",
 		aliases = {"d-"},
 		order = 6,
-		description	= "Waits x amount of seconds before executing the command. Example: ``;delay(3)kill all``",
+		description	= "Waits x amount of time before executing the command. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;delay(3s)kill all``.",
 		action = function(delayAmount)
 			
 		end,
@@ -131,7 +131,7 @@ Modifiers.array = {
 		name = "loop",
 		aliases = {"repeat", "l-"},
 		order = 8,
-		description	= "Repeats a command for x iterations every y delay. If not specified, x defaults to ∞ and y to 1. Example: ``;loop(50,1)jump me``",
+		description	= "Repeats a command for x iterations every y time delay. If not specified, x defaults to ∞ and y to 1s. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;loop(50,1s)jump me``.",
 		action = function(iterations, reiterateDelayAmount)
 			
 		end,
@@ -145,6 +145,19 @@ Modifiers.array = {
 		aliases = {"s-"},
 		order = 9,
 		description	= "Executes the command every time the given player(s) respawn (in addition to the initial execution). This modifier only works for commands with player-related arguments.",
+		action = function()
+			
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
+		name = "time",
+		aliases = {"t-"},
+		order = 10,
+		description	= "Executes the command then revokes it after the given time. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;timeMute(30s) player``.",
 		action = function()
 			
 		end,

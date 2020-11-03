@@ -10,10 +10,11 @@ local player = game:GetService("Players").LocalPlayer
 local playerGui = player.PlayerGui
 local topbarPlusGui = playerGui:WaitForChild("Topbar+")
 local topbarContainer = topbarPlusGui.TopbarContainer
-local iconTemplate = topbarContainer["_IconTemplate"]
+local iconTemplate = topbarContainer["IconContainer"]
 local HDAdmin = replicatedStorage:WaitForChild("HDAdmin")
 local Signal = require(HDAdmin:WaitForChild("Signal"))
 local Maid = require(HDAdmin:WaitForChild("Maid"))
+local DEFAULT_THEME = require(script.Parent.Themes.Default)
 local THUMB_OFFSET = 65
 local Icon = {}
 Icon.__index = Icon
@@ -21,221 +22,242 @@ Icon.__index = Icon
 
 
 -- CONSTRUCTOR
-function Icon.new(name, imageId, order, label)
+function Icon.new(name, order, imageId, labelText)
 	local self = {}
 	setmetatable(self, Icon)
-	
-	local container = iconTemplate:Clone()
-	local button = container.IconButton
-	self.objects = {
-		["container"] = container,
-		["button"] = button,
-		["image"] = button.IconImage,
-		["label"] = button.IconLabel,
-		["corner"] = button.UICorner,
-		["notification"] = button.Notification,
-		["amount"] = button.Notification.Amount,
-		["gradient"] = button.UIGradient,
-		["captionContainer"] = container.Caption,
-		["captionBackground"] = container.Caption.Background,
-		["captionText"] = container.Caption.TextLabel,
-		["captionOverline"] = container.Caption.OverlineHolder.Overline
-	}
-	container.Name = name
-	container.Visible = true
-	
-	self.theme = {
-		-- TOGGLE EFFECT
-		["toggleTweenInfo"] = TweenInfo.new(0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		
-		-- OBJECT PROPERTIES
-		["container"] = {
-			selected = {},
-			deselected = {}
-		},
-		["button"] = {
-			selected = {
-				ImageColor3 = Color3.fromRGB(245, 245, 245),
-				ImageTransparency = 0.1
-			},
-			deselected = {
-				ImageColor3 = Color3.fromRGB(0, 0, 0),
-				ImageTransparency = 0.5
-			}
-		},
-		["image"] = {
-			selected = {
-				ImageColor3 = Color3.fromRGB(57, 60, 65),
-			},
-			deselected = {
-				ImageColor3 = Color3.fromRGB(255, 255, 255),
-			}
-		},
-		["notification"] = {
-			selected = {},
-			deselected = {},
-		},
-		["amount"] = {
-			selected = {},
-			deselected = {},
-		},
-		["gradient"] = {
-			selected = {},
-			deselected = {},
-		},
-		["corner"] = {
-			selected = {},
-			deselected = {},
-		},
-		["label"] = {
-			selected = {
-				TextColor3 = Color3.fromRGB(57, 60, 65),
-			},
-			deselected = {
-				TextColor3 = Color3.fromRGB(255, 255, 255),
-			}
-		},
-		["captionContainer"] = {
-			deselected = {},
-		},
-		["captionBackground"] = {
-			deselected = {},
-		},
-		["captionText"] = {
-			deselected = {},
-		},
-		["captionOverline"] = {
-			deselected = {},
-		}
-	}
-	self.toggleStatus = "deselected"
-	self.isSelected = false
-	self:applyThemeToAllObjects()
-	
+
+	-- Maids (for autocleanup)
 	local maid = Maid.new()
 	self._maid = maid
 	self._fakeChatMaid = maid:give(Maid.new())
 	self._hoveringMaid = maid:give(Maid.new())
-	
-	self._captionTweenInfo = TweenInfo.new(0.1,Enum.EasingStyle.Quad,Enum.EasingDirection.Out)
-	self._captionTweens = {
-		inTweens = {
-			captionBackgroundTweenIn = maid:give(tweenService:Create(self.objects.captionBackground,self._captionTweenInfo,{BackgroundTransparency = 0.5})),
-			captionTextTweenIn = maid:give(tweenService:Create(self.objects.captionText,self._captionTweenInfo,{TextTransparency = 0})),
-			captionOverlineTweenIn = maid:give(tweenService:Create(self.objects.captionOverline,self._captionTweenInfo,{BackgroundTransparency = 0}))
+
+	-- These are the GuiObjects that make up the icon
+	local instances = {}
+	self.instances = instances
+	local iconContainer = maid:give(iconTemplate:Clone())
+	iconContainer.Name = name
+	iconContainer.Visible = true
+	iconContainer.Parent = topbarContainer
+	instances["iconContainer"] = iconContainer
+	instances["iconButton"] = iconContainer.IconButton
+	instances["iconImage"] = instances.iconButton.IconImage
+	instances["iconLabel"] = instances.iconButton.IconLabel
+	instances["iconGradient"] = instances.iconButton.IconGradient
+	instances["iconCorner"] = instances.iconButton.IconCorner
+	instances["iconOverlay"] = iconContainer.IconOverlay
+	instances["iconOverlayCorner"] = instances.iconOverlay.IconOverlayCorner
+	instances["noticeFrame"] = instances.iconButton.NoticeFrame
+	instances["noticeLabel"] = instances.noticeFrame.NoticeLabel
+	instances["captionContainer"] = iconContainer.CaptionContainer
+	instances["captionFrame"] = instances.captionContainer.CaptionFrame
+	instances["captionLabel"] = instances.captionContainer.CaptionLabel
+	instances["captionCorner"] = instances.captionContainer.CaptionCorner
+	instances["captionOverlineContainer"] = instances.captionContainer.CaptionOverlineContainer
+	instances["captionOverline"] = instances.captionOverlineContainer.CaptionOverline
+	instances["captionOverlineCorner"] = instances.captionOverline.CaptionOverlineCorner
+	instances["tipFrame"] = iconContainer.TipFrame
+	instances["tipLabel"] = instances.tipFrame.TipLabel
+	instances["tipCorner"] = instances.tipFrame.TipCorner
+
+	-- These determine and describe how instances behave and appear
+	self._settings = {
+		action = {
+			["toggleTweenInfo"] = {},
+			["captionTweenInfo"] = {},
+			["tipTweenInfo"] = {},
 		},
-		outTweens = {
-			captionBackgroundTweenOut = maid:give(tweenService:Create(self.objects.captionBackground,self._captionTweenInfo,{BackgroundTransparency = 1})),
-			captionTextTweenOut = maid:give(tweenService:Create(self.objects.captionText,self._captionTweenInfo,{TextTransparency = 1})),
-			captionOverlineTweenOut = maid:give(tweenService:Create(self.objects.captionOverline,self._captionTweenInfo,{BackgroundTransparency = 1}))
+		toggleable = {
+			["iconBackgroundColor"] = {instanceNames = {"iconButton"}, propertyName = "BackgroundColor"},
+			["iconBackgroundTransparency"] = {instanceNames = {"iconButton"}, propertyName = "BackgroundTransparency"},
+			["iconCornerRadius"] = {instanceNames = {"iconCorner", "iconOverlayCorner"}, propertyName = "CornerRadius"},
+			["iconGradientColor"] = {instanceNames = {"iconGradient"}, propertyName = "Color"},
+			["iconGradientRotation"] = {instanceNames = {"iconGradient"}, propertyName = "Rotation"},
+			["iconImage"] = {callMethod = self._updateIconSize, instanceNames = {"iconImage"}, propertyName = "Image"},
+			["iconImageColor"] = {instanceNames = {"iconImage"}, propertyName = "ImageColor"},
+			["iconImageTransparency"] = {instanceNames = {"iconImage"}, propertyName = "ImageTransparency"},
+			["iconImageScale"] = {instanceNames = {"iconImage"}, propertyName = "Size"},
+			["iconScale"] = {instanceNames = {"iconButton"}, propertyName = "Size"},
+			["iconSize"] = {instanceNames = {"iconContainer"}, propertyName = "Size"},
+			["iconOffset"] = {instanceNames = {"iconButton"}, propertyName = "Position"},
+			["iconText"] = {callMethod = self._updateIconSize, instanceNames = {"iconLabel"}, propertyName = "Text"},
+			["iconTextColor"] = {instanceNames = {"iconLabel"}, propertyName = "TextColor"},
+			["iconFont"] = {instanceNames = {"iconLabel"}, propertyName = "Font"},
+			["iconLabelSize"] = {instanceNames = {"iconLabel"}, propertyName = "Size"},
+			["noticeCircleColor"] = {instanceNames = {"noticeFrame"}, propertyName = "ImageColor"},
+			["noticeCircleImage"] = {instanceNames = {"noticeFrame"}, propertyName = "Image"},
+			["noticeTextColor"] = {instanceNames = {"noticeLabel"}, propertyName = "TextColor"},
+			["baseZIndex"] = {callMethod = self._updateBaseZIndex},
+			["order"] = {callSignal = self.updated},
+			["alignment"] = {callSignal = self.updated},
+		},
+		other = {
+			["captionBackgroundColor"] = {instanceNames = {"captionFrame"}, propertyName = "BackgroundColor"},
+			["captionBackgroundTransparency"] = {instanceNames = {"captionFrame"}, propertyName = "BackgroundTransparency", unique = "caption"},
+			["captionOverlineColor"] = {instanceNames = {"captionOverline"}, propertyName = "BackgroundColor"},
+			["captionOverlineTransparency"] = {instanceNames = {"captionOverline"}, propertyName = "BackgroundTransparency", unique = "caption"},
+			["captionTextColor"] = {instanceNames = {"captionLabel"}, propertyName = "TextColor"},
+			["captionTextTransparency"] = {instanceNames = {"captionLabel"}, propertyName = "TextTransparency", unique = "caption"},
+			["captionFont"] = {instanceNames = {"captionLabel"}, propertyName = "Font"},
+			["captionCornerRadius"] = {instanceNames = {"captionCorner", "captionOverlineCorner"}, propertyName = "CornerRadius"},
+			["tipBackgroundColor"] = {instanceNames = {"tipFrame"}, propertyName = "BackgroundColor"},
+			["tipBackgroundTransparency"] = {instanceNames = {"tipFrame"}, propertyName = "BackgroundTransparency", unique = "tip"},
+			["tipTextColor"] = {instanceNames = {"tipLabel"}, propertyName = "TextColor"},
+			["tipTextTransparency"] = {instanceNames = {"tipLabel"}, propertyName = "TextTransparency", unique = "tip"},
+			["tipFont"] = {instanceNames = {"tipLabel"}, propertyName = "TextTransparency", unique = "tip"},
+			["tipCornerRadius"] = {instanceNames = {"tipCorner", "captionOverlineCorner"}, propertyName = "CornerRadius"},
 		}
 	}
-	self.updated = maid:give(Signal.new())
-	self.selected = maid:give(Signal.new())
-	self.deselected = maid:give(Signal.new())
-	self.endNotifications = maid:give(Signal.new())
-	maid:give(container)
-	
-	self.name = name
-	self.tip = ""
-	self.controllerTip = ""
-	self.caption = ""
-	self.imageId = ((imageId == "" and 0) or imageId) or 0
-	self:setImageSize(20)
-	self:setLabel(label)
-	self.order = order or 1
-	self.enabled = true
-	self.hovering = false
-	self.draggingFinger = false
-	self.alignment = "left"
-	self.totalNotifications = 0
-	self.toggleFunction = function() end
-	self.hoverFunction = function() end
-	self.deselectWhenOtherIconSelected = true
-	self.maxTouchTime = 0.5
-	self._isControllerMode = false
-	self._subIcons = {}
-	self._totalSubIcons = 0
-	self._parentIcons = {}
-
-	self.captionTween = function(active)
-		if active then
-			if not self.objects.captionContainer.Visible then
-				self.objects.captionOverline.BackgroundTransparency = 1
-				self.objects.captionBackground.BackgroundTransparency = 1
-				self.objects.captionText.TextTransparency = 1
-				self.objects.captionContainer.Visible = true
+	-- The setting values themselves will be set within _settings
+	-- Setup a dictionary to make it quick and easy to reference setting by name
+	self._settingsDictionary = {}
+	-- Some instances require unique behaviours. These are defined with the 'unique' key
+	-- for instance, we only want caption transparency effects to be applied on hovering
+	self._uniqueSettings = {}
+	self._uniqueSettingsDictionary = {}
+	local uniqueBehaviours = {
+		["caption"] = function(instance, propertyName, value)
+			local tweenInfo = self._settings.action.captionTweenInfo.value
+			local newValue = value
+			if not self.hovering then
+				newValue = 1
 			end
-			for _,tween in next,self._captionTweens.inTweens do
-				tween:Play()
+			tweenService:Create(instance, tweenInfo, {[propertyName] = newValue}):Play()
+		end,
+		["tip"] = function(instance, propertyName, value)
+			local tweenInfo = self._settings.action.tipTweenInfo.value
+			local newValue = value
+			if not self.hovering then
+				newValue = 1
 			end
-		else
-			for _,tween in next,self._captionTweens.outTweens do
-				tween:Play()
+			tweenService:Create(instance, tweenInfo, {[propertyName] = newValue}):Play()
+		end
+	}
+	for settingsType, settingsDetails in pairs(self._settings) do
+		for settingName, settingDetail in pairs(settingsDetails) do
+			if settingsType == "toggleable" then
+				settingDetail.values = settingDetail.values or {
+					deselected = nil,
+					selected = nil,
+				}
+			else
+				settingDetail.value = nil
 			end
+			settingDetail.additionalValues = {}
+			settingDetail.type = settingsType
+			self._settingsDictionary[settingName] = settingDetail
+			--
+			local uniqueCat = settingDetail.unique
+			if uniqueCat then
+				local uniqueCatArray = self._uniqueSettings[uniqueCat] or {}
+				table.insert(uniqueCatArray, settingName)
+				self._uniqueSettings[uniqueCat] = uniqueCatArray
+				self._uniqueSettingsDictionary[settingName] = uniqueBehaviours[uniqueCat]
+			end
+			--
 		end
 	end
 	
-	--if userInputService.MouseEnabled or userInputService.GamepadEnabled then
-		button.MouseButton1Click:Connect(function()
-			if self.toggleStatus == "selected" then
-				self:deselect()
-			elseif not self.draggingFinger then
-				if not self._isControllerMode then
-					topbarPlusGui.ToolTip.Visible = false
-				end
-				self.objects.captionContainer.Visible = false
-				self:select()
-			end
-		end)
-		button.MouseButton1Down:Connect(function()
-			self:updateStateOverlay(0.7, Color3.new(0, 0, 0))
-		end)
-		button.MouseButton1Up:Connect(function()
-			self:updateStateOverlay(0.9, Color3.new(1, 1, 1))
-		end)
-		--[[
-	elseif userInputService.TouchEnabled then
-		local inputs = {}
-		button.InputBegan:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.Touch then
-				local tTime = tick()
-				table.insert(inputs,tTime)
-				delay(self.maxTouchTime,function()
-					local index = table.find(inputs,tTime)
-					if index then
-						table.remove(inputs,index)
-					end
-				end)
-			end
-		end)
-		button.InputEnded:Connect(function(input)
-			local check = false
-			local currentTime = tick()
-			for i,v in pairs(inputs) do
-				if currentTime-v < self.maxTouchTime then
-					check = true
-					break
-				end
-			end
-			if check then
-				if self.toggleStatus == "selected" then
-					self:deselect()
-				elseif not self.draggingFinger then
-					self:select()
-				end
-			end
-			input:Destroy()
-		end)
-		--]]
+	-- Signals (events)
+	self.updated = maid:give(Signal.new())
+	self.selected = maid:give(Signal.new())
+	self.deselected = maid:give(Signal.new())
+	self.hoverStarted = maid:give(Signal.new())
+	self.hoverEnded = maid:give(Signal.new())
+	self._endNotices = maid:give(Signal.new())
+
+	-- Properties
+	self.name = name
+	self.isSelected = false
+	self.enabled = true
+	self.hovering = false
+	self.tipText = nil
+	self.caption = nil
+	self.notices = 0
+	self.deselectWhenOtherIconSelected = true
+	
+	-- Private Properties
+	self._draggingFinger = false
+	self._subIcons = {}
+	self._totalSubIcons = 0
+	self._parentIcons = {}
+	
+	-- Apply start values
+	self:setTheme(DEFAULT_THEME)
+	self:setOrder(order)
+	self:setImage(imageId)
+	self:setLabel(labelText)
+
+	-- Input handlers
+	-- Calls deselect/select when the icon is clicked
+	instances.iconButton.MouseButton1Click:Connect(function()
+		if self._draggingFinger then return false end
+		if self.isSelected then
+			self:deselect()
+			return true
+		end
+		if not self._isControllerMode then
+			--topbarPlusGui.ToolTip.Visible = false --!!!
+		end
+		self.instances.captionContainer.Visible = false
+		self:select()
+	end)
+
+	-- Shows/hides the dark overlay when the icon is presssed/released
+	instances.iconButton.MouseButton1Down:Connect(function()
+		self:_updateStateOverlay(0.7, Color3.new(0, 0, 0))
+	end)
+	instances.iconButton.MouseButton1Up:Connect(function()
+		self:_updateStateOverlay(0.9, Color3.new(1, 1, 1))
+	end)
+	
+	-- hoverStarted and hoverEnded triggers and actions
+	-- these are triggered when a mouse enters/leaves the icon with a mouse, is highlighted with
+	-- a controller selection box, or dragged over with a touchpad
+	self.hoverStarted:Connect(function(x, y)
+		self.hovering = true
+		self:_updateStateOverlay(0.9, Color3.fromRGB(255, 255, 255))
+		self:_displayTip(true)
+		self:_displayCaption(true)
+	end)
+	self.hoverEnded:Connect(function()
+		self.hovering = false
+		self:_updateStateOverlay(1)
+		self:_displayTip(false)
+		self:_displayCaption(false)
+		self._hoveringMaid:clean()
+	end)
+	instances.iconButton.MouseEnter:Connect(function(x, y) -- Mouse (started)
+		self.hoverStarted:Fire(x, y)
+	end)
+	instances.iconButton.MouseLeave:Connect(function() -- Mouse (ended)
+		self.hoverEnded:Fire()
+	end)
+	instances.iconButton.SelectionGained:Connect(function() -- Controller (started)
+		self.hoverStarted:Fire()
+	end)
+	instances.iconButton.SelectionLost:Connect(function() -- Controller (ended)
+		self.hoverEnded:Fire()
+	end)
+	instances.iconButton.MouseButton1Down:Connect(function() -- TouchPad (started)
+		if self._draggingFinger then
+			self.hoverStarted:Fire()
+		end
+	end)
+	instances.iconButton.MouseButton1Up:Connect(function() -- TouchPad (ended)
+		if self.hovering then
+			self.hoverEnded:Fire()
+		end
+	end)
 	if userInputService.TouchEnabled then
-		-- For when a finger is dragging accross screen
+		-- This is used to highlight when a mobile/touch device is dragging their finger accross the screen
+		-- this is important for determining the hoverStarted and hoverEnded events on mobile
 		local dragCount = 0
 		userInputService.TouchMoved:Connect(function(touch, touchingAnObject)
-			if touchingAnObject and not self.draggingFinger then
+			if touchingAnObject and not self._draggingFinger then
 				return
 			end
-			self.draggingFinger = true
+			self._draggingFinger = true
 			dragCount = dragCount + 1
 			local finishTime = tick() + 0.15
 			local connection
@@ -244,206 +266,405 @@ function Icon.new(name, imageId, order, label)
 					connection:Disconnect()
 					dragCount = dragCount - 1
 					if dragCount == 0 then
-						self.draggingFinger = false
+						self._draggingFinger = false
 					end
 				end
 			end)
 		end)
 	end
 	
-	if imageId then
-		self:setImage(imageId)
-	end
-	
-	self._hoverFunctions = {
-		enter = function(x,y)
-			self:updateToolTip(true, Vector2.new(x,y))
-			self:updateCaption(true)
-			self.hoverFunction(true)
-			self.hovering = true
-			self._hoveringMaid:give(button.MouseMoved:Connect(setToolTipPosition))
-			self:updateStateOverlay(0.9, Color3.new(1, 1, 1))
-		end,
-		leave = function(x,y)
-			self:updateToolTip(false)
-			self:updateCaption(false)
-			self.hoverFunction(false)
-			self.hovering = false
-			self._hoveringMaid:clean()
-			self:updateStateOverlay(1)
-		end,
-	}
-	
-	maid:give(button.MouseEnter:Connect(self._hoverFunctions.enter))
-	maid:give(button.MouseLeave:Connect(self._hoverFunctions.leave))
-	maid:give(button.SelectionGained:Connect(function()
-		self._hoverFunctions.enter()
-	end))
-	maid:give(button.SelectionLost:Connect(function()
-		self._hoverFunctions.leave()
-	end))
-	maid:give(self.objects.corner:GetPropertyChangedSignal("CornerRadius"):Connect(function()
-		self.objects.button.Parent.StateOverlay.UICorner.CornerRadius = self.objects.corner.CornerRadius
-	end))
-	
-	container.Parent = topbarContainer
-	
 	return self
 end
 
-local function isMobile()
-	return (userInputService.TouchEnabled and not userInputService.MouseEnabled)
-end
 
 
-
--- METHODS
-function setToolTipPosition(x,y)
-	local tipContainer = topbarPlusGui.ToolTip
-	
-	local camera = workspace.CurrentCamera
-	if camera then
-		local viewportSize = camera.ViewportSize
-		local posX = math.clamp(x,5,viewportSize.X-tipContainer.Size.X.Offset-53)
-		local posY = math.clamp(y,tipContainer.Size.Y.Offset+5,viewportSize.Y)
-		x = posX
-		y = posY
+-- CORE UTILITY METHODS
+function Icon:set(settingName, value, toggleState, setAdditional)
+	local settingDetail = self._settingsDictionary[settingName]
+	assert(settingDetail ~= nil, ("setting '%s' does not exist"):format(settingName))
+	-- Check previous and new are not the same
+	local previousValue = self:get(settingName, toggleState)
+	if previousValue == value then
+		return "Value was already set"
 	end
-	if isMobile() then
-		y = y + THUMB_OFFSET + 40
-		x = x - tipContainer.Size.X.Offset/2
-	end
-
-	tipContainer.Position = UDim2.new(0,x,0,y)
-end
-
-function Icon:updateToolTip(visibility, position)
-	local tipContainer = topbarPlusGui.ToolTip
-	local tip = self.tip
-	if self._isControllerMode and self.controllerTip and self.controllerTip ~= "" then
-		tip = self.controllerTip
-	end
-	local textSize = textService:GetTextSize(tip,12,Enum.Font.GothamSemibold,Vector2.new(1000,20-6))
-	tipContainer.Size = UDim2.new(0,textSize.X+6,0,20)
-	if position and not self._isControllerMode then
-		setToolTipPosition(position.X, position.Y)
-	end
-	tipContainer.TextLabel.Text = tip
-	--
-	if isMobile() and not self.draggingFinger then
-		visibility = false
-	end
-	--
-	tipContainer.Visible = (visibility and self.toggleStatus == "deselected" and tip ~= "")
-end
-
-function Icon:updateCaption(visibility)
-	local caption = self.caption
-	if not caption then
-		return
-	end
-	local sizeMultiplier = math.clamp(((self.cellSize or 32)/32),1,2)
-	self.objects.captionText.TextSize = 12*sizeMultiplier
-	local textSize = textService:GetTextSize(caption,self.objects.captionText.TextSize,Enum.Font.GothamSemibold,Vector2.new(1000,20-6))
-	self.objects.captionContainer.Size = UDim2.new(0,textSize.X+20*sizeMultiplier,0,25*sizeMultiplier)
-	---
-	local y = 4
-	if isMobile() then
-		y = y + THUMB_OFFSET
-		if not self.draggingFinger then
-			visibility = false
+	-- Update the settings value
+	local settingType = settingDetail.type
+	if settingType == "toggleable" then
+		local valuesToSet = {}
+		if toggleState == "deselected" or toggleState == "selected" then
+			table.insert(valuesToSet, toggleState)
+		else
+			table.insert(valuesToSet, "deselected")
+			table.insert(valuesToSet, "selected")
 		end
-	--
+		for i, v in pairs(valuesToSet) do
+			settingDetail.values[v] = value
+			settingDetail.additionalValues["previous_"..v] = value
+			if type(setAdditional) == "string" then
+				settingDetail.additionalValues[setAdditional.."_"..v] = value
+			end
+		end
+	else
+		settingDetail.value = value
+		if type(setAdditional) == "string" then
+			settingDetail.additionalValues["previous"] = value
+			settingDetail.additionalValues[setAdditional] = value
+		end
 	end
-	local oldPos = self.objects.captionContainer.Position
-	local newPos = UDim2.new(oldPos.X.Scale, oldPos.X.Offset, oldPos.Y.Scale, y)
-	self.objects.captionContainer.Position = newPos
-	---
-	self.objects.captionText.Text = caption
-	local overlineSizeX = 3*sizeMultiplier
-	self.objects.captionOverline.Parent.Position = UDim2.new(0.5,0,-0.5,overlineSizeX)
-	self.objects.captionOverline.Position = UDim2.new(0.5,0,1.5,-overlineSizeX)
-	if self.captionTween then
-		self.captionTween((visibility and self.toggleStatus == "deselected" and caption ~= ""))
+	-- Update appearances of associated instances
+	local currentToggleState = self:getToggleState()
+	if settingDetail.instanceNames and currentToggleState == toggleState then
+		self:_update(settingName, currentToggleState, true)
 	end
-	--self.objects.captionContainer.Visible = (visibility and self.toggleStatus == "deselected" and caption ~= "")
+	-- Call any methods present
+	if settingDetail.callMethod then
+		settingDetail.callMethod(self, value)
+	end
+	-- Call any signals present
+	if settingDetail.callSignal then
+		settingDetail.callSignal:Fire()
+	end
 end
 
-function Icon:updateStateOverlay(transparency, color)
-	local stateOverlay = self.objects.button.Parent.StateOverlay
+function Icon:get(settingName, toggleState, getAdditional)
+	local settingDetail = self._settingsDictionary[settingName]
+	assert(settingDetail ~= nil, ("setting '%s' does not exist"):format(settingName))
+	local settingType = settingDetail.type
+	if settingType == "toggleable" then
+		toggleState = toggleState or self:getToggleState()
+		local additionalValue = type(getAdditional) == "string" and settingDetail.additionalValues[getAdditional.."_"..toggleState]
+		return settingDetail.values[toggleState], additionalValue
+	end
+	local additionalValue = type(getAdditional) == "string" and settingDetail.additionalValues[getAdditional]
+	return settingDetail.value, additionalValue
+end
+
+function Icon:getToggleState(isSelected)
+	isSelected = isSelected or self.isSelected
+	return (isSelected and "selected") or "deselected"
+end
+
+function Icon:_update(settingName, toggleState, applyInstantly)
+	local settingDetail = self._settingsDictionary[settingName]
+	assert(settingDetail ~= nil, ("setting '%s' does not exist"):format(settingName))
+	toggleState = toggleState or self:getToggleState()
+	local value = settingDetail.values[toggleState]
+	local tweenInfo = (applyInstantly and TweenInfo.new(0)) or self._settings.action.toggleTweenInfo.value
+	local propertyName = settingDetail.propertyName
+	local invalidProperties = {
+		Image = true,
+		NumberSequence = true,
+		Text = true,
+		Font = true
+	}
+	local uniqueSetting = self._uniqueSettingsDictionary[settingName]
+	local cannotTweenProperty = invalidProperties[propertyName]
+	for _, instanceName in pairs(settingDetail.instanceNames) do
+		local instance = self.instances[instanceName]
+		if uniqueSetting then
+			uniqueSetting(instance, propertyName, value)
+		elseif cannotTweenProperty then
+			instance[propertyName] = value
+		else
+			tweenService:Create(instance, tweenInfo, {[propertyName] = value}):Play()
+		end
+	end
+end
+
+function Icon:_updateAll(toggleState, applyInstantly)
+	for settingName, settingDetail in pairs(self._settingsDictionary) do
+		if settingDetail.instanceNames then
+			self:_update(settingName, toggleState, applyInstantly)
+		end
+	end
+end
+
+function Icon:_updateStateOverlay(transparency, color)
+	local stateOverlay = self.instances.iconOverlay
 	stateOverlay.ImageTransparency = transparency or 1
 	stateOverlay.ImageColor3 = color or Color3.new(1, 1, 1)
+end
+
+function Icon:setTheme(theme)
+	for settingsType, settingsDetails in pairs(theme) do
+		if settingsType == "toggleable" then
+			for settingName, settingValue in pairs(settingsDetails.deselected) do
+				self:set(settingName, settingValue, "both")
+			end
+			for settingName, settingValue in pairs(settingsDetails.selected) do
+				self:set(settingName, settingValue, "selected")
+			end
+		else
+			for settingName, settingValue in pairs(settingsDetails) do
+				self:set(settingName, settingValue)
+			end
+		end
+	end
+end
+
+function Icon:setEnabled(bool)
+	self.enabled = bool
+	self.instances.iconContainer.Visible = bool
+	self.updated:Fire()
+end
+
+function Icon:select()
+	self.isSelected = true
+	self:_setToggleItemVisible(true)
+	if self._totalSubIcons > 0 then
+		self.instances.noticeFrame.Visible = false
+	end
+	for subIcon, _ in pairs(self._subIcons) do
+		subIcon:setEnabled(true)
+	end
+	self.selected:Fire()
+end
+
+function Icon:deselect()
+	self.isSelected = false
+	self:_setToggleItemVisible(false)
+	if self._totalSubIcons > 0 and self.notices > 0 then
+		self.instances.noticeFrame.Visible = true
+	end
+	for subIcon, _ in pairs(self._subIcons) do
+		subIcon:setEnabled(false)
+	end
+	self.deselected:Fire()
+end
+
+function Icon:notify(clearNoticeEvent)
+	coroutine.wrap(function()
+		if not clearNoticeEvent then
+			clearNoticeEvent = self.deselected
+		end
+		for parentIcon, _ in pairs(self._parentIcons) do
+			parentIcon:notify(clearNoticeEvent)
+		end
+		self.notices = self.notices + 1
+		self.instances.noticeLabel.Text = (self.notices < 100 and self.notices) or "99+"
+		self.instances.noticeFrame.Visible = true
+		
+		local notifComplete = Signal.new()
+		local endEvent = self.endNotices:Connect(function()
+			notifComplete:Fire()
+		end)
+		local customEvent = clearNoticeEvent:Connect(function()
+			notifComplete:Fire()
+		end)
+		
+		notifComplete:Wait()
+		
+		endEvent:Disconnect()
+		customEvent:Disconnect()
+		notifComplete:Disconnect()
+		
+		self.notices = self.notices - 1
+		self.instances.noticeLabel.Text = self.notices
+		if self.notices < 1 then
+			self.instances.noticeFrame.Visible = false
+		end
+	end)()
+end
+
+function Icon:clearNotices()
+	self.endNotices:Fire()
 end
 
 function Icon:disableStateOverlay(bool)
 	if bool == nil then
 		bool = true
 	end
-	local stateOverlay = self.objects.button.Parent.StateOverlay
+	local stateOverlay = self.instances.iconOverlay
 	stateOverlay.Visible = not bool
 end
 
-function Icon:addSubIcon(icon)
-	self.deselectWhenOtherIconSelected = false
-	self._subIcons[icon] = true
-	self._totalSubIcons = self._totalSubIcons + 1
-	icon._parentIcons[self] = true
-	icon:setEnabled(false)
+
+
+-- TOGGLEABLE METHODS
+function Icon:setLabel(text, toggleState)
+	text = text or ""
+	self:set("iconText", text, toggleState)
 end
 
-function Icon:removeSubIcon(icon)
-	if self._subIcons[icon] then
-		self._subIcons[icon] = nil
-		self._totalSubIcons = self._totalSubIcons - 1
-		if self._totalSubIcons == 0 then
-			if self.totalNotifications > 0 then
-				self.objects.notification.Visible = true
+function Icon:setCornerRadius(scale, offset, toggleState)
+	local oldCornerRadius = self.instances.iconCorner.CornerRadius
+	local newCornerRadius = UDim.new(scale or oldCornerRadius.Scale, offset or oldCornerRadius.Offset)
+	self:set("iconCornerRadius", newCornerRadius, toggleState)
+end
+
+function Icon:setImage(imageId, toggleState)
+	local textureId = (tonumber(imageId) and "http://www.roblox.com/asset/?id="..imageId) or imageId
+	self:set("iconImage", textureId, toggleState)
+end
+
+function Icon:setOrder(order, toggleState)
+	local newOrder = tonumber(order) or 1
+	self:set("order", newOrder, toggleState)
+end
+
+function Icon:setLeft(toggleState)
+	self:set("alignment", "left", toggleState)
+end
+
+function Icon:setMid(toggleState)
+	self:set("alignment", "mid", toggleState)
+end
+
+function Icon:setRight(toggleState)
+	self:set("alignment", "right", toggleState)
+end
+
+function Icon:setImageScale(scale, toggleState)
+	local newScale = tonumber(scale) or 0.63
+	self:set("iconImageScale", UDim2.new(newScale, 0, newScale, 0), toggleState)
+end
+
+function Icon:setBaseZIndex(ZIndex, toggleState)
+	local newBaseZIndex = tonumber(ZIndex) or 1
+	self:set("baseZIndex", newBaseZIndex, toggleState)
+end
+
+function Icon:_updateBaseZIndex(baseValue)
+	local container = self.instances.iconContainer
+	local newBaseValue = tonumber(baseValue) or container.ZIndex
+	local difference = newBaseValue - container.ZIndex
+	if difference == 0 then return "The baseValue is the same" end
+	for _, object in pairs(self.instances) do
+		object.ZIndex = object.ZIndex + difference
+	end
+	return true
+end
+
+function Icon:setSize(XOffset, YOffset, toggleState)
+	local newXOffset = tonumber(XOffset) or 32
+	local newYOffset = tonumber(YOffset) or newXOffset
+	self:set("iconSize", UDim2.new(0, newXOffset, 0, newYOffset), toggleState)
+end
+
+function Icon:getIconLabelXSize()
+	local XOffset = self:get("iconSize").X.Offset
+	local size = textService:GetTextSize(self.instances.iconLabel.Text,self.instances.iconLabel.TextSize,self.instances.iconLabel.Font,Vector2.new(10000,self.instances.iconLabel.Size.Y))
+	return size.X+((self.instances.iconImage.Visible and self.imageId ~= 0) and self.instances.iconImage.Size.X.Offset+((((XOffset or 32)/32)*12)+(6*(XOffset or 32)/32)) or ((XOffset or 32)/32)*12)
+end
+
+function Icon:_updateIconSize(XOffset, YOffset)
+	local notifPosYScale = 0.45
+	if self.instances.iconLabel.Text ~= "" then
+		self.instances.iconLabel.TextSize = 14*math.clamp((XOffset/32),1,2.5)
+		self.instances.iconImage.AnchorPoint = Vector2.new(0,0.5)
+		self.instances.iconImage.Position = UDim2.new(0,((XOffset or 32)/32)*6,0.5,0)
+		self.instances.iconLabel.Position = UDim2.new(0,((self.instances.iconImage.Visible and self.imageId ~= 0) and (((((XOffset or 32)/32)*12))+self.instances.iconImage.AbsoluteSize.X) or ((XOffset or 32)/32)*6),0.5,0)
+		self.instances.iconContainer.Size = UDim2.new(0, self:getIconLabelXSize(), 0, YOffset)
+		notifPosYScale = 0.5
+	else
+		self.instances.iconImage.AnchorPoint = Vector2.new(0.5,0.5)
+		self.instances.iconImage.Position = UDim2.new(0.5,0,0.5,0)
+		self.instances.iconContainer.Size = UDim2.new(0, XOffset, 0, YOffset)
+	end
+	self.instances.noticeFrame.Position = UDim2.new(notifPosYScale, 0, 0, -2)
+	self.updated:Fire()
+end
+
+
+
+-- FEATURE METHODS
+-- Toggle Item
+function Icon:setToggleItem(guiObject)
+	if not guiObject:IsA("GuiObject") and not guiObject:IsA("LayerCollector") then
+		guiObject = nil
+	end
+	self.toggleItem = guiObject
+end
+
+function Icon:_setToggleItemVisible(bool)
+	local toggleItem = self.toggleItem
+	local property = "Visible"
+	if not toggleItem then return end
+	if toggleItem:IsA("LayerCollector") then
+		property = "Enbaled"
+	end
+	toggleItem[property] = bool
+end
+
+-- Tips
+function Icon:setTip(text)
+	assert(typeof(text) == "string" or text == nil, "Expected string, got "..typeof(text))
+	local textSize = textService:GetTextSize(text, 12, Enum.Font.GothamSemibold, Vector2.new(1000, 20-6))
+	self.instances.tipFrame.TextLabel.Text = text
+	self.instances.tipFrame.Size = UDim2.new(0, textSize.X+6, 0, 20)
+	self.tipText = text
+	if self.hovering then
+		self:_displayTip(true)
+	end
+end
+
+function Icon:_displayTip(visibility)
+	local newVisibility = visibility
+	if self.tipText == nil then
+		newVisibility = false
+	end
+	if newVisibility == true then
+		-- When the user moves their cursor/finger, update tip to match the position
+		local tipFrame = self.instances.tipFrame
+		local function updateTipPositon(x, y)
+			local newX, newY
+			local camera = workspace.CurrentCamera
+			if camera then
+				local viewportSize = camera.ViewportSize
+				newX = math.clamp(x, 5, viewportSize.X - tipFrame.Size.X.Offset-53)
+				newY = math.clamp(y, tipFrame.Size.Y.Offset+5, viewportSize.Y)
 			end
-			self.deselectWhenOtherIconSelected = true
+			if self._draggingFinger then
+				newX = newX - tipFrame.Size.X.Offset/2
+				newY = newY + THUMB_OFFSET + 40
+			end
+			tipFrame.Position = UDim2.new(0, newX, 0, newY)
 		end
-		icon._parentIcons[self] = nil
-		icon:setEnabled(true)
+		local cursorLocation = userInputService:GetMouseLocation()
+		if cursorLocation then
+			updateTipPositon(cursorLocation.X, cursorLocation.Y)
+		end
+		self._hoveringMaid:give(self.instances.iconButton.MouseMoved:Connect(updateTipPositon))
+	end
+	-- Change transparency of relavent tip instances
+	for _, settingName in pairs(self._uniqueSettings.tip) do
+		self:_update(settingName)
 	end
 end
 
-function Icon:setLabel(text)
-	self.objects.label.Text = text or ""
-	self:setCellSize()
-end
-
-function Icon:setTip(tip, property)
-	property = property or "tip"
-	local newTip = ""
-	if tip then
-		assert(typeof(tip) == "string","Expected string, got "..typeof(tip))
-		newTip = tip
-	end
-	self[property] = newTip
+-- Captions
+function Icon:setCaption(text)
+	assert(typeof(text) == "string" or text == nil, "Expected string, got "..typeof(text))
+	self.captionText = text
+	local sizeMultiplier = math.clamp(((self:get("iconSize").X.Offset or 32)/32),1,2)
+	local labelTextSize = 12*sizeMultiplier
+	local newTextSize = textService:GetTextSize(text, labelTextSize, Enum.Font.GothamSemibold, Vector2.new(1000,20-6))
+	self.instances.captionLabel.TextSize = newTextSize
+	self.instances.captionContainer.Size = UDim2.new(0, newTextSize.X+20*sizeMultiplier, 0, 25*sizeMultiplier)
 	if self.hovering then
-		self:updateToolTip(newTip)
+		self:_displayCaption(true)
 	end
 end
 
-function Icon:setControllerTip(tip)
-	self:setTip(tip, "controllerTip")
-end
-
-function Icon:setCaption(caption)
-	local newCaption = caption or ""
-	if newCaption then
-		assert(typeof(newCaption) == "string","Expected string, got "..typeof(newCaption))
+function Icon:_displayCaption(visibility)
+	local newVisibility = visibility
+	if self.captionText == nil then
+		newVisibility = false
 	end
-	self.caption = newCaption
-	if self.hovering then
-		self:updateCaption(newCaption)
+	local yOffset = 4
+	if self._draggingFinger then
+		yOffset = yOffset + THUMB_OFFSET
+	end
+	local oldPos = self.instances.captionContainer.Position
+	local newPos = UDim2.new(oldPos.X.Scale, oldPos.X.Offset, oldPos.Y.Scale, yOffset)
+	self.instances.captionContainer.Position = newPos
+	-- Change transparency of relavent caption instances
+	for _, settingName in pairs(self._uniqueSettings.caption) do
+		self:_update(settingName)
 	end
 end
 
-function Icon:setCornerRadius(scale,offset)
-	local cr = self.objects.corner.CornerRadius
-	self.objects.corner.CornerRadius = UDim.new(scale or cr.Scale, offset or cr.Offset)
-end
-
+-- Dropdowns
 function Icon:createDropdown(options)
 	if self.dropdown then
 		self:removeDropdown()
@@ -460,329 +681,11 @@ function Icon:removeDropdown()
 	end
 end
 
-function Icon:setImage(imageId, status)
-	local textureId = (tonumber(imageId) and "http://www.roblox.com/asset/?id="..imageId) or imageId
-	local newStatus = status or "selected"
-	local function updateThemeSegment(statusName)
-		self.theme.image = self.theme.image or {}
-		self.theme.image[statusName] = self.theme.image[statusName] or {}
-		self.theme.image[statusName].Image = textureId
-	end
-	updateThemeSegment(newStatus)
-	if status == nil then
-		updateThemeSegment("deselected")
-	end
-	if status == nil or status == self.toggleStatus then
-		self.imageId = (textureId == "" and 0) or textureId
-		self.objects.image.Image = textureId
-		self:setCellSize()
-	end
-end
 
-function Icon:setDeselectedImage(imageId)
-	self:setImage(imageId, "deselected")
-end
 
-function Icon:setSelectedImage(imageId)
-	self:setImage(imageId, "selected")
-end
-
-function Icon:setOrder(order)
-	self.order = tonumber(order) or 1
-	self.updated:Fire()
-end
-
-function Icon:setLeft()
-	self.alignment = "left"
-	self.updated:Fire()
-end
-
-function Icon:setMid()
-	self.alignment = "mid"
-	self.updated:Fire()
-end
-
-function Icon:setRight()
-	self.alignment = "right"
-	self.updated:Fire()
-end
-
-function Icon:getIconLabelXSize()
-	local size = textService:GetTextSize(self.objects.label.Text,self.objects.label.TextSize,self.objects.label.Font,Vector2.new(10000,self.objects.label.Size.Y))
-	return size.X+((self.objects.image.Visible and self.imageId ~= 0) and self.objects.image.Size.X.Offset+((((self.cellSize or 32)/32)*12)+(6*(self.cellSize or 32)/32)) or ((self.cellSize or 32)/32)*12)
-end
-
-function Icon:setImageSize(pixelsX, pixelsY)
-	pixelsX = tonumber(pixelsX) or self.imageSize
-	if not pixelsY then
-		pixelsY = pixelsX
-	end
-	self.imageSize = Vector2.new(pixelsX, pixelsY)
-	self.objects.image.Size = UDim2.new(0, pixelsX, 0, pixelsY)
-end
-
-function Icon:setCellSize(pixelsX)
-	local originalPixelsX = self.cellSize
-	pixelsX = tonumber(pixelsX) or self.cellSize or 32
-	if originalPixelsX then
-		local differenceMultiplier = pixelsX/originalPixelsX
-		self:setImageSize(self.imageSize.X*differenceMultiplier, self.imageSize.X*differenceMultiplier)
-	end
-	self.cellSize = pixelsX
-	local notifPosYScale = 0.45
-	if self.objects.label.Text ~= "" then
-		self.objects.label.TextSize = 14*math.clamp((pixelsX/32),1,2.5)
-		self.objects.image.AnchorPoint = Vector2.new(0,0.5)
-		self.objects.image.Position = UDim2.new(0,((self.cellSize or 32)/32)*6,0.5,0)
-		self.objects.label.Position = UDim2.new(0,((self.objects.image.Visible and self.imageId ~= 0) and (((((self.cellSize or 32)/32)*12))+self.objects.image.AbsoluteSize.X) or ((self.cellSize or 32)/32)*6),0.5,0)
-		self.objects.container.Size = UDim2.new(0, self:getIconLabelXSize(), 0, pixelsX)
-		notifPosYScale = 0.5
-	else
-		self.objects.image.AnchorPoint = Vector2.new(0.5,0.5)
-		self.objects.image.Position = UDim2.new(0.5,0,0.5,0)
-		self.objects.container.Size = UDim2.new(0, pixelsX, 0, pixelsX)
-	end
-	self.objects.notification.Position = UDim2.new(notifPosYScale, 0, 0, -2)
-	self.updated:Fire()
-end
-
-function Icon:setEnabled(bool)
-	self.enabled = bool
-	self.objects.container.Visible = bool
-	self.updated:Fire()
-end
-
-function Icon:setBaseZIndex(baseValue)
-	local container = self.objects.container
-	baseValue = tonumber(baseValue) or container.ZIndex
-	local difference = baseValue - container.ZIndex
-	if difference == 0 then
-		return "The baseValue is the same"
-	end
-	for _, object in pairs(self.objects) do
-		object.ZIndex = object.ZIndex + difference
-	end
-end
-
-function Icon:setToggleMenu(guiObject)
-	if not guiObject:IsA("GuiObject") and not guiObject:IsA("LayerCollector") then
-		guiObject = nil
-	end
-	self.toggleMenu = guiObject
-end
-
-function Icon:setToggleFunction(toggleFunction)
-	if type(toggleFunction) == "function" then
-		self.toggleFunction = toggleFunction
-	end
-end
-
-function Icon:setHoverFunction(hoverFunction)
-	if type(hoverFunction) == "function" then
-		self.hoverFunction = hoverFunction
-	end
-end
-
-function Icon:setTheme(themeDetails)
-	local gradientEnabled = false
-	local function parseDetails(objectName, toggleDetails)
-		local errorBaseMessage = "Topbar+ | Failed to set theme:"
-		local object = self.objects[objectName]
-		if not object then
-			if objectName == "toggleTweenInfo" then
-				self.theme.toggleTweenInfo = toggleDetails
-			else
-				warn(("%s invalid objectName '%s'"):format(errorBaseMessage, objectName))
-			end
-			return false
-		end
-		for toggleStatus, propertiesTable in pairs(toggleDetails) do
-			local originalPropertiesTable = self.theme[objectName][toggleStatus]
-			if not originalPropertiesTable then
-				warn(("%s invalid toggleStatus '%s'. Use 'selected' or 'deselected'."):format(errorBaseMessage, toggleStatus))
-				return false
-			end
-			local oppositeToggleStatus = (toggleStatus == "selected" and "deselected") or "selected"
-			local oppositeGroup = self.theme[objectName][oppositeToggleStatus]
-			local group = self.theme[objectName][toggleStatus]
-			for key, value in pairs(propertiesTable) do
-				if objectName == "gradient" then
-					gradientEnabled = true
-				end
-				if oppositeGroup then
-					local oppositeKey = oppositeGroup[key]
-					if not oppositeKey then
-						oppositeGroup[key] = group[key]
-					end
-				end
-				group[key] = value
-			end
-			if toggleStatus == self.toggleStatus then
-				self:applyThemeToObject(objectName, toggleStatus)
-			end
-		end
-	end
-	for objectName, toggleDetails in pairs(themeDetails) do
-		parseDetails(objectName, toggleDetails)
-	end
-	self.objects.gradient.Enabled = gradientEnabled
-end
-
-function Icon:applyThemeToObject(objectName, toggleStatus)
-	local object = self.objects[objectName]
-	if object then
-		local propertiesTable = self.theme[objectName][(toggleStatus or self.toggleStatus)]
-		if propertiesTable then
-			local toggleTweenInfo = self.theme.toggleTweenInfo
-			local invalidProperties = {"Image","Color","NumberSequence","Text"}
-			local finalPropertiesTable = {}
-			local noTweenTable = {}
-			for propName, propValue in pairs(propertiesTable) do
-				if propName == "Transparency" and object:IsA("UIGradient") then
-					object[propName] = propValue
-				end
-				if table.find(invalidProperties, propName) then
-					object[propName] = propValue
-				else
-					finalPropertiesTable[propName] = propValue
-				end
-			end
-			local tween = tweenService:Create(object, toggleTweenInfo, finalPropertiesTable):Play()
-			debris:AddItem(tween,toggleTweenInfo.Time)
-		end
-	end
-end
-
-local function setToggleMenuVisible(self,bool)
-	if self.toggleMenu:IsA("LayerCollector") then
-		self.toggleMenu.Enabled = bool
-	else
-		self.toggleMenu.Visible = bool
-	end
-end
-
-function Icon:applyThemeToAllObjects(...)
-	for objectName, _ in pairs(self.theme) do
-		self:applyThemeToObject(objectName, ...)
-	end
-end
-
-function Icon:select()
-	self.toggleStatus = "selected"
-	self.isSelected = true
-	self:applyThemeToAllObjects()
-	self.toggleFunction()
-	if self.toggleMenu then
-		setToggleMenuVisible(self,true)
-	end
-	if self._totalSubIcons > 0 then
-		self.objects.notification.Visible = false
-	end
-	for subIcon, _ in pairs(self._subIcons) do
-		subIcon:setEnabled(true)
-	end
-	self.selected:Fire()
-end
-
-function Icon:deselect()
-	self.toggleStatus = "deselected"
-	self.isSelected = false
-	self:applyThemeToAllObjects()
-	self.toggleFunction()
-	if self.toggleMenu then
-		setToggleMenuVisible(self,false)
-	end
-	if self._totalSubIcons > 0 and self.totalNotifications > 0 then
-		self.objects.notification.Visible = true
-	end
-	for subIcon, _ in pairs(self._subIcons) do
-		subIcon:setEnabled(false)
-	end
-	self.deselected:Fire()
-end
-
-function Icon:notify(clearNoticeEvent)
-	coroutine.wrap(function()
-		if not clearNoticeEvent then
-			clearNoticeEvent = self.deselected
-		end
-		for parentIcon, _ in pairs(self._parentIcons) do
-			parentIcon:notify(clearNoticeEvent)
-		end
-		self.totalNotifications = self.totalNotifications + 1
-		self.objects.amount.Text = (self.totalNotifications < 100 and self.totalNotifications) or "99+"
-		self.objects.notification.Visible = true
-		
-		local dropdown = self.dropdown
-		local promptedOptions = {}
-		if dropdown then
-			for i, option in pairs(dropdown.options) do
-				if table.find(option.events, clearNoticeEvent) then
-					local dNotice = option.notice
-					if not dNotice then
-						dNotice = self.objects.notification:Clone()
-						dNotice.Position = UDim2.new(0.8, 0, 0.175, -1)
-						dNotice.Size = UDim2.new(0.2, 0, 0.65, 0)
-						dNotice.ZIndex = dNotice.ZIndex + 10
-						dNotice.Amount.ZIndex = dNotice.Amount.ZIndex + 10
-						dNotice.Amount.Text = 0
-						dNotice.Parent = option.container
-						option.notice = dNotice
-						local optionName = option.container.OptionName
-						local ONS = optionName.Size
-						optionName.Size = UDim2.new(0.82, ONS.X.Offset, ONS.Y.Scale, ONS.Y.Offset)
-					end
-					pcall(function() dNotice.ImageColor3 = self.theme.notification.deselected.ImageColor3 end)
-					pcall(function() dNotice.Amount.TextColor3 = self.theme.amount.deselected.TextColor3 end)
-					dNotice.Amount.Text = tonumber(dNotice.Amount.Text) + 1
-					table.insert(promptedOptions, option)
-				end
-			end
-		end
-		
-		local notifComplete = Signal.new()
-		local endEvent = self.endNotifications:Connect(function()
-			notifComplete:Fire()
-		end)
-		local customEvent = clearNoticeEvent:Connect(function()
-			notifComplete:Fire()
-		end)
-		
-		notifComplete:Wait()
-		
-		endEvent:Disconnect()
-		customEvent:Disconnect()
-		notifComplete:Disconnect()
-		
-		self.totalNotifications = self.totalNotifications - 1
-		self.objects.amount.Text = self.totalNotifications
-		if self.totalNotifications < 1 then
-			self.objects.notification.Visible = false
-		end
-		
-		if self.dropdown then
-			for _, option in pairs(promptedOptions) do
-				local dNotice = option.notice
-				local optionName = option.container.OptionName
-				local ONS = optionName.Size
-				local totalDNotifications = tonumber(dNotice.Amount.Text) - 1
-				dNotice.Amount.Text = totalDNotifications
-				if totalDNotifications < 1 then
-					option.notice = nil
-					dNotice:Destroy()
-					optionName.Size = UDim2.new(0.95, ONS.X.Offset, ONS.Y.Scale, ONS.Y.Offset)
-				end
-			end
-		end
-	end)()
-end
-
-function Icon:clearNotifications()
-	self.endNotifications:Fire()
-end
-
+-- DESTROY/CLEANUP METHOD
 function Icon:destroy()
-	self:clearNotifications()
+	self:clearNotices()
 	self._maid:clean()
 	self._fakeChatConnections:clean()
 end
