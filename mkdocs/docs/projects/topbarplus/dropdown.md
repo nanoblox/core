@@ -17,13 +17,6 @@ dropdown:update()
 Forces the dropdown to update colors and text alignment. If the dropdown is visible when this is called, the dropdown will be hidden.
 
 --------------------
-### isOpen
-```lua
-local bool = dropdown:isOpen()
-```
-Returns a bool indicating if the dropdown is open or not.
-
---------------------
 ### hide
 ```lua
 dropdown:hide()
@@ -76,6 +69,14 @@ Destroys all instances, connections and signals associcated with the dropdown.
 dropdown.objects
 ```
 The icon the dropdown is associated with.
+
+--------------------
+### isOpen
+*(read only)*
+```lua
+dropdown.isOpen
+```
+A bool indicating whever the dropdown is open or not.
 
 --------------------
 ### options
