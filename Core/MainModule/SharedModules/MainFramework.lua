@@ -4,11 +4,11 @@ local main = {
 
 
 -- INITIATE
-function main:initiate()
-	if self.called then
+function main.initiate()
+	if main.called then
 		return false
 	end
-	self.called = true
+	main.called = true
 	
 	-- ROBLOX SERVICES
 	-- To index a service, do main.ServiceName (e.g. main.Players, main.TeleportService, main.TweenService, etc)
@@ -219,16 +219,16 @@ local function setupSignalLoader(propertyName)
 	end
 end
 
-function main:waitUntilStarted()
+function main.waitUntilStarted()
 	setupSignalLoader("_started")
 end
 
-function main:waitUntilBegun()
+function main.waitUntilBegun()
 	setupSignalLoader("_begun")
 end
 
-function main:getFramework()
-	main:waitUntilBegun()
+function main.getFramework()
+	main.waitUntilBegun()
 	return main
 end
 
