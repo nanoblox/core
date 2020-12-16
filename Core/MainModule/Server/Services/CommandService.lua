@@ -91,6 +91,7 @@ function CommandService.generateRecord(key)
 		revoke = function(this, caller, args)
 			
 		end,
+		disabled = false,
 	}
 end
 
