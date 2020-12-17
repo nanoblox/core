@@ -5,7 +5,7 @@ local TimeController = {}
 
 
 -- START
-function TimeController:start()
+function TimeController.start()
 	
 	local grabLocalDate = main.controllers.RemoteController.getRemote("TimeService_grabLocalDate")
 	grabLocalDate.onClientInvoke = function(dateTime)

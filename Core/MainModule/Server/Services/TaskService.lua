@@ -9,7 +9,7 @@ local Task = main.modules.Task
 
 
 -- BEGIN
-function TaskService:begin()
+function TaskService.begin()
 	
 end
 

@@ -11,15 +11,15 @@ local defaultCommands = main.modules.Commands
 
 
 -- BEGIN
-function CommandService:begin()
+function CommandService.begin()
 	--!!
 	local Parser = main.modules.Parser --!!! This is just to test the parser
 	--!!
 
 	-- Setup globals
-	self.executeBatchGloballySender = main.services.GlobalService.createSender("executeBatchGlobally")
-	self.executeBatchGloballyReceiver = main.services.GlobalService.createReceiver("executeBatchGlobally")
-	self.executeBatchGloballyReceiver.onGlobalEvent:Connect(function(caller, batch)
+	CommandService.executeBatchGloballySender = main.services.GlobalService.createSender("executeBatchGlobally")
+	CommandService.executeBatchGloballyReceiver = main.services.GlobalService.createReceiver("executeBatchGlobally")
+	CommandService.executeBatchGloballyReceiver.onGlobalEvent:Connect(function(caller, batch)
 		CommandService.executeBatch(caller, batch)
 	end)
 
@@ -29,7 +29,7 @@ function CommandService:begin()
 	end
 
 	-- Setup auto sorters
-	local records = self.records
+	local records = CommandService.records
 	records:setTable("dictionary", function()
 		local dictionary = {}
 		for _, record in pairs(records) do
@@ -120,7 +120,7 @@ function CommandService.removeCommand(name)
 end
 
 function CommandService.getTable(name)
-	CommandService.records:getTable(name)
+	return CommandService.records:getTable(name)
 end 
 
 function CommandService.chatCommand(caller, message)

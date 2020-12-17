@@ -112,9 +112,9 @@ function main.initiate()
 				-- Call init
 				if rawget(moduleData, "init") then
 					if doNotYield then
-						Thread.spawnNow(function() moduleData:init() end)
+						Thread.spawnNow(function() moduleData.init() end)
 					else
-						moduleData:init()
+						moduleData.init()
 					end
 				end
 			end
@@ -186,7 +186,7 @@ function main.initiate()
 		main._startedSignal:Fire()
 	end
 	
-	-- If server, wait for all system data to load, then call :begin()
+	-- If server, wait for all system data to load, then call .begin()
 	if location == "server" then
 		local ConfigService = main.services.ConfigService
 		if not ConfigService.setupComplete then
