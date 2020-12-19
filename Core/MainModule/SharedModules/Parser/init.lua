@@ -39,5 +39,4 @@ function Parser.parseMessage(message)
 end
 
 
-print("Hello raza")
 return Parser
