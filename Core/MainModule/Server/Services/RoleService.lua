@@ -100,10 +100,12 @@ function RoleService.generateRecord()
 		-- Limit Abuse
 		limitCommandsPerInterval = true,
 		commandRefreshInterval = 20,
-		commandsLimit = 20, -- This includes *per person*
+		commandLimit = 20,
 		limitGlobalExecutionsPerInterval = true,
 		globalRefreshInterval = 20,
-		globalsLimit = 5,
+		globalLimit = 5,
+		limitExecutions = false,
+		executionCooldown = 1, -- if 'limitExecutions' is true, this amount of seconds must be waited before being allowed to execute another statement
 		limitScale = true,
 		scaleLimit = 5,
 		limitBlacklistedIDs = true,
@@ -113,7 +115,7 @@ function RoleService.generateRecord()
 		canUseAll = false,
 		canUseCommandsOnOthers = true,
 		canUseCommandsOnFriends = true,
-		canUseMultiModifiers = true, -- Modifiers which impact more than 1 person at a time
+		canUseMultiQualifiers = true, -- Qualifiers which impact more than 1 person at a time (e.g. 'all', 'others'). This will also prevent multiple people being selected in a single execution
 		canUseGlobalModifier = false,
 		canUseLoopModifier = false,
 		canUseCmdbar1 = false,
