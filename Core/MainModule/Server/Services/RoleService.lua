@@ -105,7 +105,7 @@ function RoleService.generateRecord()
 		globalRefreshInterval = 20,
 		globalLimit = 5,
 		limitExecutions = false,
-		executionCooldown = 1, -- if 'limitExecutions' is true, this amount of seconds must be waited before being allowed to execute another statement
+		executionCooldown = 1, -- if 'limitExecutions' is true, this amount of seconds must be waited before being allowed to execute another batch
 		limitScale = true,
 		scaleLimit = 5,
 		limitBlacklistedIDs = true,
