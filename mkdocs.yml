@@ -2,8 +2,6 @@ site_name: Nanoblox
 site_description: Documentation for Nanoblox
 site_author: Nanoblox
 site_url: https://nanoblox.github.io/core/
-site_dir: docs/site
-docs_dir: docs
 
 repo_name: github.com/nanoblox
 repo_url: https://github.com/nanoblox
