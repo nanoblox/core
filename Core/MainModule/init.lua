@@ -19,7 +19,7 @@ DirectoryService:createDirectory("StarterCharacterScripts", starterPlayer.Starte
 -- PATHWAY MODULE
 local pathwayModule = client.Assets.HDAdmin:Clone()
 pathwayModule.Parent = game
-require(pathwayModule):initiate()
+require(pathwayModule).initiate()
 
 
 -- INITIATE CLIENT (only after the server has fully initiated)

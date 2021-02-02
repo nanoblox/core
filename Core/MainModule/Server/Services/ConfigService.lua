@@ -61,7 +61,7 @@ end
 
 
 -- START
-function ConfigService:start()
+function ConfigService.start()
 
 	-- Load user and check for recent config update directly from studio
 	-- (i.e. this is the first server to receive the update)

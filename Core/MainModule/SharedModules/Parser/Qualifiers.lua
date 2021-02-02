@@ -23,6 +23,7 @@ Qualifiers.array = {
 		name = "users",
 		aliases = {"user"},
 		hidden = true,
+		multi = false,
 		description	= "Default action, returns players with matching shorthand names.",
 		getTargets = function(caller, shorthandString)
 			local targets = {}
@@ -32,6 +33,7 @@ Qualifiers.array = {
 					table.insert(targets, plr)
 				end
 			end
+			--!!! IF CALLER HAS MULTI DISABLED, ONLY RETURN 1
 			return targets
 		end,
 	};
@@ -42,6 +44,7 @@ Qualifiers.array = {
 	{
 		name = "me",
 		aliases = {"you"},
+		multi = false,
 		description	= "You!",
 		getTargets = function(caller)
 			return {caller.player}
@@ -54,6 +57,7 @@ Qualifiers.array = {
 	{
 		name = "all",
 		aliases = {"everyone"},
+		multi = true,
 		description	= "Every player in a server.",
 		getTargets = function(caller)
 			return main.Players:GetPlayers()
@@ -66,6 +70,7 @@ Qualifiers.array = {
 	{
 		name = "random",
 		aliases = {},
+		multi = false,
 		description	= "One randomly selected player from a pool. To define a pool, do ``random(qualifier1,qualifier2,...)``. If not defined, the pool defaults to 'all'.",
 		getTargets = function(caller, ...)
 			local subQualifiers = table.pack(...)
@@ -90,6 +95,7 @@ Qualifiers.array = {
 	{
 		name = "others",
 		aliases = {},
+		multi = true,
 		description	= "Every player in a server except you.",
 		getTargets = function(caller)
 			local targets = {}
@@ -108,6 +114,7 @@ Qualifiers.array = {
 	{
 		name = "radius",
 		aliases = {},
+		multi = true,
 		description	= "Players within x amount of studs from you. To specify studs, do ``radius(studs)``. If not defined, studs defaults to '10'.",
 		getTargets = function(caller, radiusString)
 			local targets = {}
@@ -128,6 +135,7 @@ Qualifiers.array = {
 	{
 		name = "team",
 		aliases = {"teams", "$"},
+		multi = true,
 		description	= "Players within the specified team(s).",
 		getTargets = function(caller, ...)
 			local targets = {}
@@ -160,6 +168,7 @@ Qualifiers.array = {
 	{
 		name = "role",
 		aliases = {"roles", "@"},
+		multi = true,
 		description	= "Players who have the specified role(s).",
 		getTargets = function(caller, ...)
 			local targets = {}
@@ -199,6 +208,7 @@ Qualifiers.array = {
 	{
 		name = "percent",
 		aliases = {"percentage", "%"},
+		multi = true,
 		description	= "Randomly selects x percent of players within a server. To define the percentage, do ``percent(number)``. If not defined, the percent defaults to '50'.",
 		getTargets = function(caller, percentString)
 			local targets = {}
@@ -225,6 +235,7 @@ Qualifiers.array = {
 	{
 		name = "admins",
 		aliases = {},
+		multi = true,
 		description	= "Selects all admins",
 		getTargets = function(caller)
 			local targets = {}
@@ -243,6 +254,7 @@ Qualifiers.array = {
 	{
 		name = "nonadmins",
 		aliases = {},
+		multi = true,
 		description	= "Selects all nonadmins",
 		getTargets = function(caller)
 			local targets = {}
@@ -261,6 +273,7 @@ Qualifiers.array = {
 	{
 		name = "premium",
 		aliases = {"prem"},
+		multi = true,
 		description	= "Players with Roblox Premium membership",
 		getTargets = function(caller)
 			local targets = {}
@@ -279,6 +292,7 @@ Qualifiers.array = {
 	{
 		name = "friends",
 		aliases = {},
+		multi = true,
 		description	= "Players you are friends with",
 		getTargets = function(caller)
 			local targets = {}
@@ -297,6 +311,7 @@ Qualifiers.array = {
 	{
 		name = "nonfriends",
 		aliases = {},
+		multi = true,
 		description	= "Players you are not friends with",
 		getTargets = function(caller)
 			local targets = {}
@@ -315,6 +330,7 @@ Qualifiers.array = {
 	{
 		name = "r6",
 		aliases = {},
+		multi = true,
 		description	= "Players with an R6 character rig",
 		getTargets = function(caller)
 			local targets = {}
@@ -334,6 +350,7 @@ Qualifiers.array = {
 	{
 		name = "r15",
 		aliases = {},
+		multi = true,
 		description	= "Players with an R15 character rig",
 		getTargets = function(caller)
 			local targets = {}
@@ -353,6 +370,7 @@ Qualifiers.array = {
 	{
 		name = "rthro",
 		aliases = {},
+		multi = true,
 		description	= "Players with a Body Type value greater than or equal to 90%",
 		getTargets = function(caller)
 			local targets = {}
@@ -373,6 +391,7 @@ Qualifiers.array = {
 	{
 		name = "nonrthro",
 		aliases = {},
+		multi = true,
 		description	= "Players with a Body Type value less than 90%",
 		getTargets = function(caller)
 			local targets = {}

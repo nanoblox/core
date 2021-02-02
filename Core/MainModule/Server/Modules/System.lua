@@ -145,7 +145,7 @@ function System.new(name, ignoreTempChanges)
 	local requestsList = {}
 	local saveCooldown = 7
 	Thread.spawnNow(function()
-		main:waitUntilStarted()
+		main.waitUntilStarted()
 		self.senderSave = main.services.GlobalService.createSender(name.."Save")
 		self.receiverSave = main.services.GlobalService.createReceiver(name.."Save")
 		self.receiverSave.onGlobalEvent:Connect(function(requestUID)
@@ -227,7 +227,7 @@ function System.new(name, ignoreTempChanges)
 			if depth == 0 then
 				local recordKey, record = key, newValue
 				-- Ignore records labelled as 'nilled' (i.e. within NilledData)
-				local ConfigService = main.services.ConfigService or (main:waitUntilStarted() and main.services.ConfigService)
+				local ConfigService = main.services.ConfigService or (main.waitUntilStarted() and main.services.ConfigService)
 				if ConfigService then
 					local nilledUser = ConfigService.nilledUser
 					nilledUser:waitUntilLoaded()

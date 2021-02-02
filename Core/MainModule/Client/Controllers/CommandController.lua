@@ -5,7 +5,7 @@ local CommandController = {}
 
 
 -- START
-function CommandController:start()
+function CommandController.start()
 	
 	local clientCommandRequest = main.controllers.RemoteController.getRemote("CommandService_clientCommandRequest")
 	clientCommandRequest.onClientEvent:Connect(function()

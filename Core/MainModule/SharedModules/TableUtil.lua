@@ -401,9 +401,9 @@ local function Print(tbl, label, deepPrint)
 		end
 	end
 	
-	PrintTable(tbl, 1, label)
+	--PrintTable(tbl, 1, label)
 	
-	print(table.concat(strTbl, ""))
+	--print(table.concat(strTbl, ""))
 	
 end
 

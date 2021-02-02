@@ -4,11 +4,11 @@ local main = {
 
 
 -- INITIATE
-function main:initiate()
-	if self.called then
+function main.initiate()
+	if main.called then
 		return false
 	end
-	self.called = true
+	main.called = true
 	
 	-- ROBLOX SERVICES
 	-- To index a service, do main.ServiceName (e.g. main.Players, main.TeleportService, main.TweenService, etc)
@@ -112,9 +112,9 @@ function main:initiate()
 				-- Call init
 				if rawget(moduleData, "init") then
 					if doNotYield then
-						Thread.spawnNow(function() moduleData:init() end)
+						Thread.spawnNow(function() moduleData.init() end)
 					else
-						moduleData:init()
+						moduleData.init()
 					end
 				end
 			end
@@ -186,7 +186,7 @@ function main:initiate()
 		main._startedSignal:Fire()
 	end
 	
-	-- If server, wait for all system data to load, then call :begin()
+	-- If server, wait for all system data to load, then call .begin()
 	if location == "server" then
 		local ConfigService = main.services.ConfigService
 		if not ConfigService.setupComplete then
@@ -219,16 +219,16 @@ local function setupSignalLoader(propertyName)
 	end
 end
 
-function main:waitUntilStarted()
+function main.waitUntilStarted()
 	setupSignalLoader("_started")
 end
 
-function main:waitUntilBegun()
+function main.waitUntilBegun()
 	setupSignalLoader("_begun")
 end
 
-function main:getFramework()
-	main:waitUntilBegun()
+function main.getFramework()
+	main.waitUntilBegun()
 	return main
 end
 

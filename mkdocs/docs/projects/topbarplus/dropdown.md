@@ -76,7 +76,11 @@ The icon the dropdown is associated with.
 ```lua
 dropdown.isOpen
 ```
+<<<<<<< HEAD
 A bool indicating whever the dropdown is open or not.
+=======
+The icon the dropdown is associated with.
+>>>>>>> development
 
 --------------------
 ### options

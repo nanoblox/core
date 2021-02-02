@@ -4,16 +4,6 @@ local Parser = {}
 
 
 
--- START
-function Parser:init()
-	-- This is called when the module is easy-loaded (currently easy-loaded from CommandService)
-	-- You can use it for testing, e.g:
-	local message = ";globalPaint(red) all"
-	local batches = Parser.parseMessage(message)
-	main.modules.TableUtil.print(batches, "Batches", true)
-end
-
-
 -- METHODS
 function Parser.parseMessage(message)
 	-- You are welcome to split this method into submethods to achieve
@@ -41,11 +31,12 @@ function Parser.parseMessage(message)
 	local modifiersSortedArray = Modifiers.sortedNameAndAliasLengthArray
 	local Qualifiers = main.modules.Parser.Qualifiers
 	local qualifiersDictionary = Qualifiers.dictionary
+	print(commandRecords)
+	print(commandRecordsSortedByNameLength)
 
 	local batches = {test345 = true}
 	return batches
 end
-
 
 
 return Parser

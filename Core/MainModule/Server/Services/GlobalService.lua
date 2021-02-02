@@ -370,7 +370,7 @@ end
 
 
 -- METHODS (RECEIVERS)
-function GlobalService:start()
+function GlobalService.start()
 	local function executeRecord(jobId, record)
 		local requestType = record.rt
 		local target = requestType:sub(2,2)

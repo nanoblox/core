@@ -17,7 +17,7 @@ function Task.new(properties)
 	for k,v in pairs(properties or {}) do
 		self[k] = v
 	end
-
+	
 	self.command = main.services.CommandService.getCommand(self.commandName)
 	self.thisExecution = nil
 	self.threads = {}
