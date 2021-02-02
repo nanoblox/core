@@ -1,4 +1,5 @@
 --[[
+This will soon be moved to the loader
 
 To modify Roles, Bans, Commands and Settings, it's recommended to do so:
    1. In-game, via the Manage panel, which provides an easy-to-use interface to modify Config.
