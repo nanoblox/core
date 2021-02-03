@@ -1,5 +1,5 @@
 -- LOCAL
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local PlayerStore = main.modules.PlayerStore
 local PlayerService = {}
 local Signal = main.modules.Signal

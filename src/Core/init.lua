@@ -1,29 +1,30 @@
--- PROJECTS/UTILITY
-local DataStorePlus = require(4643209210)
-local TopbarPlus = require(4874365424)
-local DirectoryService = require(4926442976)
-local Maid = require(5086306120)
-local Signal = require(4893141590)
+local Core = {}
 
 
--- SETUP INITIAL DIRECTORIES
-local projectName = "Core"
-local client = script.Client
-local starterPlayer = client.StarterPlayer
-local sharedModules = script.SharedModules
-DirectoryService:createDirectory("ServerStorage.HDAdmin."..projectName, {script.Server, script.Parent.Config})
-DirectoryService:createDirectory("ReplicatedStorage.HDAdmin."..projectName, {client, sharedModules})
-DirectoryService:createDirectory("StarterCharacterScripts", starterPlayer.StarterCharacterScripts:GetChildren())
+
+-- This sets-up the necessary diectories in relavent locations whilst accounting for players who may join the game early before
+-- all server scripts have initialised
+function Core.init()
+    local client = script.Client
+    local server = script.Server
+    local shared = script.Shared
+    local starterPlayer = client.StarterPlayer
+    local Directory = require(server.Assets.Directory)
+    Directory.merge(shared, client, true)
+    Directory.merge(shared, server, false)
+    Directory.createDirectory("ServerStorage.Nanoblox", {server})
+    Directory.createDirectory("ReplicatedStorage.Nanoblox", {client})
+    Directory.createDirectory("StarterCharacterScripts", starterPlayer.StarterCharacterScripts:GetChildren())
+
+    -- This sets-up the server datamodel reference (i.e. game.Nanoblox)
+    local pathwayModule = client.Assets.Nanoblox:Clone()
+    pathwayModule.Parent = game
+    require(pathwayModule).initiate()
+
+    -- It's important to call this *after* the server has initiated
+    Directory.createDirectory("StarterPlayerScripts", starterPlayer.StarterPlayerScripts:GetChildren())
+end
 
 
--- PATHWAY MODULE
-local pathwayModule = client.Assets.HDAdmin:Clone()
-pathwayModule.Parent = game
-require(pathwayModule).initiate()
 
-
--- INITIATE CLIENT (only after the server has fully initiated)
-DirectoryService:createDirectory("StarterPlayerScripts", starterPlayer.StarterPlayerScripts:GetChildren())
-
-
-return true
+return Core

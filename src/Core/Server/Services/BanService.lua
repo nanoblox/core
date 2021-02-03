@@ -1,5 +1,5 @@
 -- LOCAL
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local System = main.modules.System
 local BanService = System.new("Bans")
 local systemUser = BanService.user
@@ -202,24 +202,24 @@ end
 
 
 --[[
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local BanService = main.services.BanService
 local targetId = 46088788--math.random(1,10000)
 BanService.createBan(targetId, true, {
 	reason = "Hello world tes123"
 })
 
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local BanService = main.services.BanService
 local targetId = 46088788
 BanService.updateBan(targetId, {_global = true, reason = math.random(1,1000)})
 
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local BanService = main.services.BanService
 local targetId = 46088788
 BanService.removeBan(targetId)
 
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local BanService = main.services.BanService
 local targetId = 46088788
 print(BanService.getBan(targetId))

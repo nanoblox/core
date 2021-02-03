@@ -10,7 +10,7 @@ or view low-level information or provide very basic self utility
 
 
 
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 return {
 	
 	-----------------------------------

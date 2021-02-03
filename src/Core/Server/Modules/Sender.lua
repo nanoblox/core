@@ -1,5 +1,5 @@
 -- LOCAL
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local Maid = main.modules.Maid
 local Signal = main.modules.Signal
 local Sender = {}

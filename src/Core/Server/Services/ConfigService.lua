@@ -7,7 +7,7 @@
 -- synchronised almost instantly into all live servers.
 
 -- LOCAL
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local System = main.modules.System
 local NilledData = System.new("NilledData", true)
 local nilledUser = NilledData.user
@@ -66,7 +66,7 @@ function ConfigService.start()
 	-- Load user and check for recent config update directly from studio
 	-- (i.e. this is the first server to receive the update)
 	-- If present, force save these changes
-	-- The HD Admin plugin automatically saves changes *within studio*
+	-- The Nanoblox plugin automatically saves changes *within studio*
 	-- therefore this is only here as backup (e.g. in case it's disabled)
 	local user = ConfigService.user
 	local config = main.config

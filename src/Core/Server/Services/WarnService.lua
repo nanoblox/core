@@ -1,5 +1,5 @@
 -- LOCAL
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local System = main.modules.System
 local WarnService = System.new("Warns")
 local systemUser = WarnService.user

@@ -1,8 +1,8 @@
 -- LOCAL
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local RemoteController = {}
 local remotes = {}
-local ERROR_START = "HD Admin | RemoteController | "
+local ERROR_START = "Nanoblox | RemoteController | "
 local remotesStorage = main.client.Remotes
 
 

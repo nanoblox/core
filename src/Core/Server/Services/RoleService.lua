@@ -1,5 +1,5 @@
 -- LOCAL
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local System = main.modules.System
 local RoleService = System.new("Roles")
 local systemUser = RoleService.user
@@ -294,26 +294,26 @@ end
 
 
 --[[
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local RoleService = main.services.RoleService
 RoleService.createRole(true, {
 	name = "AAA"
 })
 
 
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local SystemStore = main.modules.SystemStore
 local user = SystemStore:getUser("User")
 main.modules.TableUtil.print(user._data, "", true)
 
 
 
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local RoleService = main.services.RoleService
 local roleKey = "Manager"
 RoleService.removeRole(roleKey)
 
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local RoleService = main.services.RoleService
 local roleKey = "Manager"
 --RoleService.updateRole(roleKey, {yoo = {math.random(1,10000)}})
@@ -329,13 +329,13 @@ RoleService.updateRole(roleKey, {
 	}
 })
 
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local SystemStore = main.modules.SystemStore
 local user = SystemStore:getUser("NilledData")
 main.modules.TableUtil.print(user._data, "", true)
 
 
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local RoleService = main.services.RoleService
 local roleKeyOrName = "Mod"
 print(RoleService.getRole(roleKeyOrName))

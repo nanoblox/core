@@ -9,7 +9,7 @@ that at most only cause mild abuse
 
 
 
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 return {
 	
 	-----------------------------------

@@ -1,2 +1,3 @@
-local main = require(game.HDAdmin)
-return require(main.ReplicatedStorage.HDAdmin["DataStore+"].User)
+local main = require(game.Nanoblox)
+local User = require(main.locationGroup.Packages.UserStore.User)
+return User

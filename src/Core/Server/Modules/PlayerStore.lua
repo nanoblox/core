@@ -1,5 +1,4 @@
-local ServerStorage = game:GetService("ServerStorage")
-local DataStorePlus = ServerStorage.HDAdmin["DataStore+"]
-local UserStore = require(DataStorePlus.UserStore)
-local PlayerStore = UserStore.new("HDAdmin 0001")
-return PlayerStore--]]
+local main = require(game.Nanoblox)
+local UserStore = require(main.locationGroup.Packages.UserStore)
+local PlayerStore = UserStore.new("Nanoblox 0001")
+return PlayerStore

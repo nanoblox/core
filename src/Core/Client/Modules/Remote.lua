@@ -1,6 +1,6 @@
 -- LOCAL
-local main = require(game.HDAdmin)
-local ERROR_START = "HD Admin | Remote (Client) | "
+local main = require(game.Nanoblox)
+local ERROR_START = "Nanoblox | Remote (Client) | "
 local ERROR_NO_LISTENER = ERROR_START.."Failed to get remoteInstance %s for '%s': no remote is listening on the server."
 local Remote = {}
 

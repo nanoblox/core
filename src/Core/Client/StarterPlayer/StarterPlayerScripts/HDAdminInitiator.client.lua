@@ -1,5 +1,5 @@
-local hdadmin = game:GetService("ReplicatedStorage"):WaitForChild("HDAdmin")
-local core = hdadmin:WaitForChild("Core")
-local pathwayModule = core.Client.Assets.HDAdmin
+local nanoblox = game:GetService("ReplicatedStorage"):WaitForChild("Nanoblox")
+local core = nanoblox:WaitForChild("Core")
+local pathwayModule = core.Client.Assets.Nanoblox
 pathwayModule.Parent = game
 require(pathwayModule).initiate()

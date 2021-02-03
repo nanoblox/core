@@ -8,7 +8,7 @@ level 4
 
 
 
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 return {
 	
 	-----------------------------------

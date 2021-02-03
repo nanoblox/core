@@ -1,1 +1,1 @@
-local main = require(game:WaitForChild("HDAdmin"))
+local main = require(game:WaitForChild("Nanoblox"))

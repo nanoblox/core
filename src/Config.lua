@@ -3,8 +3,8 @@ This will soon be moved to the loader
 
 To modify Roles, Bans, Commands and Settings, it's recommended to do so:
    1. In-game, via the Manage panel, which provides an easy-to-use interface to modify Config.
-   2. Using the HD Admin Plugin, which provides a similar interface to change Config, *and*
-      syncs in-game data with this Config module. This enables you to transfer HD Admin between
+   2. Using the Nanoblox Plugin, which provides a similar interface to change Config, *and*
+      syncs in-game data with this Config module. This enables you to transfer Nanoblox between
       games while retaining your modifications.
       
 Plugin link: 
@@ -213,7 +213,7 @@ return {
 				{"w",		"White",	 		Color3.fromRGB(255, 255, 255)	},
 			},
 			--
-			ThemeColors = {						-- The colours players can set their HD Admin UI (in the 'Settings' menu). | Format: {ThemeName, ThemeColor3Value},
+			ThemeColors = {						-- The colours players can set their Nanoblox UI (in the 'Settings' menu). | Format: {ThemeName, ThemeColor3Value},
 				{"Red", 	Color3.fromRGB(150, 0, 0),		},
 				{"Orange", 	Color3.fromRGB(150, 75, 0),		},
 				{"Brown", 	Color3.fromRGB(120, 80, 30),	},
@@ -255,7 +255,7 @@ return {
 			WelcomeRankNotice			= true,			-- The 'You're a [rankName]' notice that appears when you join the game. Set to false to disable.
 			WelcomeDonorNotice			= true,			-- The 'You're a Donor' notice that appears when you join the game. Set to false to disable.
 			WarnIncorrectPrefix			= true,			-- Warn the user if using the wrong prefix | "Invalid prefix! Try using [correctPrefix][commandName] instead!"
-			DisableAllNotices			= false,		-- Set to true to disable all HD Admin notices.
+			DisableAllNotices			= false,		-- Set to true to disable all Nanoblox notices.
 			--
 			ScaleLimit					= 4,			-- The maximum size players with a rank lower than 'IgnoreScaleLimit' can scale theirself. For example, players will be limited to ,size me 4 (if limit is 4) - any number above is blocked.
 			IgnoreScaleLimit			= 3,			-- Any ranks equal or above this value will ignore 'ScaleLimit'
@@ -267,7 +267,7 @@ return {
 			PlayerDataStoreVersion		= "V1.0",		-- Data about the player (i.e. permRanks, custom settings, etc). Changing the Version name will reset all PlayerData.
 			SystemDataStoreVersion		= "V1.0",		-- Data about the game (i.e. the banland, universal message system, etc). Changing the Version name will reset all SystemData.
 			--
-			CoreNotices					= {				-- Modify core notices. You can find a table of all CoreNotices under [MainModule > Client > SharedModules > CoreNotices]
+			CoreNotices					= {				-- Modify core notices. You can find a table of all CoreNotices under [MainModule > Shared > Modules > CoreNotices]
 				--NoticeName = NoticeDetails,
 				
 			}

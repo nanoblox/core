@@ -1,7 +1,7 @@
 -- Manages permanent and timed roletypes
 
 -- LOCAL
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local System = main.modules.System
 local LongtermService = System.new("Longterms")
 local systemUser = LongtermService.user

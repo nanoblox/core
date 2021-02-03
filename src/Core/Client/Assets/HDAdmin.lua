@@ -1,5 +1,5 @@
-local hdadmin = game:GetService("ReplicatedStorage").HDAdmin
-local core = hdadmin.Core
-local mainFramework = core.SharedModules.MainFramework
+local nanoblox = game:GetService("ReplicatedStorage").Nanoblox
+local core = nanoblox.Core
+local mainFramework = core.Shared.Modules.MainFramework
 local main = require(mainFramework)
 return main

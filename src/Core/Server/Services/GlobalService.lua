@@ -26,7 +26,7 @@ end
 
 
 -- LOCAL
-local main = require(game.HDAdmin)
+local main = require(game.Nanoblox)
 local GlobalService = {}
 local Promise = main.modules.Promise
 local Thread = main.modules.Thread
@@ -35,7 +35,7 @@ local Receiver = main.modules.Receiver
 local Signal = main.modules.Signal
 local senders = {}
 local receivers = {}
-local GLOBAL_TOPIC = "HDAdmin"
+local GLOBAL_TOPIC = "Nanoblox"
 local messagingService = main.MessagingService
 local messagesThisMinute = 0
 local nextRefresh = tick() + 60
