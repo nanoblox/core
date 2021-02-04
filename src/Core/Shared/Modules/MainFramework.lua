@@ -4,7 +4,7 @@ local main = {
 
 
 -- INITIATE
-function main.initiate()
+function main.initiate(loader)
 	if main.called then
 		return false
 	end
@@ -30,32 +30,35 @@ function main.initiate()
 	
 	-- SHARED DETAILS
 	local isServer = main.RunService:IsServer()
+	local isClient = not isServer
 	local isStudio = main.RunService:IsStudio()
-	local mainGroupName = "Nanoblox"
-	local serverMainGroup = isServer and main.ServerStorage[mainGroupName].Core
-	local clientMainGroup = main.ReplicatedStorage[mainGroupName].Core
 	local location = (isServer and "server") or "client"
 	main.isServer = isServer
+	main.isClient = isClient
 	main.isStudio = isStudio
-	main.server = serverMainGroup and serverMainGroup.Server
-	main.client = clientMainGroup.Client
+	main.shared = main.ReplicatedStorage.Nanoblox.Shared
 	main.location = location
-	main.locationGroup = main[location]
 	main.modules = {}
 	main.services = {}
-	main.controllers = {}
 	
 	
-	-- CLIENT DETAILS
-	if location == "client" then
+	-- LOCATION SPECIFIC DETAILS
+	if isServer then
+		main.server = main.ServerStorage.Nanoblox.Server
+		main.locationGroup = main.server
+		main.loader = loader
+		main.config = require(loader.Config)
+	elseif isClient then
+		main.client = main.ReplicatedStorage.Nanoblox.Client
+		main.locationGroup = main.client
+		main.controllers = {}
 		main.localPlayer = main.Players.LocalPlayer
-	elseif location == "server" then
-		main.config = require(serverMainGroup.Config)
 	end
 	
 	
 	-- MODULE LOADER
 	local Thread
+	local Directory = require(main.shared.Assets.Directory)
 	local function loadModule(module, modulePathway, doNotYield)
 		
 		-- Check is a module
@@ -67,13 +70,13 @@ function main.initiate()
 		local moduleName = module.Name
 		
 		-- Retrieve module data
-		local success, moduleData = pcall(function() return require(module) end)
+		local success, moduleData = Directory.requireModule(module)
 		
 		-- Warn of module error
 		if not success then
-			warn(mainGroupName.." Error |",module.Name,"|",moduleData)
+			warn(module.Name," | ",moduleData)
 		
-		-- If module already exists, somethings likely gone wrong since module data should have already been merged
+		-- There should not be two-of-the same module:module, service:service or controlle:controller so throw an error
 		elseif rawget(modulePathway, moduleName) then
 			error(("%s duplicate detected!"):format(moduleName))
 			
@@ -120,7 +123,7 @@ function main.initiate()
 	-- EASY-LOAD MODULES
 	setmetatable(main.modules, {
 	    __index = function(_, index)
-			local moduleFolders = {main.locationGroup.Modules}
+			local moduleFolders = {main.locationGroup.Modules, main.shared.Modules}
 			for _, moduleFolder in pairs(moduleFolders) do
 				for _, module in pairs(moduleFolder:GetChildren()) do
 					local moduleName = module.Name
@@ -141,10 +144,19 @@ function main.initiate()
 	local serviceGroupName = serviceFolder.Name:lower()
 	local serviceGroup = main[serviceGroupName]
 	local orderedServices = {}
-	for i, module in pairs(serviceFolder:GetChildren()) do
-		local moduleData = loadModule(module, main[serviceGroupName])
+	local function setupServiceOrController(module, groupName)
+		local moduleData = loadModule(module, main[groupName])
 		moduleData._order = moduleData._order or 100
 		table.insert(orderedServices, module.Name)
+	end
+	for _, module in pairs(serviceFolder:GetChildren()) do
+		setupServiceOrController(module, serviceGroupName)
+	end
+	local sharedServiceFolder = main.shared:FindFirstChild("Services")
+	if sharedServiceFolder then
+		for _, module in pairs(serviceFolder:GetChildren()) do
+			setupServiceOrController(module, "services")
+		end
 	end
 	
 	-- Define order to call service methods based upon any present '_order' values
@@ -162,6 +174,8 @@ function main.initiate()
 	end
 	
 	-- Once all services initialised, create relavent remotes and call start
+	--[[
+	-- Disabled as readibility is more important than a slight boost in efficiency
 	for i, moduleName in pairs(orderedServices) do
 		local moduleData = serviceGroup[moduleName]
 		local remotes = type(moduleData) == "table" and moduleData.remotes
@@ -172,7 +186,7 @@ function main.initiate()
 				remotes[i] = nil
 			end
 		end
-	end
+	end--]]
 	callServiceMethod("start")
 	main._started = true
 	if main._startedSignal then

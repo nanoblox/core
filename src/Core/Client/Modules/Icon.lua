@@ -1,3 +1,3 @@
 local main = require(game.Nanoblox)
-local Icon = require(main.locationGroup.Packages.Icon)
+local Icon = require(main.client.Packages.Icon)
 return Icon

@@ -1,3 +1,3 @@
 local main = require(game.Nanoblox)
-local State = require(main.locationGroup.Packages.UserStore.State)
+local State = require(main.shared.Packages.UserStore.State)
 return State

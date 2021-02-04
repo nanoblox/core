@@ -1,3 +1,3 @@
 local main = require(game.Nanoblox)
-local Zone = require(main.locationGroup.Packages.Zone)
+local Zone = require(main.shared.Packages.Zone)
 return Zone

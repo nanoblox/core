@@ -2,17 +2,12 @@
 -- Author: Quenty
 -- Source: https://github.com/Quenty/NevermoreEngine/blob/8ef4242a880c645b2f82a706e8074e74f23aab06/Modules/Shared/Events/Maid.lua
 -- License: MIT (https://github.com/Quenty/NevermoreEngine/blob/version2/LICENSE.md)
--- Modified for use in Nanoblox
 
 
 ---	Manages the cleaning of events and other things.
 -- Useful for encapsulating state and make deconstructors easy
 -- @classmod Maid
 -- @see Signal
-
-local main = require(game.Nanoblox)
-local Promise = main.modules.Promise
-
 
 local Maid = {}
 Maid.ClassName = "Maid"
@@ -94,6 +89,7 @@ function Maid:giveTask(task)
 	return taskId
 end
 
+--[[ I wont' be using promises for TopbarPlus so we can ignore this method
 function Maid:givePromise(promise)
 	if (promise:getStatus() ~= Promise.Status.Started) then
 		return promise
@@ -108,7 +104,7 @@ function Maid:givePromise(promise)
 	end)
 
 	return newPromise, id
-end
+end--]]
 
 function Maid:give(taskOrPromise)
 	local taskId

@@ -2,6 +2,7 @@ local commands = {
 	array = {},
 	dictionary = {},
 }
+--[[
 for _, module in pairs(script:GetChildren()) do
 	local moduleName = module.Name
 	local tagName = "_".. (moduleName:sub(1,1)):lower()..moduleName:sub(2)
@@ -14,5 +15,5 @@ for _, module in pairs(script:GetChildren()) do
 		table.insert(commands.array, command)
 		commands.dictionary[command.name] = command
 	end
-end
+end--]]
 return commands

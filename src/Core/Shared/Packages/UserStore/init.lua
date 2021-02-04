@@ -1,8 +1,7 @@
 -- LOCAL
 local replicatedStorage = game:GetService("ReplicatedStorage")
-local Nanoblox = replicatedStorage:WaitForChild("Nanoblox")
-local Maid = require(Nanoblox:WaitForChild("Maid"))
-local User = require(script.Parent.User)
+local Maid = require(script.Maid)
+local User = require(script.User)
 local UserStore = {}
 UserStore.__index = UserStore
 

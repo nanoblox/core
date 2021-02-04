@@ -1,5 +1,5 @@
 -- This module enables you to place Zone wherever you like within the data model while
--- still enabling third-party applications (such as HDAdmin/Nanoblox) to locate it
+-- still enabling third-party applications (such as Nanoblox) to locate it
 -- This is necessary to prevent two ZonePlus applications initiating at runtime which would
 -- diminish it's overall efficiency
 

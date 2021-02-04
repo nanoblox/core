@@ -2,8 +2,8 @@
 local main = require(game.Nanoblox)
 local TimeService = {
 	remotes = {
-		"gDrabLocalDate",
-		"grabLocalTime",
+		gDrabLocalDate = main.services.RemoteService.createRemote("gDrabLocalDate"),
+		grabLocalTime = main.services.RemoteService.createRemote("grabLocalTime"),
 	}
 }
 local Promise = main.modules.Promise

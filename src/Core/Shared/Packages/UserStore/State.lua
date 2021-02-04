@@ -1,8 +1,7 @@
 -- LOCAL
 local replicatedStorage = game:GetService("ReplicatedStorage")
-local Nanoblox = replicatedStorage:WaitForChild("Nanoblox")
-local Signal = require(Nanoblox:WaitForChild("Signal"))
-local Maid = require(Nanoblox:WaitForChild("Maid"))
+local Signal = require(script.Parent.Signal)
+local Maid = require(script.Parent.Maid)
 local activeTables = {}
 local State = {}
 setmetatable(State, {

@@ -3,7 +3,7 @@ local main = require(game.Nanoblox)
 local System = main.modules.System
 local CommandService = System.new("Commands")
 CommandService.remotes = {
-	"clientCommandRequest",
+	clientCommandRequest = main.services.RemoteService.createRemote("clientCommandRequest")
 }
 local systemUser = CommandService.user
 local defaultCommands = main.modules.Commands
@@ -91,7 +91,6 @@ function CommandService.generateRecord(key)
 		revoke = function(this, caller, args)
 			
 		end,
-		disabled = false,
 	}
 end
 

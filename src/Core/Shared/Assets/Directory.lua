@@ -108,39 +108,50 @@ function Directory.createDirectory(pathway, contents)
 	return(setupDirectory(pathwayTable, currentParent, finalFunction))
 end
 
-function Directory.merge(sourceArg, targetArg, keepSource)
-	local source = (keepSource and sourceArg:Clone()) or sourceArg
-	local target = targetArg
+local MERGED_MODULE_NAME = "NanobloxModuleToMerge"
+function Directory.merge(source, target, keepSource)
 	local sourceClass = source.ClassName
 	local targetClass = target.ClassName
 	if sourceClass == targetClass then
-		if sourceClass == "ModuleScript" then
-			local sourceRef = require(source)
-			local targetRef = require(target)
-			if type(sourceRef) == "table" and type(targetRef) == "table" then
-				for key, value in pairs(sourceRef) do
-					targetRef[key] = value
-				end
-			end
-			source:Destroy()
-			return
-		end
-		if sourceClass == "Model" or sourceClass == "Folder" or sourceClass == "Configuration" then
-			for _, sourceChild in pairs(source) do
+		if (sourceClass == "Folder" or sourceClass == "Configuration") then
+			for _, sourceChild in pairs(source:GetChildren()) do
 				local targetChild = target:FindFirstChild(sourceChild.Name)
 				if not targetChild then
-					sourceChild.Parent = target
+					local newSourceChild = (keepSource and sourceChild:Clone()) or sourceChild
+					newSourceChild.Parent = target
 				else
 					Directory.merge(sourceChild, targetChild)
 				end
 			end
-			source:Destroy()
-			return
+			if not keepSource then
+				source:Destroy()
+			end
+		elseif sourceClass == "ModuleScript" then
+			local newSource = (keepSource and source:Clone()) or source
+			newSource.Name = MERGED_MODULE_NAME
+			newSource.Parent = target
 		end
+		return
 	end
 	local targetParent = target.Parent
 	target:Destroy()
-	source.Parent = targetParent
+	local newSource = (keepSource and source:Clone()) or source
+	newSource.Parent = targetParent
+end
+
+function Directory.requireModule(module)
+	local success, moduleData = pcall(function() return require(module) end)
+	local moduleToMerge = module:FindFirstChild(MERGED_MODULE_NAME)
+	if success and moduleToMerge then
+		local moduleToMergeData = require(moduleToMerge)
+		if type(moduleData) == "table" and type(moduleToMergeData) == "table" then
+			for key, value in pairs(moduleToMergeData) do
+				moduleData[key] = value
+			end
+		end
+		moduleToMerge:Destroy()
+	end
+	return success, moduleData
 end
 
 
