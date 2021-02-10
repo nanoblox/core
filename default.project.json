@@ -14,9 +14,6 @@
         "$className": "Folder",
         "MainModule": {
           "$path": "src/Core"
-        },
-        "Config": {
-          "$path": "src/Config.lua"
         }
       }
     }

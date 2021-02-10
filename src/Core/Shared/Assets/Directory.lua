@@ -61,7 +61,7 @@ function Directory.getLocationDetails(location)
 		},
 		["StarterPlayerScripts"] = {
 			realLocation = game:GetService("StarterPlayer").StarterPlayerScripts,
-			playerPathway = "PlayerGui.Nanoblox",--"PlayerScripts",
+			playerPathway = "PlayerGui.Nanoblox", -- For early joiners, we add it to "PlayerGui.Nanoblox" instead of "PlayerScripts" as this is the only client location to replicated from server to client
 		},
 		["StarterCharacterScripts"] = {
 			realLocation = game:GetService("StarterPlayer").StarterCharacterScripts,

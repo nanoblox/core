@@ -112,7 +112,7 @@ end
 
 function Maid:give(taskOrPromise)
 	local taskId
-	if type(taskOrPromise) == "table" and taskOrPromise.isAPromise then
+	if type(taskOrPromise) == "table" and taskOrPromise.getStatus then
 		_, taskId = self:givePromise(taskOrPromise)
 	else
 		taskId = self:giveTask(taskOrPromise)

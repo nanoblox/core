@@ -7,12 +7,12 @@ local TimeController = {}
 -- START
 function TimeController.start()
 	
-	local grabLocalDate = main.controllers.RemoteController.getRemote("TimeService_grabLocalDate")
+	local grabLocalDate = main.modules.Remote.new("grabLocalDate")
 	grabLocalDate.onClientInvoke = function(dateTime)
 		return os.date("*t", dateTime), os.date("%B", dateTime)
 	end
 	
-	local grabLocalTime = main.controllers.RemoteController.getRemote("TimeService_grabLocalTime")
+	local grabLocalTime = main.modules.Remote.new("grabLocalTime")
 	grabLocalTime.onClientInvoke = function()
 		return os.time()
 	end

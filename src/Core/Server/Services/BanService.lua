@@ -11,7 +11,7 @@ local unbanLimit = 7884000000   -- 250 Years (anything above is displayed as Exp
 -- EVENTS
 BanService.recordAdded:Connect(function(recordKey, record)
 	local targetUserId = tonumber(recordKey)
-	warn(("BAN '%s' ADDED!"):format(recordKey))
+	--warn(("BAN '%s' ADDED!"):format(recordKey))
 	-- Kick player if present
 	local player = targetUserId and main.Players:GetPlayerByUserId(targetUserId)
 	if player then
@@ -21,11 +21,11 @@ BanService.recordAdded:Connect(function(recordKey, record)
 end)
 
 BanService.recordRemoved:Connect(function(recordKey)
-	warn(("BAN '%s' REMOVED!"):format(recordKey))
+	--warn(("BAN '%s' REMOVED!"):format(recordKey))
 end)
 
 BanService.recordChanged:Connect(function(recordKey, key, value)
-	warn(("BAN '%s' CHANGED %s to %s"):format(recordKey, tostring(key), tostring(value)))
+	--warn(("BAN '%s' CHANGED %s to %s"):format(recordKey, tostring(key), tostring(value)))
 end)
 
 
@@ -165,38 +165,26 @@ function BanService.kick(player)
 		return false
 	end
 	local kickMessage = ""
-	local grabLocalDate = main.services.TimeService.grabLocalDate
 	local expiryTime = record.expiryTime
 	local expiryTimeLimit = os.time()+(unbanLimit*2)
 	if expiryTime > expiryTimeLimit then
 		expiryTime = expiryTimeLimit
 	end
-	local clientDate, clientMonth
-	grabLocalDate(player, expiryTime)
-		:timeout(5)
-		:andThen(function(realClientDate, realClientMonth)
-			clientDate = realClientDate
-			clientMonth = realClientMonth
-		end)
-		:catch(function(warning)
-			clientDate = os.date("*t", expiryTime)
-			clientMonth = os.date("%B", expiryTime)
-		end)
-		:andThen(function()
-			local function formatTime(minOrHour)
-				local newMinOrHour = tostring(minOrHour)
-				if #newMinOrHour < 2 then
-					newMinOrHour = "0"..newMinOrHour
-				end
-				return newMinOrHour
+	main.modules.Thread.spawnNow(function()
+		local clientDate, clientMonth = main.services.TimeService.grabLocalDateAsync(player, expiryTime)
+		local function formatTime(minOrHour)
+			local newMinOrHour = tostring(minOrHour)
+			if #newMinOrHour < 2 then
+				newMinOrHour = "0"..newMinOrHour
 			end
-			local banRow = ("🚫 You're banned from %s  🚫"):format((record._global == true and "all servers") or "this server")
-			local expireRow = (expiryTime > os.time()+(unbanLimit) and "⌛ Expires: Never") or ("⌛ Expires: %s:%s, %s %s %s"):format(formatTime(clientDate.hour), formatTime(clientDate.min), tostring(clientDate.day), tostring(clientMonth), tostring(clientDate.year))
-			local reasonRow = ("💬 Reason: '%s'"):format(tostring(record.reason))
-			local banMessage = "\n"..banRow.."\n\n"..expireRow.."\n\n"..reasonRow.."\n"
-			player:Kick(banMessage)
-		end)
-	return true
+			return newMinOrHour
+		end
+		local banRow = ("🚫 You're banned from %s  🚫"):format((record._global == true and "all servers") or "this server")
+		local expireRow = (expiryTime > os.time()+(unbanLimit) and "⌛ Expires: Never") or ("⌛ Expires: %s:%s, %s %s %s"):format(formatTime(clientDate.hour), formatTime(clientDate.min), tostring(clientDate.day), tostring(clientMonth), tostring(clientDate.year))
+		local reasonRow = ("💬 Reason: '%s'"):format(tostring(record.reason))
+		local banMessage = "\n"..banRow.."\n\n"..expireRow.."\n\n"..reasonRow.."\n"
+		player:Kick(banMessage)
+	end)
 end
 
 

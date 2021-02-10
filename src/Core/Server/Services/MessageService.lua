@@ -2,10 +2,10 @@
 local main = require(game.Nanoblox)
 local MessageService = {
 	remotes = {
-		message = main.services.RemoteService.createRemote("message"),
-		hint = main.services.RemoteService.createRemote("hint"),
-		notice = main.services.RemoteService.createRemote("notice"),
-		alert = main.services.RemoteService.createRemote("alert"),
+		message = main.modules.Remote.new("message"),
+		hint = main.modules.Remote.new("hint"),
+		notice = main.modules.Remote.new("notice"),
+		alert = main.modules.Remote.new("alert"),
 	},
 }
 

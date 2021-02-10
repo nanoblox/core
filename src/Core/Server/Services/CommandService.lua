@@ -3,7 +3,7 @@ local main = require(game.Nanoblox)
 local System = main.modules.System
 local CommandService = System.new("Commands")
 CommandService.remotes = {
-	clientCommandRequest = main.services.RemoteService.createRemote("clientCommandRequest")
+	clientCommandRequest = main.modules.Remote.new("clientCommandRequest")
 }
 local systemUser = CommandService.user
 local defaultCommands = main.modules.Commands
@@ -54,15 +54,15 @@ end
 
 -- EVENTS
 CommandService.recordAdded:Connect(function(commandName, record)
-	warn(("COMMAND '%s' ADDED!"):format(commandName))
+	--warn(("COMMAND '%s' ADDED!"):format(commandName))
 end)
 
 CommandService.recordRemoved:Connect(function(commandName)
-	warn(("COMMAND '%s' REMOVED!"):format(commandName))
+	--warn(("COMMAND '%s' REMOVED!"):format(commandName))
 end)
 
 CommandService.recordChanged:Connect(function(commandName, propertyName, propertyValue, propertyOldValue)
-	warn(("BAN '%s' CHANGED %s to %s"):format(commandName, tostring(propertyName), tostring(propertyValue)))
+	--warn(("BAN '%s' CHANGED %s to %s"):format(commandName, tostring(propertyName), tostring(propertyValue)))
 end)
 
 

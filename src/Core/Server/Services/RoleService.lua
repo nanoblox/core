@@ -13,14 +13,14 @@ local roles = {}
 
 -- EVENTS
 RoleService.recordAdded:Connect(function(roleUID, record)
-	warn(("ROLE '%s' ADDED!"):format(record.name))
+	--warn(("ROLE '%s' ADDED!"):format(record.name))
 	local role = Role.new(record)
 	role.UID = roleUID
 	roles[roleUID] = role
 end)
 
 RoleService.recordRemoved:Connect(function(roleUID, oldRecord)
-	warn(("ROLE '%s' (UID = %s) REMOVED!"):format((oldRecord and oldRecord.name) or "*No name*", roleUID))
+	--warn(("ROLE '%s' (UID = %s) REMOVED!"):format((oldRecord and oldRecord.name) or "*No name*", roleUID))
 	local role = roles[roleUID]
 	if role then
 		role:destroy()
@@ -33,7 +33,7 @@ RoleService.recordChanged:Connect(function(roleUID, propertyName, propertyValue,
 	if role then
 		role[propertyName] = propertyValue
 	end
-	warn(("ROLE '%s' CHANGED %s to %s (from %s)"):format(tostring(role and role.name), tostring(propertyName), tostring(propertyValue), tostring(propertyOldValue)))
+	--warn(("ROLE '%s' CHANGED %s to %s (from %s)"):format(tostring(role and role.name), tostring(propertyName), tostring(propertyValue), tostring(propertyOldValue)))
 end)
 
 

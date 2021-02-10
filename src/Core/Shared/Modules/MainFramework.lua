@@ -146,8 +146,10 @@ function main.initiate(loader)
 	local orderedServices = {}
 	local function setupServiceOrController(module, groupName)
 		local moduleData = loadModule(module, main[groupName])
-		moduleData._order = moduleData._order or 100
-		table.insert(orderedServices, module.Name)
+		if type(moduleData) == "table" then
+			moduleData._order = moduleData._order or 100
+			table.insert(orderedServices, module.Name)
+		end
 	end
 	for _, module in pairs(serviceFolder:GetChildren()) do
 		setupServiceOrController(module, serviceGroupName)
@@ -182,7 +184,7 @@ function main.initiate(loader)
 		if type(remotes) == "table" then
 			for int, val in ipairs(remotes) do
 				local remoteName = moduleName.."_"..val
-				remotes[val] = main.services.RemoteService.createRemote(remoteName)
+				remotes[val] = main.modules.Remote.new(remoteName)
 				remotes[i] = nil
 			end
 		end

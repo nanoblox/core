@@ -14,8 +14,8 @@ function Core.init(loader)
     Directory.createDirectory("ReplicatedStorage.Nanoblox", {shared, client})
     Directory.createDirectory("StarterCharacterScripts", starterPlayer.StarterCharacterScripts:GetChildren())
 
-    -- This sets-up the server datamodel reference (i.e. game.Nanoblox)
-    local pathwayModule = client.Assets.Nanoblox:Clone()
+   -- This sets-up the server datamodel reference (i.e. game.Nanoblox)
+    local pathwayModule = shared.Assets.Nanoblox:Clone()
     pathwayModule.Parent = game
     require(pathwayModule).initiate(loader)
 

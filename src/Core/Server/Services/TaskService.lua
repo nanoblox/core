@@ -17,14 +17,14 @@ end
 
 -- EVENTS
 TaskService.recordAdded:Connect(function(UID, record)
-	warn(("TASK '%s' ADDED!"):format(UID))
+	--warn(("TASK '%s' ADDED!"):format(UID))
 	local task = Task.new(record)
 	task.UID = UID
 	tasks[UID] = task
 end)
 
 TaskService.recordRemoved:Connect(function(UID)
-	warn(("TASK '%s' REMOVED!"):format(UID))
+	--warn(("TASK '%s' REMOVED!"):format(UID))
 	local task = tasks[UID]
 	if task then
 		task:destroy()
@@ -33,7 +33,7 @@ TaskService.recordRemoved:Connect(function(UID)
 end)
 
 TaskService.recordChanged:Connect(function(UID, propertyName, propertyValue, propertyOldValue)
-	warn(("TASK '%s' CHANGED %s to %s"):format(UID, tostring(propertyName), tostring(propertyValue)))
+	--warn(("TASK '%s' CHANGED %s to %s"):format(UID, tostring(propertyName), tostring(propertyValue)))
 	local task = tasks[UID]
 	if task then
 		task[propertyName] = propertyValue
