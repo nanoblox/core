@@ -92,7 +92,7 @@ Modifiers.array = {
 		name = "preview",
 		aliases = {"pr-"},
 		order = 5,
-		description	= "Displays a menu that previews the command before execution, including any given arguments.",
+		description	= "Displays a menu that previews the command instead of executing it.",
 		action = function()
 			
 		end,
@@ -154,10 +154,10 @@ Modifiers.array = {
 	
 	-----------------------------------
 	{
-		name = "time",
-		aliases = {"t-"},
+		name = "expire",
+		aliases = {"x-"},
 		order = 10,
-		description	= "Executes the command then revokes it after the given time. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;timeMute(30s) player``.",
+		description	= "Revokes the command after the given time. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;expire(2m30s)mute player``.",
 		action = function()
 			
 		end,
