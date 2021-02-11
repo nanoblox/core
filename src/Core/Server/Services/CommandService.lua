@@ -24,7 +24,7 @@ function CommandService.begin()
 	end)
 
 	-- Grab default commands
-	for name, details in pairs(defaultCommands.dictionary) do
+	for name, details in pairs(defaultCommands) do
 		CommandService.createCommand(name, details)
 	end
 
@@ -69,7 +69,7 @@ end)
 
 -- METHODS
 function CommandService.generateRecord(key)
-	return defaultCommands.dictionary[key] or {
+	return defaultCommands[key] or {
 		name = "",
 		description = "",
 		contributors = {},
@@ -95,7 +95,11 @@ function CommandService.generateRecord(key)
 end
 
 function CommandService.createCommand(name, properties)
-	local key = properties.name or name or ""
+	local key = properties.UID
+	if not key then
+		key = name
+		properties.UID = key
+	end
 	local record = CommandService:createRecord(key, false, properties)
 	return record
 end

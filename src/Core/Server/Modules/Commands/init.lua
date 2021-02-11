@@ -1,8 +1,5 @@
 local main = require(game.Nanoblox)
-local Commands = {
-	array = {},
-	dictionary = {},
-}
+local Commands = {}
 
 
 
@@ -16,19 +13,21 @@ local function setupCommands(group, tags)
 	for _, instance in pairs(group:GetChildren()) do
 		if instance:IsA("ModuleScript") then
 			local command = require(instance)
+			local UID = instance.Name
 			command.tags = (typeof(command.tags == "table") and command.tags) or {}
-			command.UID = instance.Name
-			print(instance.Name, "tags = ", table.unpack(newTags))
+			command.UID = UID
 			for _, tagToAdd in pairs(newTags) do
 				table.insert(command.tags, tagToAdd)
 			end
 			local client = instance:FindFirstChild("Client") or instance:FindFirstChild("client")
 			if client then
-				client.Name = instance.Name
+				client.Name = UID
 				client.Parent = main.shared.Modules.ClientCommands
 			end
-			table.insert(Commands.array, command)
-			Commands.dictionary[command.name] = command
+			if Commands[UID] then
+				warn(("Duplicate Nanoblox command detected: '%s'"):format(UID))
+			end
+			Commands[UID] = command
 		else
 			setupCommands(instance, newTags)
 		end
