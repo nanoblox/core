@@ -155,7 +155,7 @@ Modifiers.array = {
 	-----------------------------------
 	{
 		name = "expire",
-		aliases = {"x-"},
+		aliases = {"x-", "until"},
 		order = 10,
 		description	= "Revokes the command after the given time. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;expire(2m30s)mute player``.",
 		action = function()
