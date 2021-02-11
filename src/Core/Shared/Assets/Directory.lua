@@ -108,12 +108,12 @@ function Directory.createDirectory(pathway, contents)
 	return(setupDirectory(pathwayTable, currentParent, finalFunction))
 end
 
-local MERGED_MODULE_NAME = "NanobloxModuleToMerge"
-function Directory.merge(source, target, keepSource)
+--local MERGED_MODULE_NAME = "NanobloxModuleToMerge"
+function Directory.merge(source, target, keepSource, treatSourceAsContainer)
 	local sourceClass = source.ClassName
 	local targetClass = target.ClassName
-	if sourceClass == targetClass then
-		if (sourceClass == "Folder" or sourceClass == "Configuration") then
+	if sourceClass == targetClass or treatSourceAsContainer then
+		if (sourceClass == "Folder" or sourceClass == "Configuration" or treatSourceAsContainer) then
 			for _, sourceChild in pairs(source:GetChildren()) do
 				local targetChild = target:FindFirstChild(sourceChild.Name)
 				if not targetChild then
@@ -126,12 +126,17 @@ function Directory.merge(source, target, keepSource)
 			if not keepSource then
 				source:Destroy()
 			end
+			return
 		elseif sourceClass == "ModuleScript" then
+			-- I was originally intending for modules to merge together although after more consideration this is quite restrictive and confusing
+			-- Instead I'll just have the source module replace the target module entirely
+			--[[
 			local newSource = (keepSource and source:Clone()) or source
 			newSource.Name = MERGED_MODULE_NAME
 			newSource.Parent = target
+			return
+			--]]
 		end
-		return
 	end
 	local targetParent = target.Parent
 	target:Destroy()
@@ -141,7 +146,7 @@ end
 
 function Directory.requireModule(module)
 	local success, moduleData = pcall(function() return require(module) end)
-	local moduleToMerge = module:FindFirstChild(MERGED_MODULE_NAME)
+	local moduleToMerge = nil--module:FindFirstChild(MERGED_MODULE_NAME)
 	if success and moduleToMerge then
 		local moduleToMergeData = require(moduleToMerge)
 		if type(moduleData) == "table" and type(moduleToMergeData) == "table" then
@@ -152,6 +157,23 @@ function Directory.requireModule(module)
 		moduleToMerge:Destroy()
 	end
 	return success, moduleData
+end
+
+-- This moves and replaces any matching children
+function Directory.move(source, newParent)
+	local sourceName = source.Name
+	local target = newParent:FindFirstChild(sourceName)
+	local targetClass = target and target.ClassName
+	if source.ClassName == targetClass and (targetClass == "Folder" or targetClass == "Configuration") then
+		for _, childSource in pairs(source:GetChildren()) do
+			Directory.move(childSource, target)
+		end
+	else
+		if target then
+			target:Destroy()
+		end
+		source.Parent = newParent
+	end
 end
 
 

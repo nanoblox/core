@@ -17,12 +17,13 @@ function SettingsService.generateRecord(key)
 	local defaultRecords = {
 		---------------------------
 		["Client"] = {
-			prefixes				= {","},
-			argCapsule 				= "(%s)",
-			collective 				= ",",
-			descriptorSeparator 	= "",
-			spaceSeparator 			= " ",
-			batchSeparator 			= " ",
+			prefixes = {","},
+			argCapsule = "(%s)",
+			collective = ",",
+			descriptorSeparator = "",
+			spaceSeparator = " ",
+			batchSeparator = " ",
+			playerIdentifier = "@",
 		},
 		
 		
