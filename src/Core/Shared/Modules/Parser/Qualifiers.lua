@@ -425,7 +425,13 @@ for _, item in pairs(Qualifiers.array) do
 	end
 end
 
-
+-- SORTED ARRAY(S)
+local copy = main.modules.TableUtil.copy
+Qualifiers.sortedNameAndAliasLengthArray = {}
+for itemNameOrAlias, item in pairs(Qualifiers.dictionary) do
+	table.insert(Qualifiers.sortedNameAndAliasLengthArray, itemNameOrAlias)
+end
+table.sort(Qualifiers.sortedNameAndAliasLengthArray, function(a, b) return #a > #b end)
 
 -- OTHER
 Qualifiers.defaultQualifier = Qualifiers.dictionary["user"]
