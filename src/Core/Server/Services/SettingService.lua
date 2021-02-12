@@ -31,16 +31,16 @@ function SettingsService.generateRecord(key)
 		["System"] = {
 			
 			libraryIDs = { -- Gear, Sounds, Images, etc
-				blacklist = {},
-				whitelist = {},
+				denylist = {},
+				allowlist = {},
 			},
 			catalogIDs = { -- Accessories, Faces, etc
-				blacklist = {},
-				whitelist = {},
+				denylist = {},
+				allowlist = {},
 			},
 			bundleIDs = { -- Bundles
-				blacklist = {},
-				whitelist = {},
+				denylist = {},
+				allowlist = {},
 			},
 			
 			-- Warning System
