@@ -10,7 +10,7 @@
     },
     "ServerScriptService": {
       "$className": "ServerScriptService",
-      "MainModule": {
+      "NanobloxCore": {
         "$path": "src/Core"
       }
     }
