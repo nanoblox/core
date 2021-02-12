@@ -11,6 +11,12 @@ function Core.init(loader)
     local starterPlayer = client.StarterPlayer
     local Directory = require(shared.Assets.Directory)
 
+    -- It's important to setup the source of networking before the modules are initialised
+    -- Rojo doesn't accurately build empty folders therefore we create it here
+    local remotesContainer = Instance.new("Folder")
+    remotesContainer.Name = "Remotes"
+    remotesContainer.Parent = shared
+
     -- This transfers extension items such as commands within the loader directly into the core
     local extensionsToMove = {
         Commands = server.Modules.Commands,
