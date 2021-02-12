@@ -1,4 +1,4 @@
-local Utility = {}
+local Algorithm = {}
 
 --// CONSTANTS //--
 
@@ -6,90 +6,120 @@ local MAIN = require(game.HDAdmin)
 
 --// VARIABLES //--
 
-
-
---// FUNCTIONS //--
-
 --[[
 
-Return all matches in a source using a pattern.
-
 ]]--
-function Utility.getMatches(source, pattern)
-	local matches = {}
-
-	for match in string.gmatch(source, pattern) do
-		table.insert(matches, match)
-	end
-
-	return matches
-end
-
---[[
-
-A Capture is found in a source by a table of possible captures and it
-includes the arguments in a following capsule if there is any.
-
-A Capture is structured like this [capture] = {[arg1], [arg2], ... }
-Captures are structured like this Captures = {[capture1], [capture2], ... }
-
-Returns all the captures found in a source using a sortedKeywords table and
-also returns residue (anything left behind in the source after extracting
-captures).
-
-]]--
-function Utility.getCaptures(source, sortedKeywords)
+function Algorithm.getCommandStatementsFromBatch(batch)
     local parser = MAIN.modules.Parser
+    local utility = MAIN.modules.Parser.Utility
 
-	--// Find all the captures
-	local captures = {}
-	--// We need sorted table so that larger keywords get captured before smaller
-	--// keywords so we solve the issue of large keywords made of smaller ones
-	for counter = 1, #sortedKeywords do
-		--// If the source became empty or whitespace then continue
-		if (string.match(source, "^%s*$") ~= nil) then break end
+	return utility.getMatches(batch, parser.patterns.CommandStatementsFromBatch)
+end
 
-		--// If the keyword is empty or whitespace (maybe default value?) then continue
-		--// to the next iteration
-		local keyword = sortedKeywords[counter]:lower()
-		if (string.match(keyword, "^%s*$") ~= nil) then continue end
-		keyword = Utility.escapeSpecialCharacters(keyword)
+function Algorithm.getDescriptionsFromCommandStatement(commandStatement)
+    local parser = MAIN.modules.Parser
+    local utility = MAIN.modules.Parser.Utility
 
-		--// Captures with argument capsules are stripped away from the source
-		source = string.gsub(
-			source,
-			string.format("(%s)%s", keyword, parser.Patterns.CapsuleFromKeyword),
-			function(keyword, arguments)
-				--// Arguments need to be separated as they are the literal string
-				--// in the capsule at this point
-				local separatedArguments = Utility.getMatches(arguments, parser.Patterns.ArgumentsFromCollection)
-				table.insert(captures, {[keyword] = separatedArguments})
-				return ""
-			end
-		)
-		--// Captures without argument capsules are left in the source and are
-		--// collected at this point
-		source = string.gsub(
-			source,
-			string.format("(%s)", keyword),
-			function(keyword)
-				table.insert(captures, {[keyword] = {}})
-				return ""
-			end
-		)
+	local descriptions = utility.getMatches(commandStatement, parser.patterns.DescriptionsFromCommandStatement)
+	
+	local extraArgumentDescription = {}
+	if (#descriptions >= 3) then
+		for counter = 3, #descriptions do
+			table.insert(extraArgumentDescription, descriptions[counter])
+		end
 	end
-
-	return captures, source
+	
+    return descriptions[1] or "", descriptions[2] or "", extraArgumentDescription
 end
 
 --[[
 
 ]]--
-function Utility.escapeSpecialCharacters(source)
-	return source:gsub(
-		"([%.%%%^%$%(%)%[%]%+%*%-%?])",
-        "%%%1"
+function Algorithm.parseCommandDescription(commandDescription)
+    local utility = MAIN.modules.Parser.Utility
+
+	local commandCaptures, commandDescriptionResidue = utility.getCaptures(
+		commandDescription, 
+		MAIN.services.CommandService.getTable("sortedNameAndAliasLengthArray")
 	)
+	local modifierCaptures, commandDescriptionResidue = utility.getCaptures(
+		commandDescriptionResidue,
+		MAIN.modules.Parser.Modifiers.sortedNameAndAliasLengthArray
+	)
+
+    return commandCaptures, modifierCaptures, commandDescriptionResidue
 end
 
-return Utility
+--[[
+
+]]--
+function Algorithm.parseQualifierDescription(qualifierDescription)
+    local parser = MAIN.modules.Parser
+    local utility = MAIN.modules.Parser.Utility
+
+	local qualifierCaptures, qualifierDescriptionResidue = utility.getCaptures(
+		qualifierDescription,
+		MAIN.modules.Parser.Qualifiers.sortedNameAndAliasLengthArray
+	)
+
+	local unrecognizedQualifier = string.match(
+		qualifierDescriptionResidue,
+		string.format("(.-)%s", parser.patterns.CapsuleFromKeyword)
+	)
+	if (unrecognizedQualifier ~= nil) then
+		return nil
+	end
+
+	for _, match in pairs(utility.getMatches(qualifierDescriptionResidue, parser.patterns.ArgumentsFromCollection)) do
+		if (match ~= "") then
+			table.insert(qualifierCaptures, {[match] = {}})
+		end
+	end
+
+	return qualifierCaptures
+end
+
+--[[
+
+]]--
+function Algorithm.parseExtraArgumentDescription(parsedDataTable, parsedDataTables, message)
+	if not (parsedDataTable.HasTextArgument) then
+		if not (parsedDataTable.RequiresQualifier) then
+			table.insert(parsedDataTable.ExtraArgumentDescription, 1, parsedDataTable.QualifierDescription)
+			parsedDataTable.QualifierDescription = ""
+		end
+
+		for _, extraArgument in pairs(parsedDataTable.ExtraArgumentDescription) do
+			for _, capture in pairs(parsedDataTable.CommandCaptures) do
+				for _, arguments in pairs(capture) do
+					table.insert(arguments, extraArgument)
+				end
+			end
+		end
+	else
+		local foundIndex = 0
+
+		for counter = 1, #parsedDataTables + 1 do
+			foundIndex = select(2, string.find(message, ";", foundIndex + 1))
+		end
+
+		foundIndex = select(2, string.find(message, parsedDataTable.CommandDescription, foundIndex + 1, true)) + 2
+
+		if (parsedDataTable.RequiresQualifier) then
+			foundIndex = select(2, string.find(message, parsedDataTable.QualifierDescription, foundIndex, true)) + 2
+		end
+
+		local extraArgument = string.sub(message, foundIndex)
+		for _, capture in pairs(parsedDataTable.CommandCaptures) do
+			for _, arguments in pairs(capture) do
+				table.insert(arguments, extraArgument)
+			end
+		end
+	end
+end
+
+--// INSTRUCTIONS //--
+
+
+
+return Algorithm
