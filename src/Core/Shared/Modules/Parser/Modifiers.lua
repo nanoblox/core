@@ -93,7 +93,7 @@ Modifiers.array = {
 		aliases = {"pr-"},
 		order = 5,
 		description	= "Displays a menu that previews the command instead of executing it.",
-		action = function()
+		preAction = function()
 			
 		end,
 	};
@@ -106,8 +106,11 @@ Modifiers.array = {
 		aliases = {"d-"},
 		order = 6,
 		description	= "Waits x amount of time before executing the command. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;delay(3s)kill all``.",
-		action = function(delayAmount)
-			
+		action = function(task, values)
+			local timeDelay = table.unpack(values)
+			local seconds = main.modules.DataUtil.convertTimeStringToSeconds(timeDelay)
+			local thread = main.modules.Thread.delay(seconds, task.execute, task)
+			return thread
 		end,
 	};
 	
@@ -119,8 +122,13 @@ Modifiers.array = {
 		aliases = {"e-"},
 		order = 7,
 		description	= "Waits until the given epoch time before executing. If the epoch time has already passed, the command will be executed right away. Combine with 'global' and 'perm' for a permanent game effect. Example: ``;globalPermEpoch(3124224000)message(green) Happy new year!``",
-		action = function(executionTime)
-			
+		action = function(task, values)
+			local executionTime = table.unpack(values)
+			local timeNow = os.time()
+			local newExecutionTime = tonumber(executionTime) or timeNow + 1
+			local seconds = newExecutionTime - timeNow
+			local thread = main.modules.Thread.delay(seconds, task.execute, task)
+			return thread
 		end,
 	};
 	
@@ -132,8 +140,20 @@ Modifiers.array = {
 		aliases = {"repeat", "l-"},
 		order = 8,
 		description	= "Repeats a command for x iterations every y time delay. If not specified, x defaults to ∞ and y to 1s. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;loop(50,1s)jump me``.",
-		action = function(iterations, reiterateDelayAmount)
-			
+		action = function(task, values)
+			local iterations, interval = table.unpack(values)
+			local ITERATION_LIMIT = 10000
+			local MINIMUM_INTERVAL = 0.1
+			local newInterations = tonumber(iterations) or ITERATION_LIMIT
+			if newInterations > ITERATION_LIMIT then
+				newInterations = ITERATION_LIMIT
+			end
+			local newInterval = tonumber(interval) or MINIMUM_INTERVAL
+			if newInterval < MINIMUM_INTERVAL then
+				newInterval = MINIMUM_INTERVAL
+			end
+			local thread = main.modules.Thread.loopFor(newInterval, newInterations, task.execute, task)
+			return thread
 		end,
 	};
 	
@@ -145,8 +165,9 @@ Modifiers.array = {
 		aliases = {"s-"},
 		order = 9,
 		description	= "Executes the command every time the given player(s) respawn (in addition to the initial execution). This modifier only works for commands with player-related arguments.",
-		action = function()
-			
+		action = function(task)
+			-- have this wrapped in a thread and yield until the player leaves the game
+			-- call :execute right away, then whenever the player respawns also execute
 		end,
 	};
 	
@@ -158,8 +179,12 @@ Modifiers.array = {
 		aliases = {"x-", "until"},
 		order = 10,
 		description	= "Revokes the command after the given time. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;expire(2m30s)mute player``.",
-		action = function()
-			
+		action = function(task, values)
+			local timeDelay = table.unpack(values)
+			local seconds = main.modules.DataUtil.convertTimeStringToSeconds(timeDelay)
+			task:execute()
+			local thread = main.modules.Thread.delay(seconds, task.kill, task)
+			return thread
 		end,
 	};
 	

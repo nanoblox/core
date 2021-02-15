@@ -51,7 +51,7 @@ function TaskService.generateRecord(key)
 		commandName = "",
 		args = {},
 		qualifiers = {},
-		userId = 0,
+		userId = nil,
 	}
 end
 

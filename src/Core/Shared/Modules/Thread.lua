@@ -22,6 +22,7 @@ local function createThread()
 	local thread = {}
 	thread.state = main.enum.ThreadState.Playing
 	thread.completed = main.modules.Signal.new()
+	thread.Completed = thread.completed -- this, and the method aliases, enable the easy-mimicking of TweenBases
 	thread.startTime = tick()
 	thread.executeTime = nil
 	thread.remainingTime = nil

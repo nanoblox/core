@@ -13,21 +13,21 @@ local function setupCommands(group, tags)
 	for _, instance in pairs(group:GetChildren()) do
 		if instance:IsA("ModuleScript") then
 			local command = require(instance)
-			local UID = instance.Name
+			local commandName = instance.Name
 			command.tags = (typeof(command.tags == "table") and command.tags) or {}
-			command.UID = UID
+			command.name = commandName
 			for _, tagToAdd in pairs(newTags) do
 				table.insert(command.tags, tagToAdd)
 			end
 			local client = instance:FindFirstChild("Client") or instance:FindFirstChild("client")
 			if client then
-				client.Name = UID
+				client.Name = commandName
 				client.Parent = main.shared.Modules.ClientCommands
 			end
-			if Commands[UID] then
-				warn(("Duplicate Nanoblox command detected: '%s'"):format(UID))
+			if Commands[commandName] then
+				warn(("Duplicate Nanoblox command detected: '%s'"):format(commandName))
 			end
-			Commands[UID] = command
+			Commands[commandName] = command
 		else
 			setupCommands(instance, newTags)
 		end

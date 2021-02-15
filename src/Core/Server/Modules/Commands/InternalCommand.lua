@@ -16,13 +16,13 @@ Command.autoPreview = false -- preview the commands menu before executing
 Command.requiresRig = nil -- e.g. Enum.HumanoidRigType.R15
 
 Command.args = {} -- the arguments to be processed and passed through the the command; see the 'Args' module for a list of all arguments
-function Command:invoke(task, caller, args)
+function Command:invoke(task, args)
 	print("Hello world")
 	task.track(main.modules.Task.delay(3, function()
 		print("Goodbye world")
 	end))
 end
-function Command:revoke(task, caller, args)
+function Command:revoke(task, args)
 
 end
 

@@ -13,16 +13,18 @@ function Task.new(properties)
 	setmetatable(self, Task)
 	
 	local maid = Maid.new()
-	self.masterMaid = maid
+	self.maid = maid
 	for k,v in pairs(properties or {}) do
 		self[k] = v
 	end
 	
-	self.command = main.services.CommandService.getCommand(self.commandName)
-	self.thisExecution = nil
+	self.command = (main.isServer and main.services.CommandService.getCommand(self.commandName)) or main.modules.ClientCommands[self.commandName]
 	self.threads = {}
 	self.isPaused = false
 	self.isDead = false
+	self.executing = false
+	self.executionCompleted = maid:give(Signal.new())
+	self.executionThreadsCompleted = maid:give(Signal.new())
 
 	local qualifierPresent = false
 	for k,v in pairs(self.qualifiers) do
@@ -38,9 +40,33 @@ end
 
 
 -- METHODS
+function Task:begin()
+	local sortedActionModifiers = {}
+	local totalModifiers = 0
+	for _, otherModifier in pairs(main.modules.Modifiers.sortedOrderArray) do
+		if self.modifiers[otherModifier.name] and otherModifier.action then
+			table.insert(sortedActionModifiers, otherModifier)
+			totalModifiers += 1
+		end
+	end
+	local Thread = main.modules.Thread
+	if totalModifiers == 0 then
+		self:execute()
+			:andThen(function()
+				self:kill()
+			end)
+	else
+		
+	end
+end
+
 function Task:execute()
+	if self.executing then return end
+	self.executing = true
+
 	local command = self.command
 	local firstCommandArg = command.args[1]
+	local firstArgItem = main.modules.Args.dictionary[firstCommandArg]
 
 	-- Convert arg strings into arg values
 	local parsedArgs = {}
@@ -51,92 +77,65 @@ function Task:execute()
 		table.insert(parsedArgs, parsedArg)
 	end
 
-	-- The ``this`` parameter passed through all commands
-	-- This enables commands to reference their own table in additon to the task they're being called from
-	local thisExecution
-	local client = main.services.CommandService.Client.new(self.UID)
-	thisExecution = {
-		taskUID = self.UID,
-		maid = self.masterMaid:give(main.modules.Maid.new()),
-		client = client,
-		-- This is vital in pausing and resuming tasks and their invoked commands
-		active = true,
-		_completed = self.masterMaid:give(main.modules.Signal.new()),
-		_threadsTracking = 0,
-		track = function(thread)
-			if self.isDead or not thisExecution.active then
-				-- Kill thread right away if task dead or execution inactive
-				thread:disconnect()
-			else
-				-- Track thread
-				main.modules.Thread.spawnNow(function()
-					self.masterMaid:give(thread)
-					self.threads[thread] = true
-					thisExecution._threadsTracking = thisExecution._threadsTracking + 1
-					if self.isPaused then
-						-- Pause thread if the task is paused
-						thread:pause()
-					end
-					thread.completed:Wait()
-					self.threads[thread] = nil
-					thisExecution._threadsTracking = thisExecution._threadsTracking - 1
-				end)
-			end
-			return thread
-		end,
-	}
-	-- Update thisExecution with command properties
-	for k,v in pairs(command) do
-		thisExecution[k] = v
-	end
-	self.this = thisExecution
-
+	local invokedCommand = false
 	local function invokeCommand(argsToSend)
-		self.thisExecution = thisExecution
 		main.modules.Thread.spawnNow(function()
-			command.invoke(thisExecution, self.caller, argsToSend)
-			if thisExecution._threadsTracking > 0 then
-				thisExecution._completed:Wait()
-			end
-			thisExecution.active = false
-			if self.thisExecution == thisExecution then
-				self.thisExecution = nil
-			end
+			command:invoke(self, argsToSend)
 		end)
+		invokedCommand = true
 	end
-
+	
+	-- If the task is player-specific (such as in ;kill foreverhd, ;kill all) find the associated player and execute the command on them
+	local targetPlayer
 	if self.userId then
-		-- User specific task
-		local targetPlayer = main.Players:GetPlayerByUserId(self.userId)
-		local plrParsedArg = (firstCommandArg == "player" and targetPlayer) or {targetPlayer}
-		invokeCommand({plrParsedArg, table.unpack(parsedArgs)})
-
-	else
-		-- Server task (which can still include players)
-		local argItem = main.modules.Args.dictionary[firstCommandArg]
-		if argItem.playerArg == true then
-			-- Leading playerArg present (typically only occurs for global commands with a leader playerArg)
-			local targets = argItem:parse(self.qualifiers)
-			if firstCommandArg == "player" then
-				-- Convert these into tasks themselves
-				for i, plr in pairs(targets) do
-					local TaskService = main.services.TaskService
-					local properties = TaskService.generateRecord()
-					properties.caller = self.caller
-					properties.commandName = self.commandName
-					properties.args = self.args
-					properties.userId = plr.UserId
-					TaskService.createTask(false, properties)
-				end
-			else
-				invokeCommand({targets, table.unpack(parsedArgs)})
-			end
-		else
-			-- Non-player related command, nice and easy to handle :)
-			invokeCommand(parsedArgs)
-		end
+		targetPlayer = main.Players:GetPlayerByUserId(self.userId)
+		return invokeCommand({targetPlayer, table.unpack(parsedArgs)})
+	end
+	
+	-- If the task has no associated player or qualifiers (such as in ;music <musicId>) then simply execute right away
+	if not firstArgItem.playerArg then
+		return invokeCommand(parsedArgs)
 	end
 
+	-- If the task has no associated player *but* does contain qualifiers (such as in ;globalKill all)
+	-- If the firstArg has executeForEachPlayer, convert the task into subtasks for each player returned by the qualifiers
+	local targets = firstArgItem:parse(self.qualifiers)
+	if firstArgItem.executeForEachPlayer then
+		-- Convert these into tasks themselves
+		for i, plr in pairs(targets) do
+			local TaskService = main.services.TaskService
+			local properties = TaskService.generateRecord()
+			properties.caller = self.caller
+			properties.commandName = self.commandName
+			properties.args = self.args
+			properties.userId = plr.UserId
+			local subtask = TaskService.createTask(false, properties)
+			subtask:begin()
+		end
+	else
+		invokeCommand({targets, table.unpack(parsedArgs)})
+	end
+
+	local Promise = main.modules.Promise
+	return Promise.new(function(resolve, reject)
+		if invokedCommand then
+			self.executionThreadsCompleted:Wait()
+			local humanoid = main.modules.PlayerUtil.getHumanoid(targetPlayer)
+			if humanoid and humanoid.Health == 0 then
+				local promise = Promise.new(function(resolve, reject)
+					targetPlayer.CharacterAdded:Wait()
+					resolve()
+				end)
+				promise:timeout(5)
+				promise:await()
+			end
+			self.executionCompleted:Fire()
+			self.executing = false
+		end
+	end)
+end
+
+function Task:filterTextArgs()
 	--[[ filter thingy mbobies
 	local ChatService = main.services.ChatService
 	local messageObject = ChatService.getTextObject(message, sender.UserId)
@@ -147,29 +146,51 @@ function Task:execute()
 	--]]
 end
 
+function Task:track(thread, ignoreFromCount)
+	if self.isDead then
+		thread:Destroy() --thread:disconnect()
+		return thread
+	elseif self.isPaused then
+		thread:Pause() --thread:pause()
+	end
+	self.maid:give(thread)
+	self.threads[thread] = true
+	if not ignoreFromCount then
+		self.totalThreads += 1
+		main.modules.Thread.spawnNow(function()
+			thread.Completed:Wait() --thread.completed:Wait()
+			self.totalThreads -= 1
+			if self.totalThreads == 0 then
+				self.executionThreadsCompleted:Fire()
+			end
+		end)
+	end
+	return thread
+end
+
 function Task:pause()
 	for thread, _ in pairs(self.threads) do
-		thread:pause()
+		thread:Pause() --thread:pause()
 	end
 	self.isPaused = true
 end
 
 function Task:resume()
 	for thread, _ in pairs(self.threads) do
-		thread:resume()
+		thread:Play() --thread:resume()
 	end
 	self.isPaused = false
 end
 
-function Task:destroy()
-	self.isDead = true
-	local this = self.thisExecution
-	if this then
-		self.thisExecution = nil
-		this._completed:Fire()
+function Task:kill()
+	if not self.isDead and self.command.revoke then
+		self.command:revoke()
 	end
-	self.masterMaid:clean()
+	self.isDead = true
+	self.maid:clean()
 end
+Task.destroy = Task.kill
+Task.Destroy = Task.kill
 
 
 

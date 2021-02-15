@@ -70,7 +70,7 @@ end)
 -- METHODS
 function CommandService.generateRecord(key)
 	return defaultCommands[key] or {
-		name = "",
+		name = "", -- This will be locked, command names cannot change and must always be the same
 		description = "",
 		contributors = {},
 		aliases	= {},
@@ -95,10 +95,10 @@ function CommandService.generateRecord(key)
 end
 
 function CommandService.createCommand(name, properties)
-	local key = properties.UID
+	local key = properties.name
 	if not key then
 		key = name
-		properties.UID = key
+		properties.name = key
 	end
 	local record = CommandService:createRecord(key, false, properties)
 	return record
@@ -188,12 +188,13 @@ function CommandService.executeBatch(caller, batch)
 	local isGlobalModifier = batch.modifiers.wasGlobal
 	for commandName, arguments in pairs(batch.commands) do
 		local command = CommandService.getCommand(commandName)
-		local isCorePlayerArg = Args.playerArgsWithoutHiddenDictionary[string.lower(command.args[1])]
+		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(command.args[1])]
 		local TaskService = main.services.TaskService
 		local properties = TaskService.generateRecord()
 		properties.caller = batch.caller or properties.caller
 		properties.commandName = commandName
 		properties.args = arguments or properties.args
+		properties.modifiers = batch.modifiers
 		-- Its important to split commands into specific users for most cases so that the command can
 		-- be easily reapplied if the player rejoins (for ones where the perm modifier is present)
 		-- The one exception for this is when a global modifier is present. In this scenerio, don't save
@@ -207,12 +208,12 @@ function CommandService.executeBatch(caller, batch)
 		if isPermModifier then
 			if isGlobalModifier then
 				addToPerm = true
-			elseif isCorePlayerArg then
+			elseif executeForEachPlayerFirstArg then
 				addToPerm = true
 				splitIntoUsers = true
 			end
 		else
-			splitIntoUsers = isCorePlayerArg
+			splitIntoUsers = executeForEachPlayerFirstArg
 		end
 		if not splitIntoUsers then
 			properties.qualifiers = batch.qualifiers or properties.qualifiers
