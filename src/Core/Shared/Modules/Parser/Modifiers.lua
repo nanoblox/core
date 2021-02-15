@@ -31,7 +31,7 @@ Modifiers.array = {
 		name = "perm",
 		aliases = {"p-"},
 		order = 2,
-		description	= "Permanently applies the command. This means in addition to the initial execution, the command will be executed whenever a server starts, or if player specific, every time the player joins a server.",
+		description	= "Permanently saves the task. This means in addition to the initial execution, the command will be executed whenever a server starts, or if player specific, every time the player joins a server.",
 		preAction = function(user, batch)
 			local modifiers = batch.modifiers
 			local oldGlobal = modifiers.global
@@ -53,7 +53,7 @@ Modifiers.array = {
 		name = "global",
 		aliases = {"g-"},
 		order = 3,
-		description	= "Broadcasts the batch to all servers.",
+		description	= "Broadcasts the task to all servers.",
 		preAction = function(caller, batch)
 			local CommandService = main.services.CommandService
 			local modifiers = batch.modifiers
@@ -80,7 +80,7 @@ Modifiers.array = {
 		aliases = {"un", "u-", "revoke"},
 		order = 4,
 		description	= "Revokes all tasks that match the given command name(s) (and associated player targets if specified). To revoke a task across all servers, the 'global' modifier must be included.",
-		action = function()
+		preAction = function()
 			
 		end,
 	};

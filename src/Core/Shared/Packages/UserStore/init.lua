@@ -167,8 +167,10 @@ end
 function UserStore:removeUser(originalKey)
 	local key = getKey(originalKey)
 	local user = self:getUser(key)
-	user:saveAsync()
-	user:destroy()
+	if user then
+		user:saveAsync()
+		user:destroy()
+	end
 	self.users[key] = nil
 end
 

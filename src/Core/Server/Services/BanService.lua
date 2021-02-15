@@ -39,8 +39,7 @@ function BanService.playerAddedMethod(player)
 		if record.expiryTime <= currentTime then
 			-- Ban expired, permanently remove
 			local key = tostring(player.UserId)
-			local data = (record._global == false and systemUser.temp) or systemUser.perm
-			BanService:decideData(record._global):set(key, nil)
+			BanService:removeRecord(key)
 		elseif record.accurate == true then
 			BanService.kick(player)
 			-- Returning false blocks the user from loading
@@ -190,26 +189,29 @@ end
 
 
 --[[
+local main = require(game.Nanoblox) main.services.BanService.ban(game.Players.ForeverHD, main.UserStore:getUser(game.Players.ForeverHD), true, {banTime = os.time() + 120})
+
 local main = require(game.Nanoblox)
 local BanService = main.services.BanService
-local targetId = 46088788--math.random(1,10000)
+local targetId = 82347291--math.random(1,10000)
 BanService.createBan(targetId, true, {
-	reason = "Hello world tes123"
+	reason = "Hello world its me 1",
+	expiryTime = os.time() + 60,
 })
 
 local main = require(game.Nanoblox)
 local BanService = main.services.BanService
-local targetId = 46088788
+local targetId = 82347291
 BanService.updateBan(targetId, {_global = true, reason = math.random(1,1000)})
 
 local main = require(game.Nanoblox)
 local BanService = main.services.BanService
-local targetId = 46088788
+local targetId = 82347291
 BanService.removeBan(targetId)
 
 local main = require(game.Nanoblox)
 local BanService = main.services.BanService
-local targetId = 46088788
+local targetId = 82347291
 print(BanService.getBan(targetId))
 print(BanService.getBan(targetId)._global)
 
