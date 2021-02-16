@@ -119,7 +119,9 @@ function Thread.spawn(func, ...)
 	thread.frameEvent = heartbeat
 	thread.behaviour = function()
 		thread:disconnect()
-		func(table.unpack(args, 1, args.n))
+		if func then
+			func(table.unpack(args, 1, args.n))
+		end
 	end
 	thread:resume()
 	return thread
@@ -133,7 +135,9 @@ function Thread.delay(waitTime, func, ...)
 	thread.behaviour = function()
 		if (tick() >= thread.executeTime) then
 			thread:disconnect()
-			func(table.unpack(args, 1, args.n))
+			if func then
+				func(table.unpack(args, 1, args.n))
+			end
 		end
 	end
 	thread:resume()
@@ -147,14 +151,18 @@ function Thread.delayLoop(intervalTimeOrType, func, ...)
 	return loopMaster(intervalTime, thread, function()
 		if (tick() >= thread.executeTime) then
 			thread.executeTime = tick() + intervalTime
-			func(table.unpack(args, 1, args.n))
+			if func then
+				func(table.unpack(args, 1, args.n))
+			end
 		end
 	end, func, ...)
 end
 Thread.delayRepeat = Thread.delayLoop
 
 function Thread.loop(intervalTimeOrType, func, ...)
-	func(...)
+	if func then
+		func(...)
+	end
 	return Thread.delayLoop(intervalTimeOrType, func, ...)
 end
 
@@ -162,13 +170,17 @@ function Thread.loopUntil(intervalTimeOrType, criteria, func, ...)
 	local args = table.pack(...)
 	local thread = createThread()
 	local intervalTime = tonumber(intervalTimeOrType) or 0
-	func(table.unpack(args, 1, args.n))
+	if func then
+		func(table.unpack(args, 1, args.n))
+	end
 	return loopMaster(intervalTime, thread, function()
 		if criteria() then
 			thread:disconnect()
 		elseif (tick() >= thread.executeTime) then
 			thread.executeTime = tick() + intervalTime
-			func(table.unpack(args, 1, args.n))
+			if func then
+				func(table.unpack(args, 1, args.n))
+			end
 		end
 	end, func, ...)
 end
@@ -179,14 +191,18 @@ function Thread.loopFor(intervalTimeOrType, iterations, func, ...)
 	local thread = createThread()
 	local intervalTime = tonumber(intervalTimeOrType) or 0
 	local i = 1
-	func(i, table.unpack(args, 1, args.n))
+	if func then
+		func(i, table.unpack(args, 1, args.n))
+	end
 	return loopMaster(intervalTime, thread, function()
 		if i == iterations then
 			thread:disconnect()
 		elseif (tick() >= thread.executeTime) then
 			thread.executeTime = tick() + intervalTime
 			i = i + 1
-			func(i, table.unpack(args, 1, args.n))
+			if func then
+				func(i, table.unpack(args, 1, args.n))
+			end
 		end
 	end, func, ...)
 end
