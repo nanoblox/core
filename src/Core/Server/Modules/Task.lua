@@ -22,9 +22,11 @@ function Task.new(properties)
 	self.threads = {}
 	self.isPaused = false
 	self.isDead = false
+	self.begun = false
 	self.executing = false
-	self.executionCompleted = maid:give(Signal.new())
+	self.totalExecutionThreads = 0
 	self.executionThreadsCompleted = maid:give(Signal.new())
+	self.executionCompleted = maid:give(Signal.new())
 
 	local qualifierPresent = false
 	for k,v in pairs(self.qualifiers) do
@@ -39,25 +41,65 @@ end
 
 
 
--- METHODS
+-- CORE METHODS
 function Task:begin()
+	if self.begun then return end
+	self.begun = true
+
 	local sortedActionModifiers = {}
 	local totalModifiers = 0
-	for _, otherModifier in pairs(main.modules.Modifiers.sortedOrderArray) do
-		if self.modifiers[otherModifier.name] and otherModifier.action then
-			table.insert(sortedActionModifiers, otherModifier)
+	for _, actionModifier in pairs(main.modules.Modifiers.sortedOrderArray) do
+		if self.modifiers[actionModifier.name] and actionModifier.action then
+			table.insert(sortedActionModifiers, actionModifier)
 			totalModifiers += 1
 		end
 	end
-	local Thread = main.modules.Thread
+	
+	-- If no modifiers present, simply call execute once then kill the task
 	if totalModifiers == 0 then
 		self:execute()
 			:andThen(function()
 				self:kill()
 			end)
-	else
-		
+		return
 	end
+	
+	main.modules.Thread.spawnNow(function()
+		-- This handles the applying of all modifiers, tracks them, then kills the task when all modifiers have completed
+		local function track(thread)
+			self:track(thread, "totalStartThreads", "startThreadsCompleted")
+		end
+		local previousExecuteAfterThread
+		for _, actionModifier in pairs(sortedActionModifiers) do
+			local thread = actionModifier.action(self, self.modifiers[actionModifier.name])
+			if thread then
+				track(thread)
+				-- if previousExecuteAfterThread is true then don't call this otherwise task will be called twice in the same frame unnecessarily
+				if actionModifier.executeRightAway and not previousExecuteAfterThread then
+					self:execute()
+				end
+				if actionModifier.executeAfterThread then
+					local afterThreadConnection
+					afterThreadConnection = thread.completed:Connect(function()
+						afterThreadConnection:Disconnect()
+						self:execute()
+					end)
+				end
+				if actionModifier.yieldUntilThreadComplete then
+					thread.completed:Wait()
+				end
+				previousExecuteAfterThread = actionModifier.executeAfterThrea
+			end
+		end
+		-- This ensures all modifiers and all executions have ended before killing the task
+		if self.totalStartThreads > 0 then
+			self.startThreadsCompleted:Wait()
+		end
+		if self.totalExecutionThreads > 0 then
+			self.executionThreadsCompleted:Wait()
+		end
+		self:kill()
+	end)
 end
 
 function Task:execute()
@@ -98,10 +140,8 @@ function Task:execute()
 	end
 
 	-- If the task has no associated player *but* does contain qualifiers (such as in ;globalKill all)
-	-- If the firstArg has executeForEachPlayer, convert the task into subtasks for each player returned by the qualifiers
 	local targets = firstArgItem:parse(self.qualifiers)
-	if firstArgItem.executeForEachPlayer then
-		-- Convert these into tasks themselves
+	if firstArgItem.executeForEachPlayer then -- If the firstArg has executeForEachPlayer, convert the task into subtasks for each player returned by the qualifiers
 		for i, plr in pairs(targets) do
 			local TaskService = main.services.TaskService
 			local properties = TaskService.generateRecord()
@@ -146,7 +186,15 @@ function Task:filterTextArgs()
 	--]]
 end
 
-function Task:track(thread, ignoreFromCount)
+function Task:track(thread, countPropertyName, completedSignalName)
+	local newCountPropertyName = countPropertyName or "totalExecutionThreads"
+	local newCompletedSignalName = completedSignalName or "executionThreadsCompleted"
+	if not self[newCountPropertyName] then
+		self[newCountPropertyName] = 0
+	end
+	if not self[newCompletedSignalName] then
+		self[newCompletedSignalName] = self.maid:give(Signal.new())
+	end
 	if self.isDead then
 		thread:Destroy() --thread:disconnect()
 		return thread
@@ -155,16 +203,14 @@ function Task:track(thread, ignoreFromCount)
 	end
 	self.maid:give(thread)
 	self.threads[thread] = true
-	if not ignoreFromCount then
-		self.totalThreads += 1
-		main.modules.Thread.spawnNow(function()
-			thread.Completed:Wait() --thread.completed:Wait()
-			self.totalThreads -= 1
-			if self.totalThreads == 0 then
-				self.executionThreadsCompleted:Fire()
-			end
-		end)
-	end
+	self[newCountPropertyName] += 1
+	main.modules.Thread.spawnNow(function()
+		thread.Completed:Wait() --thread.completed:Wait()
+		self[newCountPropertyName] -= 1
+		if self[newCountPropertyName] == 0 then
+			self[newCompletedSignalName]:Fire()
+		end
+	end)
 	return thread
 end
 
@@ -183,14 +229,58 @@ function Task:resume()
 end
 
 function Task:kill()
+	if self.isDead then return end
 	if not self.isDead and self.command.revoke then
 		self.command:revoke()
 	end
 	self.isDead = true
 	self.maid:clean()
+	if main.isServer and not self.modifiers.perm then--self._global == false then
+		main.services.TaskService.removeTask(self.UID)
+	end
 end
 Task.destroy = Task.kill
 Task.Destroy = Task.kill
+
+
+
+-- SERVER NETWORKING METHODS
+local SERVER_ONLY_WARNING = "this method can only be called on the server!"
+function Task:invokeClient(player, ...)
+	assert(main.isServer, SERVER_ONLY_WARNING)
+end
+
+function Task:invokeNearbyClients(origin, radius, ...)
+	assert(main.isServer, SERVER_ONLY_WARNING)
+end
+
+function Task:invokeAllClients(...)
+	assert(main.isServer, SERVER_ONLY_WARNING)
+end
+
+function Task:revokeClient(player, ...)
+	assert(main.isServer, SERVER_ONLY_WARNING)
+end
+
+function Task:revokeAllClients(...)
+	assert(main.isServer, SERVER_ONLY_WARNING)
+end
+
+
+
+-- CLIENT NETWORKING METHODS
+local CLIENT_ONLY_WARNING = "this method can only be called on the client!"
+function Task:replicateTo(player, ...)
+	assert(main.isClient, CLIENT_ONLY_WARNING)
+end
+
+function Task:replicateToNearby(origin, radius, ...)
+	assert(main.isClient, CLIENT_ONLY_WARNING)
+end
+
+function Task:replicateToAll(...)
+	assert(main.isClient, CLIENT_ONLY_WARNING)
+end
 
 
 

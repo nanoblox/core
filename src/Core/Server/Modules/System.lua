@@ -387,7 +387,8 @@ function System.new(name, ignoreTempChanges)
 		-- (i.e. within 20 minutes of the current time) are closely watched.
 		-- This precise watch is updated every 20 minutes.
 		
-		Thread.loopUntil(1, function() return not System end, function()
+		--Thread.loopUntil(1, function() return not System end, function()
+		Thread.delayLoop(1, function()
 			local currentTime = os.time()
 			-- Every 20 minutes, determine if any records need close watching
 			if currentTime >= nextExpiryUpdate then

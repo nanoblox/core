@@ -44,7 +44,7 @@ function DataUtil.getUIDFromInt(int)
 end
 
 function DataUtil.convertTimeStringToSeconds(timeString)
-	local totalSeconds = 0
+	local totalSeconds = tonumber(timeString) or 0 -- if somebody just specified "100" without any pattern identifiers then by default convert that to seconds
 	local patternValues = {
 		["s"] = 1, -- seconds
 		["m"] = 60, -- minutes

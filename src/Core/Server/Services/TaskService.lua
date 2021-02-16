@@ -58,7 +58,7 @@ end
 function TaskService.createTask(isGlobal, properties)
 	local key = (properties and properties.UID) or main.modules.DataUtil.generateUID(10)
 	TaskService:createRecord(key, isGlobal, properties)
-	local task = TaskService.getRole(key)
+	local task = TaskService.getTask(key)
 	return task
 end
 
@@ -91,14 +91,14 @@ function TaskService.getTasksWithCommandNameAndUserId(commandName, userId)
 end
 
 function TaskService.updateTask(UID, propertiesToUpdate)
-	local task = TaskService.getRole(UID)
+	local task = TaskService.getTask(UID)
 	assert(task, ("task '%s' not found!"):format(tostring(UID)))
 	TaskService:updateRecord(UID, propertiesToUpdate)
 	return true
 end
 
 function TaskService.removeTask(UID)
-	local task = TaskService.getRole(UID)
+	local task = TaskService.getTask(UID)
 	assert(task, ("task '%s' not found!"):format(tostring(UID)))
 	TaskService:removeRecord(UID)
 	return true

@@ -173,9 +173,13 @@ function ConfigService.start()
 	-- This checks for differences between config and latestConfig and
 	-- if present, applies them to the corresponding services
 	main.config = config
-	Thread.loop(10, function()
+	local function updateConfig()
 		latestConfig = ConfigService.getLatestConfig()
 		ConfigService.transformChanges(latestConfig, main.config, "temp")
+	end
+	updateConfig()
+	Thread.delayLoop(10, function()
+		updateConfig()
 	end)
 end
 
