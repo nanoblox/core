@@ -159,20 +159,10 @@ function Thread.delayLoop(intervalTimeOrType, func, ...)
 end
 Thread.delayRepeat = Thread.delayLoop
 
-function Thread.loop(intervalTimeOrType, func, ...)
-	if func then
-		func(...)
-	end
-	return Thread.delayLoop(intervalTimeOrType, func, ...)
-end
-
-function Thread.loopUntil(intervalTimeOrType, criteria, func, ...)
+function Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...)
 	local args = table.pack(...)
 	local thread = createThread()
 	local intervalTime = tonumber(intervalTimeOrType) or 0
-	if func then
-		func(table.unpack(args, 1, args.n))
-	end
 	return loopMaster(intervalTime, thread, function()
 		if criteria() then
 			thread:disconnect()
@@ -185,17 +175,14 @@ function Thread.loopUntil(intervalTimeOrType, criteria, func, ...)
 	end, func, ...)
 end
 
-function Thread.loopFor(intervalTimeOrType, iterations, func, ...)
+function Thread.delayLoopFor(intervalTimeOrType, iterations, func, ...)
 	if iterations <= 0 then return end
 	local args = table.pack(...)
 	local thread = createThread()
 	local intervalTime = tonumber(intervalTimeOrType) or 0
-	local i = 1
-	if func then
-		func(i, table.unpack(args, 1, args.n))
-	end
+	local i = 0
 	return loopMaster(intervalTime, thread, function()
-		if i == iterations then
+		if i >= iterations then
 			thread:disconnect()
 		elseif (tick() >= thread.executeTime) then
 			thread.executeTime = tick() + intervalTime
