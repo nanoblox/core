@@ -3,7 +3,9 @@ local main = require(game.Nanoblox)
 local System = main.modules.System
 local CommandService = System.new("Commands")
 CommandService.remotes = {
-	clientCommandRequest = main.modules.Remote.new("clientCommandRequest")
+	invokeClientCommand = main.modules.Remote.new("invokeClientCommand"),
+	revokeClientCommand = main.modules.Remote.new("revokeClientCommand"),
+	callClientTaskMethod = main.modules.Remote.new("callClientTaskMethod"),
 }
 local systemUser = CommandService.user
 local defaultCommands = main.modules.Commands
@@ -221,7 +223,7 @@ function CommandService.executeBatch(caller, batch)
 		else
 			local targets = Args.dictionary.player:parse(batch.qualifiers)
 			for _, plr in pairs(targets) do
-				properties.userId = plr.UserId
+				properties.targetUserId = plr.targetUserId
 				main.services.TaskService.createTask(addToPerm, properties)
 			end
 		end
@@ -260,83 +262,6 @@ local batch = {
 }
 
 ]]
-
-
-
--- CLIENT
--- These are used within commands once they have been executed using ``this.client`` to activate client functions
-local Client = {}
-
-function Client.new(taskUID)
-	local self = {}
-	setmetatable(self, Client)
-	self.taskUID = taskUID
-end
-
-local function makeRequestToClient(player, requestType, self, ...)
-	local taskUID = self.UID
-	self.remotes.clientCommandRequest:fireClient(player, requestType, taskUID, ...)
-end
-
-local function makeRequestToAllClients(self, requestType, ...)
-	local taskUID = self.UID
-	self.remotes.clientCommandRequest:fireAllClients(requestType, taskUID, ...)
-end
-
-local function makeRequestToNearbyClients(origin, radius, self, requestType, ...)
-	local taskUID = self.UID
-	self.remotes.clientCommandRequest:fireNearbyClients(origin, radius, requestType, taskUID, ...)
-end
-
--- These activate ``clientCommand.invoke`` for the given players
-function Client:invokeClient(player, ...)
-	local requestType = "invoke"
-	makeRequestToClient(player, requestType, self, ...)
-end
-
-function Client:invokeAllClients(...)
-	local requestType = "invoke"
-	makeRequestToAllClients(self, requestType, ...)
-end
-
-function Client:invokeNearbyClients(origin, radius, ...)
-	local requestType = "invoke"
-	makeRequestToNearbyClients(origin, radius, self, requestType, ...)
-end
-
--- These activate ``clientCommand.revoke`` for the given players
-function Client:revokeClient(player, ...)
-	local requestType = "revoke"
-	local target = "Client"
-	makeRequestToClient(player, requestType, self, ...)
-end
-
-function Client:revokeAllClients(...)
-	local requestType = "revoke"
-	makeRequestToAllClients(self, requestType, ...)
-end
-
-function Client:revokeNearbyClients(origin, radius, ...)
-	local requestType = "revoke"
-	local target = "NearbyClients"
-	makeRequestToNearbyClients(origin, radius, self, requestType, ...)
-end
-
--- These activate ``clientCommand.replicate`` for the given players
-function Client:replicateClient(player, ...)
-	local requestType = "replicate"
-	makeRequestToClient(player, requestType, self, ...)
-end
-
-function Client:replicateAllClients(...)
-	local requestType = "replicate"
-	makeRequestToAllClients(self, requestType, ...)
-end
-
-function Client:replicateNearbyClients(origin, radius, ...)
-	local requestType = "replicate"
-	makeRequestToNearbyClients(origin, radius, self, requestType, ...)
-end
 
 
 

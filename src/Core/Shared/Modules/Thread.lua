@@ -144,6 +144,22 @@ function Thread.delay(waitTime, func, ...)
 	return thread
 end
 
+function Thread.delayUntil(criteria, func, ...)
+	local args = table.pack(...)
+	local thread = createThread()
+	thread.frameEvent = heartbeat
+	thread.behaviour = function()
+		if criteria() then
+			thread:disconnect()
+			if func then
+				func(table.unpack(args, 1, args.n))
+			end
+		end
+	end
+	thread:resume()
+	return thread
+end
+
 function Thread.delayLoop(intervalTimeOrType, func, ...)
 	local args = table.pack(...)
 	local thread = createThread()
@@ -157,7 +173,6 @@ function Thread.delayLoop(intervalTimeOrType, func, ...)
 		end
 	end, func, ...)
 end
-Thread.delayRepeat = Thread.delayLoop
 
 function Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...)
 	local args = table.pack(...)

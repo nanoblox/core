@@ -51,12 +51,13 @@ function TaskService.generateRecord(key)
 		commandName = "",
 		args = {},
 		qualifiers = {},
-		userId = nil,
+		targetUserId = nil,
 	}
 end
 
 function TaskService.createTask(isGlobal, properties)
 	local key = (properties and properties.UID) or main.modules.DataUtil.generateUID(10)
+	properties.UID = key
 	TaskService:createRecord(key, isGlobal, properties)
 	local task = TaskService.getTask(key)
 	return task
@@ -82,11 +83,11 @@ function TaskService.getTasksWithCommandName(commandName)
 	
 end
 
-function TaskService.getTasksWithUserId(userId)
+function TaskService.getTasksWithTargetUserId(targetUserId)
 	
 end
 
-function TaskService.getTasksWithCommandNameAndUserId(commandName, userId)
+function TaskService.getTasksWithCommandNameAndTargetUserId(commandName, targetUserId)
 	
 end
 

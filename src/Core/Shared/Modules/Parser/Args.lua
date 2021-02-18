@@ -85,11 +85,11 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		-- Consider filters for specific players or broadcast
 		name = "text",
 		aliases = {"string", "reason", "question", "teamname"},
 		description	= "",
 		defaultValue = 0,
+		filterText = true,
 		parse = function(self, stringToParse)
 			
 		end,

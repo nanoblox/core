@@ -15,6 +15,7 @@ Command.blockJuniors = false -- when 'true', prevents users of lower roles (i.e.
 Command.autoPreview = false -- preview the commands menu before executing
 Command.requiresRig = nil -- e.g. Enum.HumanoidRigType.R15
 
+Command.persistence = main.enum.Persistence.None -- when set to None, the command will typically revoke (i.e. its task is killed) straight-away - to prevent this, replace 'None' with 'UntilDeath', 'UntilRespawn', 'UntilLeave' or 'UntilRevoke'
 Command.args = {} -- the arguments to be processed and passed through the the command; see the 'Args' module for a list of all arguments
 function Command:invoke(task, args)
 	print("Hello world")
@@ -22,7 +23,7 @@ function Command:invoke(task, args)
 		print("Goodbye world")
 	end))
 end
-function Command:revoke(task, args)
+function Command:revoke(task)
 
 end
 

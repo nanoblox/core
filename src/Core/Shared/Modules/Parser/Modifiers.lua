@@ -181,6 +181,7 @@ Modifiers.array = {
 			local targetUser = main.modules.UserStore:getUserByUserId(task.userId)
 			local targetPlayer = targetUser and targetUser.player
 			if targetPlayer then
+				task.persistence = main.enum.Persistence.UntilLeave
 				task.maid:give(targetPlayer.CharacterAdded:Connect(function(char)
 					char:WaitForChild("HumanoidRootPart")
 					char:WaitForChild("Humanoid")
