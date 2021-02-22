@@ -62,6 +62,7 @@ function Algorithm.parseQualifierDescription(qualifierDescription)
 		MAIN.modules.Parser.Qualifiers.sortedNameAndAliasLengthArray
 	)
 
+	--// Unrecognized qualifiers that could not have been identifiers
 	local unrecognizedQualifier = string.match(
 		qualifierDescriptionResidue,
 		string.format("(.-)%s", parser.patterns.CapsuleFromKeyword)
@@ -70,6 +71,7 @@ function Algorithm.parseQualifierDescription(qualifierDescription)
 		return nil
 	end
 
+	--// Unrecognized qualifiers that are identifiers
 	for _, match in pairs(utility.getMatches(qualifierDescriptionResidue, parser.patterns.ArgumentsFromCollection)) do
 		if (match ~= "") then
 			table.insert(qualifierCaptures, {[match] = {}})

@@ -116,6 +116,7 @@ function ParsedData.parsedDataTableRequiresQualifier(parsedDataTable)
 		parsedDataTableRequiresQualifier = qualifierRequiredEnums.Sometimes
 	end
 
+	--// Temporarily parse the qualifierDescription to confirm whether qualifiers are required or not
 	if (parsedDataTableRequiresQualifier == qualifierRequiredEnums.Sometimes) then
 
 		parsedDataTable.requiresQualifier = true
@@ -124,6 +125,7 @@ function ParsedData.parsedDataTableRequiresQualifier(parsedDataTable)
 		if (qualifierCaptures == nil) then
 			return false
 		else
+			--// If qualifier can be identified then it is required
 			local playerNames = {}
 			for _, player in pairs(game:GetService("Players"):GetPlayers()) do
 				table.insert(playerNames, player.Name:lower())
