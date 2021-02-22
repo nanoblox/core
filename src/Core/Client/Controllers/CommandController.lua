@@ -29,13 +29,21 @@ function CommandController.start()
 	end)
 
 	local callClientTaskMethod = main.modules.Remote.new("callClientTaskMethod")
-	invokeClientCommand.onClientEvent:Connect(function(taskUID, methodName)
+	callClientTaskMethod.onClientEvent:Connect(function(taskUID, methodName)
 		local task = clientTasks[taskUID]
 		if task then
 			local method = task[methodName]
 			if method then
 				method(task)
 			end
+		end
+	end)
+
+	local replicateClientCommand = main.modules.Remote.new("replicateClientCommand")
+	replicateClientCommand.onClientEvent:Connect(function(taskUID, packedData)
+		local task = clientTasks[taskUID]
+		if task and task.replication then
+			task:replication(table.unpack(packedData))
 		end
 	end)
 	

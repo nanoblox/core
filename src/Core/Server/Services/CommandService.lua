@@ -2,11 +2,6 @@
 local main = require(game.Nanoblox)
 local System = main.modules.System
 local CommandService = System.new("Commands")
-CommandService.remotes = {
-	invokeClientCommand = main.modules.Remote.new("invokeClientCommand"),
-	revokeClientCommand = main.modules.Remote.new("revokeClientCommand"),
-	callClientTaskMethod = main.modules.Remote.new("callClientTaskMethod"),
-}
 local systemUser = CommandService.user
 local defaultCommands = main.modules.Commands
 

@@ -30,6 +30,8 @@ function Task.new(properties)
 	self.executionCompleted = maid:give(Signal.new())
 	self.persistence = self.command.persistence
 	self.trackingClients = {}
+	self.totalReplications = 0
+	self.replicationsThisSecond = 0
 
 	local qualifierPresent = false
 	if self.qualifiers then
@@ -358,7 +360,7 @@ function Task:_invoke(playersArray, ...)
 			killAfterExecution = killAfterExecution,
 			clientArgs = table.pack(...)
 		}
-		table.insert(promises, main.services.CommandService.remotes.invokeClientCommand:invokeClient(player, clientTaskProperties)
+		table.insert(promises, main.services.TaskService.remotes.invokeClientCommand:invokeClient(player, clientTaskProperties)
 			:timeout(timeoutValue)
 			:finally(function()
 				responses += 1
@@ -385,12 +387,7 @@ function Task:invokeClient(player, ...)
 end
 
 function Task:invokeNearbyClients(origin, radius, ...)
-	local playersArray = {}
-	for _, player in pairs(main.Players:GetPlayers()) do
-		if player:DistanceFromCharacter(origin) <= radius then
-			table.insert(playersArray, player)
-		end
-	end
+	local playersArray = main.enum.TargetPool.getProperty("Nearby")(origin, radius)
 	self:_invoke(playersArray, ...)
 end
 
@@ -402,7 +399,7 @@ end
 function Task:_revoke(playersArray)
 	assert(main.isServer, SERVER_ONLY_WARNING)
 	for _, player in pairs(playersArray) do
-		main.services.CommandService.remotes.revokeClientCommand:fireClient(player, self.UID)
+		main.services.TaskService.remotes.revokeClientCommand:fireClient(player, self.UID)
 		self.trackingClients[player] = nil
 	end
 end
@@ -426,14 +423,14 @@ end
 function Task:pauseAllClients()
 	assert(main.isServer, SERVER_ONLY_WARNING)
 	for _, trackingPlayer in pairs(self.trackingClients) do
-		main.services.CommandService.remotes.callClientTaskMethod:fireClient(trackingPlayer, self.UID, "pause")
+		main.services.TaskService.remotes.callClientTaskMethod:fireClient(trackingPlayer, self.UID, "pause")
 	end
 end
 
 function Task:resumeAllClients()
 	assert(main.isServer, SERVER_ONLY_WARNING)
 	for _, trackingPlayer in pairs(self.trackingClients) do
-		main.services.CommandService.remotes.callClientTaskMethod:fireClient(trackingPlayer, self.UID, "resume")
+		main.services.TaskService.remotes.callClientTaskMethod:fireClient(trackingPlayer, self.UID, "resume")
 	end
 end
 
@@ -441,16 +438,33 @@ end
 
 -- CLIENT NETWORKING METHODS
 local CLIENT_ONLY_WARNING = "this method can only be called on the client!"
-function Task:replicateTo(player, ...)
+function Task:_replicate(targetPool, packedArgs, packedData)
 	assert(main.isClient, CLIENT_ONLY_WARNING)
+	main.services.TaskService.remotes.replicationRequest:fireServer(self.UID, targetPool, packedArgs, packedData)
+end
+
+function Task:replicateTo(player, ...)
+	self:_replicate(main.enum.TargetPool.Individual, {player}, table.pack(...))
 end
 
 function Task:replicateToNearby(origin, radius, ...)
-	assert(main.isClient, CLIENT_ONLY_WARNING)
+	self:_replicate(main.enum.TargetPool.Nearby, {origin, radius}, table.pack(...))
+end
+
+function Task:replicateToOthers(...)
+	self:_replicate(main.enum.TargetPool.Others, {}, table.pack(...))
+end
+
+function Task:replicateToOthersNearby(origin, radius, ...)
+	self:_replicate(main.enum.TargetPool.OthersNearby, {origin, radius}, table.pack(...))
 end
 
 function Task:replicateToAll(...)
-	assert(main.isClient, CLIENT_ONLY_WARNING)
+	self:_replicate(main.enum.TargetPool.All, {}, table.pack(...))
+end
+
+function Task:replicateToServer(...)
+	self:_replicate(main.enum.TargetPool.None, {}, table.pack(...))
 end
 
 
