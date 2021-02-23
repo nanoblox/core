@@ -170,8 +170,8 @@ end
 
 function State:set(stat, value)
 	local oldValue = self[stat]
-	if type(value) == "table" then
-		-- Convert tables and descending tables into States
+	if type(value) == "table" and not value.new then
+		-- Convert tables and descending tables into States unless an object
 		local thisMaid = activeTables[self].maid
 		value = thisMaid:give(State.new(value))
 	elseif value == nil and type(oldValue) == "table" and oldValue.isState then

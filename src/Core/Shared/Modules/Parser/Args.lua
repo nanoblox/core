@@ -177,7 +177,7 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		name = "stat",
+		name = "stat", -- Consider making a setting to update this or set its pathway
 		aliases = {"statName"},
 		description	= "",
 		defaultValue = 0,

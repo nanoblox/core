@@ -70,11 +70,18 @@ end
 
 
 -- EVENTS
+local commandNameToTask = main.modules.State.new() -- This allows for super quick retrieval of a group of tasks with the same commandName
+local targetUserIdToTaskGroup = main.modules.State.new() -- This allows for super quick retrieval of a group of tasks with the same targetUserId
 TaskService.recordAdded:Connect(function(UID, record)
 	--warn(("TASK '%s' ADDED!"):format(UID))
 	local task = Task.new(record)
 	task.UID = UID
 	tasks[UID] = task
+	task:begin()
+	if task.targetUserId then
+		targetUserIdToTaskGroup:getOrSetup(task.targetUserId, task.commandName):set(UID, task)  -- This allows for super quick retrieval of a group of tasks with the same targetUserId
+	end
+	commandNameToTask:getOrSetup(task.commandName):set(UID, task)
 end)
 
 TaskService.recordRemoved:Connect(function(UID)
@@ -83,6 +90,14 @@ TaskService.recordRemoved:Connect(function(UID)
 	if task then
 		task:destroy()
 		task[UID] = nil
+	end
+	local userTaskCommandGroup = targetUserIdToTaskGroup:find(task.targetUserId, task.commandName)
+	if userTaskCommandGroup then
+		userTaskCommandGroup:set(UID, nil)
+	end
+	local taskCommandGroup = commandNameToTask:find(task.commandName)
+	if taskCommandGroup then
+		taskCommandGroup:set(UID, nil)
 	end
 end)
 
@@ -112,6 +127,28 @@ end
 function TaskService.createTask(isGlobal, properties)
 	local key = (properties and properties.UID) or main.modules.DataUtil.generateUID(10)
 	properties.UID = key
+	---
+	local commandName = properties.commandName
+	local command = main.services.CommandService.getCommand(commandName)
+	if not command then
+		return false
+	end
+	local runningTasks = TaskService.getTasksWithCommandNameAndOptionalTargetUserId(commandName, properties.targetUserId)
+	if command.revokeRepeats then
+		for _, task in pairs(runningTasks) do
+			task:kill()
+		end
+	else
+		local preventRepeats = command.preventRepeats
+		if preventRepeats == main.enum.TriStateSetting.Default then
+			preventRepeats = main.services.SettingService.getGroup("System").preventRepeatCommands
+		end
+		if preventRepeats and #runningTasks > 0 then
+			warn("Wait until command '%s' has finished before using again!") --!!!notice
+			return
+		end
+	end
+	---
 	TaskService:createRecord(key, isGlobal, properties)
 	local task = TaskService.getTask(key)
 	return task
@@ -134,15 +171,43 @@ function TaskService.getTasks()
 end
 
 function TaskService.getTasksWithCommandName(commandName)
-	
+	local tasksArray = {}
+	local taskCommandGroup = commandNameToTask:find(commandName)
+	if taskCommandGroup then
+		for _, task in pairs(taskCommandGroup) do
+			table.insert(tasksArray, task)
+		end
+	end
+	return tasksArray
 end
 
 function TaskService.getTasksWithTargetUserId(targetUserId)
-	
+	local tasksArray = {}
+	local userTaskCommandGroups = targetUserIdToTaskGroup:find(targetUserId)
+	if userTaskCommandGroups then
+		for _, groupOfTasks in pairs(userTaskCommandGroups) do
+			for _, task in pairs(groupOfTasks) do
+				table.insert(tasksArray, task)
+			end
+		end
+	end
+	return tasksArray
 end
 
 function TaskService.getTasksWithCommandNameAndTargetUserId(commandName, targetUserId)
-	
+	local tasksArray = {}
+	local userTaskCommandGroup = targetUserIdToTaskGroup:find(targetUserId, commandName)
+	if userTaskCommandGroup then
+		for _, task in pairs(userTaskCommandGroup) do
+			table.insert(tasksArray, task)
+		end
+	end
+	return tasksArray
+end
+
+function TaskService.getTasksWithCommandNameAndOptionalTargetUserId(commandName, optionalTargetUserId)
+	local tasksArray = (optionalTargetUserId and TaskService.getTasksWithCommandNameAndTargetUserId(commandName, optionalTargetUserId)) or TaskService.getTasksWithCommandName(commandName)
+	return tasksArray
 end
 
 function TaskService.updateTask(UID, propertiesToUpdate)
@@ -157,6 +222,27 @@ function TaskService.removeTask(UID)
 	assert(task, ("task '%s' not found!"):format(tostring(UID)))
 	TaskService:removeRecord(UID)
 	return true
+end
+
+function TaskService.removeTasksWithCommandName(commandName)
+	local tasksArray = TaskService.getTasksWithCommandName(commandName)
+	for _, task in pairs(tasksArray) do
+		TaskService.removeTask(task.UID)
+	end
+end
+
+function TaskService.removeTasksWithTargetUserId(targetUserId)
+	local tasksArray = TaskService.getTasksWithTargetUserId(targetUserId)
+	for _, task in pairs(tasksArray) do
+		TaskService.removeTask(task.UID)
+	end
+end
+
+function TaskService.removeTasksWithCommandNameAndTargetUserId(commandName, targetUserId)
+	local tasksArray = TaskService.getTasksWithCommandNameAndTargetUserId(commandName, targetUserId)
+	for _, task in pairs(tasksArray) do
+		TaskService.removeTask(task.UID)
+	end
 end
 
 

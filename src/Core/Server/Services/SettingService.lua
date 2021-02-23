@@ -42,6 +42,9 @@ function SettingsService.generateRecord(key)
 				denylist = {},
 				allowlist = {},
 			},
+
+			-- Commands
+			preventRepeatCommands = true,
 			
 			-- Warning System
 			warnExpiryTime = 604800, -- 1 week
