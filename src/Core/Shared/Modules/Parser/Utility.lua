@@ -16,7 +16,7 @@ Return all matches in a source using a pattern.
 
 ]]--
 function Utility.getMatches(source, pattern)
-	local matches = {}
+    local matches = {}
 
 	for match in string.gmatch(source, pattern) do
 		table.insert(matches, match)
@@ -67,7 +67,7 @@ function Utility.getCaptures(source, sortedKeywords)
 				return ""
 			end
 		)
-		--// Captures without argument capsules are left in the source and are
+		--// Only captures without argument capsules are left in the source and are
 		--// collected at this point
 		source = string.gsub(
 			source,
@@ -84,12 +84,18 @@ end
 
 --[[
 
+
+
 ]]--
 function Utility.escapeSpecialCharacters(source)
-	return source:gsub(
+    return source:gsub(
 		"([%.%%%^%$%(%)%[%]%+%*%-%?])",
         "%%%1"
 	)
 end
+
+--// INSTRUCTIONS //--
+
+
 
 return Utility

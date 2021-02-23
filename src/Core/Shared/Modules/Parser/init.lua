@@ -10,11 +10,15 @@ local MAIN = require(game.HDAdmin)
 
 --// FUNCTIONS //--
 
-function Parser:init()
-	
-	local ClientSettings = MAIN.services.SettingService.getGroup("Client")
+--[[
 
-	Parser.patterns = {
+
+
+]]--
+function Parser.init()
+    local ClientSettings = MAIN.services.SettingService.getGroup("Client")
+
+    Parser.patterns = {
 		CommandStatementsFromBatch = string.format(
 			"%s([^%s]+)",
 			";", --ClientSettings.prefix,
@@ -31,11 +35,10 @@ function Parser:init()
 			"," --ClientSettings.collective
 		),
 		CapsuleFromKeyword = string.format(
-			"%%(%s%%)",
+			"%%(%s%%)", --Capsule
 			string.format("(%s)", ".-")
 		)
 	}
-
 end
 
 --[[
@@ -56,29 +59,32 @@ from the information of the commandstatement it appears in.
 3) If condition (1) and condition (2) are not satisfied, meaning every argument for 
 	the command has playerArg == true and hidden == true returns QualifierRequired.Sometimes
 
+
 ]]--
 function Parser.requiresQualifier(commandName)
-	local qualifierRequiredEnums = MAIN.enum.QualifierRequired
+    local qualifierRequiredEnum = MAIN.enum.QualifierRequired
 
 	local firstArgName = MAIN.services.CommandService.getTable("dictionary")[commandName].args[1]
 	local firstArg = MAIN.modules.Parser.Args.dictionary[firstArgName]
 	
 	if (firstArg.playerArg ~= true) then
-		return qualifierRequiredEnums.Never
+		return qualifierRequiredEnum.Never
 	else
 		if (firstArg.hidden ~= true) then
-			return qualifierRequiredEnums.Always
+			return qualifierRequiredEnum.Always
 		else
-			return qualifierRequiredEnums.Sometimes
+			return qualifierRequiredEnum.Sometimes
 		end
 	end
 end
 
 --[[
 
+
+
 ]]--
 function Parser.hasTextArgument(commandName)
-	local argsDictionary = MAIN.modules.Parser.Args.dictionary
+    local argsDictionary = MAIN.modules.Parser.Args.dictionary
 	for _, arg in pairs(MAIN.services.CommandService.getTable("dictionary")[commandName].args) do
 		if (argsDictionary[arg] == argsDictionary["text"]) then
 			return true
@@ -89,74 +95,77 @@ end
 
 --[[
 
+
+
 ]]--
 function Parser.parseMessage(message)
-	local algorithm = MAIN.modules.Parser.Algorithm
-	local parsedData = MAIN.modules.Parser.ParsedData
+    local algorithmModule = MAIN.modules.Parser.Algorithm
+    local parsedDataModule = MAIN.modules.Parser.ParsedData
 
-	--// STEP 1 //--
-	--[[
-		
-	]]--
-	local parsedDataTables = {}
+    --// STEP 1 //--
+    --[[
 
-	for _, commandStatement in pairs(algorithm.getCommandStatementsFromBatch(message)) do
-		
-		local parsedDataTable = parsedData.new()
-		parsedDataTable.commandStatement = commandStatement
-	
-	--// STEP 2 //--
-	--[[
 
-	]]--
 
-		algorithm.getDescriptionsFromCommandStatement(parsedDataTable)
-		if (parsedDataTable.failed) then table.insert(parsedDataTables, parsedDataTable) continue end
-	
-	--// STEP 3 //--
-	--[[
+    ]]--
+    local allParsedDatas = {}
 
-	]]--
+    for _, commandStatement in pairs(algorithmModule.getCommandStatementsFromBatch(message)) do
+        
+        local parsedData = parsedDataModule.generateEmptyParsedData()
+        parsedData.commandStatement = commandStatement
 
-		algorithm.parseCommandDescription(parsedDataTable)
-		if (parsedDataTable.failed) then table.insert(parsedDataTables, parsedDataTable) continue end
-		parsedDataTable.requiresQualifier = parsedData.parsedDataTableRequiresQualifier(parsedDataTable)
-		if (parsedDataTable.failed) then table.insert(parsedDataTables, parsedDataTable) continue end
-		parsedDataTable.hasTextArgument = parsedData.parsedDataTableHasTextArgument(parsedDataTable)
+    --// STEP 2 //--
+    --[[
 
-	--// STEP 4 //--
-	--[[
 
-	]]--
+    
+    ]]--
 
-		algorithm.parseQualifierDescription(parsedDataTable)
-		if (parsedDataTable.failed) then table.insert(parsedDataTables, parsedDataTable) continue end
+        parsedDataModule.parseCommandStatement(parsedData)
+        if (parsedData.hasFailed) then table.insert(allParsedDatas, parsedData) continue end
 
-	--// STEP 5 //--
-	--[[
+    --// STEP 3 //--
+    --[[
 
-	]]--
 
-		algorithm.parseExtraArgumentDescription(parsedDataTable, parsedDataTables, message)
-	
-	--// STEP 6 //--
-	--[[
+    
+    ]]--
+    
+        parsedDataModule.parseCommandDescriptionAndSetFlags(parsedData)
+        if (parsedData.hasFailed) then table.insert(allParsedDatas, parsedData) continue end
 
-	]]--
+    --// STEP 4 //--
+    --[[
 
-		parsedDataTable:GenerateOrganizedParsedData()
-		table.insert(parsedDataTables, parsedDataTable)
-		if (parsedDataTable.hasTextArgument) then break end
-		
-	end
-	
-	local result = {}
 
-	for _, parsedDataTable in pairs(parsedDataTables) do
-		table.insert(result, parsedDataTable.organizedParsedData)
-	end
-	
-	return result
+    
+    ]]--
+
+        parsedDataModule.parseQualifierDescription(parsedData)
+        if (parsedData.hasFailed) then table.insert(allParsedDatas, parsedData) continue end
+
+    --// STEP 5 //--
+    --[[
+
+
+    
+    ]]--
+
+        parsedDataModule.parseExtraArgumentDescription(parsedData, allParsedDatas, message)
+
+        table.insert(allParsedDatas, parsedData)
+		if (parsedData.hasTextArgument) then break end
+    end
+
+    --// STEP 6 //--
+    --[[
+
+
+    
+    ]]--
+
+    return parsedDataModule.generateOrganizedParsedData(allParsedDatas)
 end
 
 --// INSTRUCTIONS //--

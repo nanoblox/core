@@ -120,6 +120,22 @@ createEnum("ThreadState", {
 
 
 -----------------------------------
+createEnum("QualifierRequired", {
+	{"Always ", 1},
+	{"Never", 2},
+	{"Sometimes", 3},
+})
+
+
+-----------------------------------
+createEnum("ParserRejection", {
+	{"MISSING_COMMAND_DESCRIPTION ", 1},
+	{"MISSING_COMMANDS", 2},
+	{"MALFORMED_COMMAND_DESCRIPTION", 3},
+})
+
+
+-----------------------------------
 --[[
 createEnum("Color", {
 	{"White", 1, Color3.fromRGB(255, 255, 255)},
