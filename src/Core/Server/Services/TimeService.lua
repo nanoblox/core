@@ -11,18 +11,20 @@ local Promise = main.modules.Promise
 
 
 -- METHODS
-function TimeService.grabLocalDateAsync(player, dateTime)
+function TimeService.grabLocalDate(player, dateTime)
 	local newDateTime = dateTime or os.time()
-	local returnDate = os.date("*t", newDateTime)
-	local returnMonth = os.date("%B", newDateTime)
-	local promise = TimeService.remotes.grabLocalDate:invokeClient(player, newDateTime)
+	local defaultDate = os.date("*t", newDateTime)
+	local defaultMonth = os.date("%B", newDateTime)
+	return TimeService.remotes.grabLocalDate:invokeClient(player, newDateTime)
 		:timeout(3)
 		:andThen(function(clientDate, clientMonth)
-			returnDate = (typeof(clientDate) == "table" and clientDate) or returnDate
-			returnMonth = tostring(clientMonth)
+			clientDate = (typeof(clientDate) == "table" and clientDate) or defaultDate
+			clientMonth = tostring(clientMonth)
+			return clientDate, clientMonth
 		end)
-	promise:await()
-	return returnDate, returnMonth
+		:catch(function()
+			return defaultDate, defaultMonth
+		end)
 end
 
 

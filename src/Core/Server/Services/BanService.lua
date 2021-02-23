@@ -39,8 +39,7 @@ function BanService.playerAddedMethod(player)
 		if record.expiryTime <= currentTime then
 			-- Ban expired, permanently remove
 			local key = tostring(player.UserId)
-			local data = (record._global == false and systemUser.temp) or systemUser.perm
-			BanService:decideData(record._global):set(key, nil)
+			BanService:removeRecord(key)
 		elseif record.accurate == true then
 			BanService.kick(player)
 			-- Returning false blocks the user from loading
@@ -170,46 +169,49 @@ function BanService.kick(player)
 	if expiryTime > expiryTimeLimit then
 		expiryTime = expiryTimeLimit
 	end
-	main.modules.Thread.spawnNow(function()
-		local clientDate, clientMonth = main.services.TimeService.grabLocalDateAsync(player, expiryTime)
-		local function formatTime(minOrHour)
-			local newMinOrHour = tostring(minOrHour)
-			if #newMinOrHour < 2 then
-				newMinOrHour = "0"..newMinOrHour
+	main.services.TimeService.grabLocalDate(player, expiryTime)
+		:andThen(function(clientDate, clientMonth)
+			local function formatTime(minOrHour)
+				local newMinOrHour = tostring(minOrHour)
+				if #newMinOrHour < 2 then
+					newMinOrHour = "0"..newMinOrHour
+				end
+				return newMinOrHour
 			end
-			return newMinOrHour
-		end
-		local banRow = ("🚫 You're banned from %s  🚫"):format((record._global == true and "all servers") or "this server")
-		local expireRow = (expiryTime > os.time()+(unbanLimit) and "⌛ Expires: Never") or ("⌛ Expires: %s:%s, %s %s %s"):format(formatTime(clientDate.hour), formatTime(clientDate.min), tostring(clientDate.day), tostring(clientMonth), tostring(clientDate.year))
-		local reasonRow = ("💬 Reason: '%s'"):format(tostring(record.reason))
-		local banMessage = "\n"..banRow.."\n\n"..expireRow.."\n\n"..reasonRow.."\n"
-		player:Kick(banMessage)
-	end)
+			local banRow = ("🚫 You're banned from %s  🚫"):format((record._global == true and "all servers") or "this server")
+			local expireRow = (expiryTime > os.time()+(unbanLimit) and "⌛ Expires: Never") or ("⌛ Expires: %s:%s, %s %s %s"):format(formatTime(clientDate.hour), formatTime(clientDate.min), tostring(clientDate.day), tostring(clientMonth), tostring(clientDate.year))
+			local reasonRow = ("💬 Reason: '%s'"):format(tostring(record.reason))
+			local banMessage = "\n"..banRow.."\n\n"..expireRow.."\n\n"..reasonRow.."\n"
+			player:Kick(banMessage)
+		end)
 end
 
 
 
 --[[
+local main = require(game.Nanoblox) main.services.BanService.ban(game.Players.ForeverHD, main.UserStore:getUser(game.Players.ForeverHD), true, {banTime = os.time() + 120})
+
 local main = require(game.Nanoblox)
 local BanService = main.services.BanService
-local targetId = 46088788--math.random(1,10000)
+local targetId = 82347291--math.random(1,10000)
 BanService.createBan(targetId, true, {
-	reason = "Hello world tes123"
+	reason = "Hello world its me 1",
+	expiryTime = os.time() + 60,
 })
 
 local main = require(game.Nanoblox)
 local BanService = main.services.BanService
-local targetId = 46088788
+local targetId = 82347291
 BanService.updateBan(targetId, {_global = true, reason = math.random(1,1000)})
 
 local main = require(game.Nanoblox)
 local BanService = main.services.BanService
-local targetId = 46088788
+local targetId = 82347291
 BanService.removeBan(targetId)
 
 local main = require(game.Nanoblox)
 local BanService = main.services.BanService
-local targetId = 46088788
+local targetId = 82347291
 print(BanService.getBan(targetId))
 print(BanService.getBan(targetId)._global)
 

@@ -25,10 +25,11 @@ Qualifiers.array = {
 		hidden = true,
 		multi = false,
 		description	= "Default action, returns players with matching shorthand names.",
-		getTargets = function(caller, shorthandString)
+		getTargets = function(caller, shorthandString, useDisplayName)
 			local targets = {}
 			for i, plr in pairs(main.Players:GetPlayers()) do
-				local plrName = string.lower(plr.Name)
+				local nameToUse = (useDisplayName and plr.DisplayName) or plr.Name
+				local plrName = string.lower(nameToUse)
 				if string.sub(plrName, 1, #shorthandString) == shorthandString then
 					table.insert(targets, plr)
 				end

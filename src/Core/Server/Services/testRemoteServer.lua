@@ -21,6 +21,11 @@ spawn(function()
         end)
 end)
 --]]
-
+--[[
+local tacoRemote = main.modules.Remote.new("RainTacos", nil, nil, 101)
+tacoRemote.onServerInvoke = function(...)
+    print("SEVER INVOKE: ", ...)
+end
+--]]
 
 return {}

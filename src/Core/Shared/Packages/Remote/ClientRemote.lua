@@ -33,6 +33,15 @@ remotesStorage.ChildRemoved:Connect(function(child)
 	end
 end)
 
+-- This handles the notification of any blocked requests when firing to server
+spawn(function()
+	local requestBlockedRemote = Remote.new("requestBlocked")
+	requestBlockedRemote.onClientEvent:Connect(function(blockedRemoteName, reason)
+		local blockedRemote = remotes[blockedRemoteName]
+		blockedRemote:requestBlocked(reason)
+	end)
+end)
+
 
 
 -- CONSTRUCTOR
@@ -96,6 +105,21 @@ end
 
 
 -- METHODS
+function Remote:requestBlocked(reason)
+	-- This function is called whenever a request is rejected (e.g. one reason is when the client makes too many requests in a time period)
+	-- You can change this! For example, to produce an error notification for the client
+	-- In another location simply do
+	--[[
+	```
+	local ClientRemote = require(pathway.to.here)
+	function ClientRemote:requestBlocked(reason)
+		-- your new action here
+	end
+	```
+	--]]
+	warn(reason)
+end
+
 function Remote:_continueWhenRemoteInstanceLoaded(remoteType, functionToCall)
 	local function continueFunc()
 		local remoteInstance = self:_getRemoteInstance(remoteType)
@@ -185,12 +209,17 @@ function Remote:invokeServer(...)
 			waitForRemoteInstance:Destroy()
 		end
 		local results = table.pack(pcall(remoteInstance.InvokeServer, remoteInstance, table.unpack(args)))
-		local success = table.remove(results, 1)
-		if success then
-			resolve(table.unpack(results))
-		else
-			reject(table.unpack(results))
+		local pcallSuccess = table.remove(results, 1)
+		if pcallSuccess then
+			local approved = table.remove(results, 1)
+			if approved then
+				resolve(table.unpack(results))
+				return
+			elseif Remote.requestBlocked then
+				Remote:requestBlocked(table.unpack(results))
+			end
 		end
+		reject(table.unpack(results))
 	end)
 end
 

@@ -1,3 +1,8 @@
+-- Modifiers are items that can be applied to batches to enhance a commands default behaviour
+-- They are split into two groups:
+-- 		1. PreAction Modifiers - these execute before a task is created and can block the task being created entirely
+--		2. Action Modifiers - these execute while a task is running and can extend the longevity of the task
+
 local main = require(game.Nanoblox)
 local Modifiers = {}
 
@@ -8,11 +13,27 @@ Modifiers.array = {
 	
 	-----------------------------------
 	{
+		name = "preview",
+		aliases = {"pr-"},
+		order = 1,
+		description	= "Displays a menu that previews the command instead of executing it.",
+		preAction = function(caller, batch)
+			if caller.player then
+				main.services.CommandService.remotes.previewCommand:fireClient(caller.player, batch)
+			end
+			return false
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
 		name = "random",
 		aliases = {"r-"},
-		order = 1,
+		order = 2,
 		description	= "Randomly selects a command within a batch. All other commands are discarded.",
-		preAction = function(user, batch)
+		preAction = function(_, batch)
 			local commands = batch.commands
 			if #commands > 1 then
 				local randomIndex = math.random(1, #commands)
@@ -30,9 +51,9 @@ Modifiers.array = {
 	{
 		name = "perm",
 		aliases = {"p-"},
-		order = 2,
-		description	= "Permanently applies the command. This means in addition to the initial execution, the command will be executed whenever a server starts, or if player specific, every time the player joins a server.",
-		preAction = function(user, batch)
+		order = 3,
+		description	= "Permanently saves the task. This means in addition to the initial execution, the command will be executed whenever a server starts, or if player specific, every time the player joins a server.",
+		preAction = function(_, batch)
 			local modifiers = batch.modifiers
 			local oldGlobal = modifiers.global
 			if oldGlobal then
@@ -52,8 +73,8 @@ Modifiers.array = {
 	{
 		name = "global",
 		aliases = {"g-"},
-		order = 3,
-		description	= "Broadcasts the batch to all servers.",
+		order = 4,
+		description	= "Broadcasts the task to all servers.",
 		preAction = function(caller, batch)
 			local CommandService = main.services.CommandService
 			local modifiers = batch.modifiers
@@ -78,36 +99,26 @@ Modifiers.array = {
 	{
 		name = "undo",
 		aliases = {"un", "u-", "revoke"},
-		order = 4,
-		description	= "Revokes all tasks that match the given command name(s) (and associated player targets if specified). To revoke a task across all servers, the 'global' modifier must be included.",
-		action = function()
-			
-		end,
-	};
-	
-	
-	
-	-----------------------------------
-	{
-		name = "preview",
-		aliases = {"pr-"},
 		order = 5,
-		description	= "Displays a menu that previews the command instead of executing it.",
-		action = function()
-			
-		end,
-	};
-	
-	
-	
-	-----------------------------------
-	{
-		name = "delay",
-		aliases = {"d-"},
-		order = 6,
-		description	= "Waits x amount of time before executing the command. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;delay(3s)kill all``.",
-		action = function(delayAmount)
-			
+		description	= "Revokes all tasks that match the given command name(s) (and associated player targets if specified). To revoke a task across all servers, the 'global' modifier must be included.",
+		preAction = function(_, batch)
+			local Args = main.modules.Args
+			local targets = Args.dictionary.player:parse(batch.qualifiers)
+			for commandName, _ in pairs(batch.commands) do
+				local command = main.services.CommandService.getCommand(commandName)
+				if command then
+					local firstCommandArg = command.args[1]
+					local firstArgItem = main.modules.Args.dictionary[firstCommandArg]
+					if firstArgItem.playerArg then
+						for _, plr in pairs(targets) do
+							main.services.TaskService.removeTasksWithCommandNameAndTargetUserId(commandName, plr.UserId)
+						end
+					else
+						main.services.TaskService.removeTasksWithCommandName(commandName)
+					end
+				end
+			end
+			return false
 		end,
 	};
 	
@@ -117,10 +128,37 @@ Modifiers.array = {
 	{
 		name = "epoch",
 		aliases = {"e-"},
-		order = 7,
+		order = 6,
 		description	= "Waits until the given epoch time before executing. If the epoch time has already passed, the command will be executed right away. Combine with 'global' and 'perm' for a permanent game effect. Example: ``;globalPermEpoch(3124224000)message(green) Happy new year!``",
-		action = function(executionTime)
-			
+		executeRightAway = false,
+		executeAfterThread = true,
+		yieldUntilThreadComplete = true,
+		action = function(task, values)
+			local executionTime = table.unpack(values)
+			local timeNow = os.time()
+			local newExecutionTime = tonumber(executionTime) or timeNow + 1
+			local seconds = newExecutionTime - timeNow
+			local thread = main.modules.Thread.delay(seconds)
+			return thread
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
+		name = "delay",
+		aliases = {"d-"},
+		order = 7,
+		description	= "Waits x amount of time before executing the command. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;delay(3s)kill all``.",
+		executeRightAway = false,
+		executeAfterThread = true,
+		yieldUntilThreadComplete = true,
+		action = function(task, values)
+			local timeDelay = table.unpack(values)
+			local seconds = main.modules.DataUtil.convertTimeStringToSeconds(timeDelay)
+			local thread = main.modules.Thread.delay(seconds)
+			return thread
 		end,
 	};
 	
@@ -132,8 +170,23 @@ Modifiers.array = {
 		aliases = {"repeat", "l-"},
 		order = 8,
 		description	= "Repeats a command for x iterations every y time delay. If not specified, x defaults to ∞ and y to 1s. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;loop(50,1s)jump me``.",
-		action = function(iterations, reiterateDelayAmount)
-			
+		executeRightAway = true,
+		executeAfterThread = false,
+		yieldUntilThreadComplete = false,
+		action = function(task, values)
+			local iterations, interval = table.unpack(values)
+			local ITERATION_LIMIT = 10000
+			local MINIMUM_INTERVAL = 0.1
+			local newInterations = tonumber(iterations) or ITERATION_LIMIT
+			if newInterations > ITERATION_LIMIT then
+				newInterations = ITERATION_LIMIT
+			end
+			local newInterval = tonumber(interval) or MINIMUM_INTERVAL
+			if newInterval < MINIMUM_INTERVAL then
+				newInterval = MINIMUM_INTERVAL
+			end
+			local thread = main.modules.Thread.delayLoopFor(newInterval, newInterations, task.execute, task)
+			return thread
 		end,
 	};
 	
@@ -145,8 +198,22 @@ Modifiers.array = {
 		aliases = {"s-"},
 		order = 9,
 		description	= "Executes the command every time the given player(s) respawn (in addition to the initial execution). This modifier only works for commands with player-related arguments.",
-		action = function()
-			
+		executeRightAway = true,
+		executeAfterThread = false,
+		yieldUntilThreadComplete = false,
+		action = function(task)
+			local targetUser = main.modules.UserStore:getUserByUserId(task.userId)
+			local targetPlayer = targetUser and targetUser.player
+			if targetPlayer then
+				task.persistence = main.enum.Persistence.UntilLeave
+				task.maid:give(targetPlayer.CharacterAdded:Connect(function(char)
+					char:WaitForChild("HumanoidRootPart")
+					char:WaitForChild("Humanoid")
+					task:execute()
+				end))
+				local thread = main.modules.Thread.delayLoopUntil(0.1, function() return targetUser.isDestroyed == true end)
+				return thread
+			end
 		end,
 	};
 	
@@ -157,9 +224,15 @@ Modifiers.array = {
 		name = "expire",
 		aliases = {"x-", "until"},
 		order = 10,
-		description	= "Revokes the command after the given time. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;expire(2m30s)mute player``.",
-		action = function()
-			
+		description	= "Revokes the command after its first execution plus the given time. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;expire(2m30s)mute player``.",
+		executeRightAway = true,
+		executeAfterThread = false,
+		yieldUntilThreadComplete = false,
+		action = function(task, values)
+			local timeDelay = table.unpack(values)
+			local seconds = main.modules.DataUtil.convertTimeStringToSeconds(timeDelay)
+			local thread = main.modules.Thread.delay(seconds, task.kill, task)
+			return thread
 		end,
 	};
 	

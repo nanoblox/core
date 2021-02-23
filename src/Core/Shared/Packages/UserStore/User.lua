@@ -49,6 +49,8 @@ function User.new(dataStoreName, key)
 	self.isLoaded = false
 	self.loaded = maid:give(Signal.new())
 	self.saved = maid:give(Signal.new())
+	self.destroyed = Signal.new()
+	self.isDestroyed = false
 	self.player = nil
 	self.errorMessageBase = "DataStore+ | Failed to %s DataKey '".. tostring(key).."' ("..dataStoreName.."): "
 	self.startData = {}
@@ -274,6 +276,9 @@ end
 function User:destroy()
 	self.sessionId = nil
 	self._maid:clean()
+	self.destroyed:Fire()
+	self.destroyed:Disconnect()
+	self.isDestroyed = true
 end
 
 

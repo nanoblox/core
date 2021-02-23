@@ -28,10 +28,10 @@ function PlayerUtil.getHRP(player)
 	return hrp
 end
 
-function PlayerUtil.getHRPPos(player)
+function PlayerUtil.getHRPPosition(player)
 	local hrp = PlayerUtil.getHRP(player)
 	local hrpPos = hrp and hrp.Position
-	return hrp
+	return hrpPos
 end
 
 function PlayerUtil.getHumanoid(player)
