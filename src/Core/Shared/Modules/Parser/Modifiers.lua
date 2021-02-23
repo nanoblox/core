@@ -1,3 +1,8 @@
+-- Modifiers are items that can be applied to batches to enhance a commands default behaviour
+-- They are split into two groups:
+-- 		1. PreAction Modifiers - these execute before a task is created and can block the task being created entirely
+--		2. Action Modifiers - these execute while a task is running and can extend the longevity of the task
+
 local main = require(game.Nanoblox)
 local Modifiers = {}
 
@@ -8,11 +13,27 @@ Modifiers.array = {
 	
 	-----------------------------------
 	{
+		name = "preview",
+		aliases = {"pr-"},
+		order = 1,
+		description	= "Displays a menu that previews the command instead of executing it.",
+		preAction = function(caller, batch)
+			if caller.player then
+				main.services.CommandService.remotes.previewCommand:fireClient(caller.player, batch)
+			end
+			return false
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
 		name = "random",
 		aliases = {"r-"},
-		order = 1,
+		order = 2,
 		description	= "Randomly selects a command within a batch. All other commands are discarded.",
-		preAction = function(user, batch)
+		preAction = function(_, batch)
 			local commands = batch.commands
 			if #commands > 1 then
 				local randomIndex = math.random(1, #commands)
@@ -30,9 +51,9 @@ Modifiers.array = {
 	{
 		name = "perm",
 		aliases = {"p-"},
-		order = 2,
+		order = 3,
 		description	= "Permanently saves the task. This means in addition to the initial execution, the command will be executed whenever a server starts, or if player specific, every time the player joins a server.",
-		preAction = function(user, batch)
+		preAction = function(_, batch)
 			local modifiers = batch.modifiers
 			local oldGlobal = modifiers.global
 			if oldGlobal then
@@ -52,7 +73,7 @@ Modifiers.array = {
 	{
 		name = "global",
 		aliases = {"g-"},
-		order = 3,
+		order = 4,
 		description	= "Broadcasts the task to all servers.",
 		preAction = function(caller, batch)
 			local CommandService = main.services.CommandService
@@ -78,23 +99,26 @@ Modifiers.array = {
 	{
 		name = "undo",
 		aliases = {"un", "u-", "revoke"},
-		order = 4,
-		description	= "Revokes all tasks that match the given command name(s) (and associated player targets if specified). To revoke a task across all servers, the 'global' modifier must be included.",
-		preAction = function()
-			
-		end,
-	};
-	
-	
-	
-	-----------------------------------
-	{
-		name = "preview",
-		aliases = {"pr-"},
 		order = 5,
-		description	= "Displays a menu that previews the command instead of executing it.",
-		preAction = function()
-			
+		description	= "Revokes all tasks that match the given command name(s) (and associated player targets if specified). To revoke a task across all servers, the 'global' modifier must be included.",
+		preAction = function(_, batch)
+			local Args = main.modules.Args
+			local targets = Args.dictionary.player:parse(batch.qualifiers)
+			for commandName, _ in pairs(batch.commands) do
+				local command = main.services.CommandService.getCommand(commandName)
+				if command then
+					local firstCommandArg = command.args[1]
+					local firstArgItem = main.modules.Args.dictionary[firstCommandArg]
+					if firstArgItem.playerArg then
+						for _, plr in pairs(targets) do
+							main.services.TaskService.removeTasksWithCommandNameAndTargetUserId(commandName, plr.UserId)
+						end
+					else
+						main.services.TaskService.removeTasksWithCommandName(commandName)
+					end
+				end
+			end
+			return false
 		end,
 	};
 	

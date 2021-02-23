@@ -2,6 +2,9 @@
 local main = require(game.Nanoblox)
 local System = main.modules.System
 local CommandService = System.new("Commands")
+CommandService.remotes = {
+	previewCommand = main.modules.Remote.new("previewCommand"),
+}
 local systemUser = CommandService.user
 local defaultCommands = main.modules.Commands
 

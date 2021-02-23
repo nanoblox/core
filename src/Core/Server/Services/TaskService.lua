@@ -245,6 +245,13 @@ function TaskService.removeTasksWithCommandNameAndTargetUserId(commandName, targ
 	end
 end
 
+function TaskService.removeTasksWithCommandNameAndOptionalTargetUserId(commandName, optionalTargetUserId)
+	local tasksArray = TaskService.getTasksWithCommandNameAndOptionalTargetUserId(commandName, optionalTargetUserId)
+	for _, task in pairs(tasksArray) do
+		TaskService.removeTask(task.UID)
+	end
+end
+
 
 
 return TaskService

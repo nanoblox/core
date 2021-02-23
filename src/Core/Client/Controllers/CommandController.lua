@@ -46,6 +46,11 @@ function CommandController.start()
 			task:replication(table.unpack(packedData))
 		end
 	end)
+
+	local previewCommand = main.modules.Remote.new("previewCommand")
+	previewCommand.onClientEvent:Connect(function(batch)
+		--!!! preview command batch
+	end)
 	
 end
 
