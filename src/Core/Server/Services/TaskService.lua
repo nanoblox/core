@@ -17,7 +17,7 @@ local Task = main.modules.Task
 
 -- START
 function TaskService.start()
-	TaskService.replicationRequest.onServerEvent:Connect(function(player, taskUID, targetPool, packedArgs, packedData)
+	TaskService.remotes.replicationRequest.onServerEvent:Connect(function(player, taskUID, targetPool, packedArgs, packedData)
 		local task = TaskService.getTask(taskUID)
 		local clockTime = os.clock()
 		local errorMessage
