@@ -40,6 +40,16 @@ function CommandService.begin()
 		end
 		return dictionary
 	end, true)
+	records:setTable("lowerCaseNameAndAliasToCommandDictionary", function()
+		local dictionary = {}
+		for _, record in pairs(records) do
+			dictionary[record.name:lower()] = record
+			for _, alias in pairs(record.aliases) do
+				dictionary[alias:lower()] = record
+			end
+		end
+		return dictionary
+	end, true)
 	records:setTable("sortedNameAndAliasLengthArray", function()
 		local array = {}
 		for itemNameOrAlias, record in pairs(records:getTable("dictionary")) do
