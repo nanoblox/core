@@ -125,6 +125,32 @@ Args.array = {
 	
 	-----------------------------------
 	{
+		name = "soundid", -- consider blocking soundids and a setting to achieve this
+		aliases = {"musicid"},
+		description	= "",
+		defaultValue = 0,
+		parse = function(self, stringToParse)
+			
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
+		name = "duration", -- returns the time string (such as 5s7d8h) in seconds
+		aliases = {"time", "durationtime", "timelength"},
+		description	= "",
+		defaultValue = 0,
+		parse = function(self, stringToParse)
+			
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
 		name = "degrees",
 		aliases = {},
 		description	= "",
@@ -155,6 +181,20 @@ Args.array = {
 		aliases = {"colour", "color3", "uigradient", "colorgradient", "gradient"},
 		description	= "",
 		defaultValue = 0,
+		parse = function(self, stringToParse)
+			
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
+		name = "optionalcolor",
+		aliases = {"optionalcolour", "optionalcolor3"},
+		description	= "",
+		defaultValue = 0,
+		hidden = true,
 		parse = function(self, stringToParse)
 			
 		end,
@@ -218,6 +258,19 @@ Args.array = {
 	{
 		name = "user",
 		aliases = {"username", "userid", "playerid", "playername"},
+		description	= "",
+		defaultValue = 0,
+		parse = function(self, stringToParse)
+			
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
+		name = "playerOrUser", -- returns a string instead of a player instance - it fist looks for a player in the server otherwise defaults to the given string
+		aliases = {},
 		description	= "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
