@@ -108,8 +108,8 @@ function RoleService.generateRecord()
 		executionCooldown = 1, -- if 'limitExecutions' is true, this amount of seconds must be waited before being allowed to execute another batch
 		limitScale = true,
 		scaleLimit = 5,
-		limitBlacklistedIDs = true,
-		limitToWhitelistedIDs = false, 
+		limitDenylistedIDs = true,
+		limitToAllowlistedIDs = false, 
 		
 		-- Individual Powers
 		canUseAll = false,

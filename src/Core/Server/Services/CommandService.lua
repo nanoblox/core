@@ -3,7 +3,7 @@ local main = require(game.Nanoblox)
 local System = main.modules.System
 local CommandService = System.new("Commands")
 CommandService.remotes = {
-	clientCommandRequest = main.modules.Remote.new("clientCommandRequest")
+	previewCommand = main.modules.Remote.new("previewCommand"),
 }
 local systemUser = CommandService.user
 local defaultCommands = main.modules.Commands
@@ -70,7 +70,7 @@ end)
 -- METHODS
 function CommandService.generateRecord(key)
 	return defaultCommands[key] or {
-		name = "",
+		name = "", -- This will be locked, command names cannot change and must always be the same
 		description = "",
 		contributors = {},
 		aliases	= {},
@@ -95,10 +95,10 @@ function CommandService.generateRecord(key)
 end
 
 function CommandService.createCommand(name, properties)
-	local key = properties.UID
+	local key = properties.name
 	if not key then
 		key = name
-		properties.UID = key
+		properties.name = key
 	end
 	local record = CommandService:createRecord(key, false, properties)
 	return record
@@ -188,12 +188,13 @@ function CommandService.executeBatch(caller, batch)
 	local isGlobalModifier = batch.modifiers.wasGlobal
 	for commandName, arguments in pairs(batch.commands) do
 		local command = CommandService.getCommand(commandName)
-		local isCorePlayerArg = Args.playerArgsWithoutHiddenDictionary[string.lower(command.args[1])]
+		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(command.args[1])]
 		local TaskService = main.services.TaskService
 		local properties = TaskService.generateRecord()
 		properties.caller = batch.caller or properties.caller
 		properties.commandName = commandName
 		properties.args = arguments or properties.args
+		properties.modifiers = batch.modifiers
 		-- Its important to split commands into specific users for most cases so that the command can
 		-- be easily reapplied if the player rejoins (for ones where the perm modifier is present)
 		-- The one exception for this is when a global modifier is present. In this scenerio, don't save
@@ -207,12 +208,12 @@ function CommandService.executeBatch(caller, batch)
 		if isPermModifier then
 			if isGlobalModifier then
 				addToPerm = true
-			elseif isCorePlayerArg then
+			elseif executeForEachPlayerFirstArg then
 				addToPerm = true
 				splitIntoUsers = true
 			end
 		else
-			splitIntoUsers = isCorePlayerArg
+			splitIntoUsers = executeForEachPlayerFirstArg
 		end
 		if not splitIntoUsers then
 			properties.qualifiers = batch.qualifiers or properties.qualifiers
@@ -220,7 +221,7 @@ function CommandService.executeBatch(caller, batch)
 		else
 			local targets = Args.dictionary.player:parse(batch.qualifiers)
 			for _, plr in pairs(targets) do
-				properties.userId = plr.UserId
+				properties.targetUserId = plr.targetUserId
 				main.services.TaskService.createTask(addToPerm, properties)
 			end
 		end
@@ -259,83 +260,6 @@ local batch = {
 }
 
 ]]
-
-
-
--- CLIENT
--- These are used within commands once they have been executed using ``this.client`` to activate client functions
-local Client = {}
-
-function Client.new(taskUID)
-	local self = {}
-	setmetatable(self, Client)
-	self.taskUID = taskUID
-end
-
-local function makeRequestToClient(player, requestType, self, ...)
-	local taskUID = self.UID
-	self.remotes.clientCommandRequest:fireClient(player, requestType, taskUID, ...)
-end
-
-local function makeRequestToAllClients(self, requestType, ...)
-	local taskUID = self.UID
-	self.remotes.clientCommandRequest:fireAllClients(requestType, taskUID, ...)
-end
-
-local function makeRequestToNearbyClients(origin, radius, self, requestType, ...)
-	local taskUID = self.UID
-	self.remotes.clientCommandRequest:fireNearbyClients(origin, radius, requestType, taskUID, ...)
-end
-
--- These activate ``clientCommand.invoke`` for the given players
-function Client:invokeClient(player, ...)
-	local requestType = "invoke"
-	makeRequestToClient(player, requestType, self, ...)
-end
-
-function Client:invokeAllClients(...)
-	local requestType = "invoke"
-	makeRequestToAllClients(self, requestType, ...)
-end
-
-function Client:invokeNearbyClients(origin, radius, ...)
-	local requestType = "invoke"
-	makeRequestToNearbyClients(origin, radius, self, requestType, ...)
-end
-
--- These activate ``clientCommand.revoke`` for the given players
-function Client:revokeClient(player, ...)
-	local requestType = "revoke"
-	local target = "Client"
-	makeRequestToClient(player, requestType, self, ...)
-end
-
-function Client:revokeAllClients(...)
-	local requestType = "revoke"
-	makeRequestToAllClients(self, requestType, ...)
-end
-
-function Client:revokeNearbyClients(origin, radius, ...)
-	local requestType = "revoke"
-	local target = "NearbyClients"
-	makeRequestToNearbyClients(origin, radius, self, requestType, ...)
-end
-
--- These activate ``clientCommand.replicate`` for the given players
-function Client:replicateClient(player, ...)
-	local requestType = "replicate"
-	makeRequestToClient(player, requestType, self, ...)
-end
-
-function Client:replicateAllClients(...)
-	local requestType = "replicate"
-	makeRequestToAllClients(self, requestType, ...)
-end
-
-function Client:replicateNearbyClients(origin, radius, ...)
-	local requestType = "replicate"
-	makeRequestToNearbyClients(origin, radius, self, requestType, ...)
-end
 
 
 

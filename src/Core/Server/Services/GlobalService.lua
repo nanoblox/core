@@ -218,7 +218,7 @@ function GlobalService.flushRecord(record)
 	if #records == 1 then
 		local delayTime = GlobalService.getMessageDelay(messagesThisMinute)
 		main.RunService.Heartbeat:Wait()
-		Thread.delay(delayTime, GlobalService.publishRecords, GlobalService, records)
+		Thread.delay(delayTime, GlobalService.publishRecords, records)
 	end
 end
 

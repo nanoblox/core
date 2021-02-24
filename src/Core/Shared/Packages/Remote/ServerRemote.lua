@@ -3,6 +3,8 @@
 -- This defines the folder to store all remotes
 -- It must be present before the game initiates
 local remotesStorage = require(game.Nanoblox).shared.Remotes
+local REQUESTS_EXCEEDED_MESSAGE = "Exceeded request limit for remote '%s'. Cooldown = %s."
+local DATALIMIT_EXCEEDED_MESSAGE = "Exceeded data size limit of %s bytes for remote '%s'."
 
 
 
@@ -11,6 +13,7 @@ local Maid = require(script.Parent.Maid)
 local Promise = require(script.Parent.Promise)
 local Remote = {}
 local players = game:GetService("Players")
+local httpService = game:GetService("HttpService")
 local requestDetails = {}
 local remotes = {}
 
@@ -28,10 +31,15 @@ players.PlayerRemoving:Connect(function(player)
 	requestDetails[player] = nil
 end)
 
+-- This handles the notification of any blocked requests
+spawn(function()
+	Remote.requestBlockedRemote = Remote.new("requestBlocked")
+end)
+
 
 
 -- CONSTRUCTOR
-function Remote.new(name, requestLimit, refreshInterval)
+function Remote.new(name, requestLimit, refreshInterval, dataLimit)
 	local self = {}
 	setmetatable(self, Remote)
 	
@@ -45,8 +53,9 @@ function Remote.new(name, requestLimit, refreshInterval)
 	
 	self.name = name
 	self.container = {}
-	self.requestLimit = requestLimit or 20
-	self.refreshInterval = refreshInterval or 5
+	self.requestLimit = requestLimit or 12
+	self.refreshInterval = refreshInterval or 3
+	self.dataLimit = tonumber(dataLimit)
 	
 	assert(remotes[name] == nil, ("Remote %s already exits!"):format(name))
 	remotes[name] = self
@@ -70,6 +79,8 @@ function Remote:__index(index)
 			remoteInstance[indexFormatted]:Connect(function(...)
 				local requestSuccess, errorMessage = self:_checkRequest(...)
 				if not requestSuccess then
+					local player = table.pack(...)[1]
+					Remote.requestBlockedRemote:fireClient(player, self.name, errorMessage)
 					return requestSuccess, errorMessage
 				end
 				return customFunction(...)
@@ -89,9 +100,10 @@ function Remote:__newindex(index, value)
 	remoteInstance[indexFormatted] = function(...)
 		local requestSuccess, errorMessage = self:_checkRequest(...)
 		if not requestSuccess then
-			return requestSuccess, errorMessage
+			return false, errorMessage
 		end
-		return customFunction(...)
+		local returnedValues = table.pack(customFunction(...))
+		return true, table.unpack(returnedValues)
 	end
 end
 		
@@ -119,8 +131,15 @@ function Remote:_checkRequest(player, ...)
 		detail.requests = 0
 	end
 	if detail.requests >= self.requestLimit then
-		local errorMessage = ("Exceeded request limit. Wait %s before sending another request."):format(detail.nextRefresh - currentTime)
+		local errorMessage = (REQUESTS_EXCEEDED_MESSAGE):format(self.name, detail.nextRefresh - currentTime)
 		return false, errorMessage
+	elseif self.dataLimit then
+		local requestData = table.pack(...)
+		local requestSize = string.len(httpService:JSONEncode(requestData))
+		if requestSize > self.dataLimit then
+			local errorMessage = (DATALIMIT_EXCEEDED_MESSAGE):format(self.dataLimit, self.name)
+			return false, errorMessage
+		end
 	end
 	detail.requests +=1
 	return true

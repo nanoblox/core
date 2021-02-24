@@ -2,19 +2,22 @@
 -- and store values. Instead of returning a userdata value, enum items return
 -- their corresponding itemValue (an integer) when indexed. Enum items can
 -- also associate a 'property', specified as the third element, which can be
--- retrieved by doing ``main.enum.ENUM_NAME.getProperty(ITEM_NAME_OR_VALUE)``
+-- retrieved by doing ``enum.getProperty(ITEM_NAME_OR_VALUE)``
 -- This ultimately means groups of data can be easily categorised, efficiently
 -- transmitted over networks and saved without throwing errors.
+-- Ben Horton (ForeverHD)
+
 
 
 -- LOCAL
-local EnumHandler = {}
+local Enum = {}
 local enums = {}
+Enum.enums = enums
 
 
 
 -- METHODS
-function EnumHandler.createEnum(enumName, details)
+function Enum.createEnum(enumName, details)
 	assert(typeof(enumName) == "string", "bad argument #1 - enums must be created using a string name!")
 	assert(typeof(details) == "table", "bad argument #2 - enums must be created using a table!")
 	assert(not enums[enumName], ("enum '%s' already exists!"):format(enumName))
@@ -56,16 +59,17 @@ function EnumHandler.createEnum(enumName, details)
 		end
 	}
 	for i, detail in pairs(details) do
-		assert(typeof(details) == "table", ("bad argument #2.%s - details must only be comprised of tables!"):format(i))
+		assert(typeof(detail) == "table", ("bad argument #2.%s - details must only be comprised of tables!"):format(i))
 		local name = detail[1]
 		assert(typeof(name) == "string", ("bad argument #2.%s.1 - detail name must be a string!"):format(i))
 		assert(typeof(not usedNames[name]), ("bad argument #2.%s.1 - the detail name '%s' already exists!"):format(i, name))
 		assert(typeof(not enumMetaFunctions[name]), ("bad argument #2.%s.1 - that name is reserved."):format(i, name))
 		usedNames[tostring(name)] = i
 		local value = detail[2]
-		assert(typeof(value) == "number" and math.ceil(value)/value == 1, ("bad argument #2.%s.2 - detail value must be an integer!"):format(i))
-		assert(typeof(not usedValues[value]), ("bad argument #2.%s.2 - the detail value '%s' already exists!"):format(i, value))
-		usedValues[tostring(value)] = i
+		local valueString = tostring(value)
+		--assert(typeof(value) == "number" and math.ceil(value)/value == 1, ("bad argument #2.%s.2 - detail value must be an integer!"):format(i))
+		assert(typeof(not usedValues[valueString]), ("bad argument #2.%s.2 - the detail value '%s' already exists!"):format(i, valueString))
+		usedValues[valueString] = i
 		local property = detail[3]
 		if property then
 			assert(typeof(not usedProperties[property]), ("bad argument #2.%s.3 - the detail property '%s' already exists!"):format(i, tostring(property)))
@@ -83,44 +87,23 @@ function EnumHandler.createEnum(enumName, details)
 	return enum
 end
 
-function EnumHandler.getEnums()
+function Enum.getEnums()
 	return enums
 end
 
 
 
 -- SETUP ENUMS
-local createEnum = EnumHandler.createEnum
------------------------------------
-createEnum("Servers", {
-	{"Current", 1}, -- This server
-	{"Others", 2}, -- Every server, except this server
-	{"All", 3}, -- Every server
-})
+local createEnum = Enum.createEnum
+for _, childModule in pairs(script:GetChildren()) do
+	if childModule:IsA("ModuleScript") then
+		local enumDetail = require(childModule)
+		createEnum(childModule.Name, enumDetail)
+	end
+end
 
-
------------------------------------
-createEnum("RoleType", {
-	{"Perm", 1}, -- Persists until the player leaves
-	{"Time", 2}, -- Persists until the 'giver' (user that gave the role) leaves the server
-	{"Server", 3}, -- Persists until the server ends
-	{"Giver", 4}, -- Remains permanently (until removed)
-	{"Temp", 5}, -- Remains permanently, and syncs with config in studio (i.e.
-	-- is added to the role itself)
-})
-
-
------------------------------------
-createEnum("ThreadState", {
-	{"Playing ", 1},
-	{"Paused", 2},
-	{"Completed", 3},
-	{"Cancelled", 4},
-})
-
-
------------------------------------
 --[[
+-- Example enum
 createEnum("Color", {
 	{"White", 1, Color3.fromRGB(255, 255, 255)},
 	{"Black", 2, Color3.fromRGB(0, 0, 0)},
@@ -128,8 +111,5 @@ createEnum("Color", {
 --]]
 
 
------------------------------------
 
-
-
-return EnumHandler
+return Enum

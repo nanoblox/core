@@ -135,7 +135,7 @@ function main.initiate(loader)
 			end
 	    end
 	})
-	main.enum = main.modules.EnumHandler:getEnums()
+	main.enum = main.modules.Enum.getEnums()
 	Thread = main.modules.Thread
 	
 	

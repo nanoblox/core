@@ -13,6 +13,7 @@ Args.array = {
 		description	= "",
 		defaultValue = 0,
 		playerArg = true,
+		executeForEachPlayer = true,
 		parse = function(self, qualifiers)
 			local targetsDict = {}
 			for qualifierName, qualifierArgs in pairs(qualifiers or {}) do
@@ -38,7 +39,28 @@ Args.array = {
 		description	= "",
 		defaultValue = 0,
 		playerArg = true,
+		executeForEachPlayer = false,
 		parse = function(self, qualifiers)
+			return main.modules.Args.dictionary.player:parse(qualifiers)
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
+		name = "optionalplayer",
+		aliases = {},
+		description	= "Hides the players argument for general use and only displays it within the preview menu.",
+		defaultValue = 0,
+		playerArg = true,
+		hidden = true,
+		executeForEachPlayer = true,
+		parse = function(self, qualifiers)
+			local defaultToAll = qualifiers == nil or main.modules.TableUtil.isEmpty(self.qualifiers)
+			if defaultToAll then
+				return main.Players:GetPlayers()
+			end
 			return main.modules.Args.dictionary.player:parse(qualifiers)
 		end,
 	};
@@ -53,18 +75,9 @@ Args.array = {
 		defaultValue = 0,
 		playerArg = true,
 		hidden = true,
+		executeForEachPlayer = false,
 		parse = function(self, qualifiers)
-			if qualifiers == nil then
-				return main.Players:GetPlayers()
-			end
-			local qualifierPresent = false
-			for k,v in pairs(self.qualifiers) do
-				qualifierPresent = true
-			end
-			if not qualifierPresent then
-				return main.Players:GetPlayers()
-			end
-			return main.modules.Args.dictionary.player:parse(qualifiers)
+			return main.modules.Args.dictionary.optionalplayer:parse(qualifiers)
 		end,
 	};
 	
@@ -72,11 +85,11 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		-- Consider filters for specific players or broadcast
 		name = "text",
 		aliases = {"string", "reason", "question", "teamname"},
 		description	= "",
 		defaultValue = 0,
+		filterText = true,
 		parse = function(self, stringToParse)
 			
 		end,
@@ -101,6 +114,32 @@ Args.array = {
 	{
 		name = "number",
 		aliases = {"integer", "studs", "speed", "intensity"},
+		description	= "",
+		defaultValue = 0,
+		parse = function(self, stringToParse)
+			
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
+		name = "soundid", -- consider blocking soundids and a setting to achieve this
+		aliases = {"musicid"},
+		description	= "",
+		defaultValue = 0,
+		parse = function(self, stringToParse)
+			
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
+		name = "duration", -- returns the time string (such as 5s7d8h) in seconds
+		aliases = {"time", "durationtime", "timelength"},
 		description	= "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
@@ -151,6 +190,20 @@ Args.array = {
 	
 	-----------------------------------
 	{
+		name = "optionalcolor",
+		aliases = {"optionalcolour", "optionalcolor3"},
+		description	= "",
+		defaultValue = 0,
+		hidden = true,
+		parse = function(self, stringToParse)
+			
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
 		name = "bool",
 		aliases = {"boolean", "trueOrFalse", "yesOrNo"},
 		description	= "",
@@ -164,7 +217,7 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		name = "stat",
+		name = "stat", -- Consider making a setting to update this or set its pathway
 		aliases = {"statName"},
 		description	= "",
 		defaultValue = 0,
@@ -205,6 +258,19 @@ Args.array = {
 	{
 		name = "user",
 		aliases = {"username", "userid", "playerid", "playername"},
+		description	= "",
+		defaultValue = 0,
+		parse = function(self, stringToParse)
+			
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
+		name = "playerOrUser", -- returns a string instead of a player instance - it fist looks for a player in the server otherwise defaults to the given string
+		aliases = {},
 		description	= "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
@@ -299,10 +365,10 @@ end
 
 
 -- SORTED ARRAY(S)
-Args.playerArgsWithoutHiddenDictionary = {}
+Args.executeForEachPlayerArgsDictionary = {}
 for _, item in pairs(Args.array) do
-	if item.playerArg and not item.hidden then
-		Args.playerArgsWithoutHiddenDictionary[item.name] = true
+	if item.playerArg and item.executeForEachPlayer then
+		Args.executeForEachPlayerArgsDictionary[item.name] = true
 	end
 end
 
