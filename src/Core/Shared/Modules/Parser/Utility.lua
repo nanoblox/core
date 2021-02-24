@@ -2,7 +2,7 @@ local Utility = {}
 
 --// CONSTANTS //--
 
-local MAIN = require(game.HDAdmin)
+local MAIN = require(game.Nanoblox)
 
 --// VARIABLES //--
 
@@ -39,7 +39,7 @@ captures).
 
 ]]--
 function Utility.getCaptures(source, sortedKeywords)
-    local parser = MAIN.modules.Parser
+    local parserModule = MAIN.modules.Parser
 
 	--// Find all the captures
 	local captures = {}
@@ -58,11 +58,11 @@ function Utility.getCaptures(source, sortedKeywords)
 		--// Captures with argument capsules are stripped away from the source
 		source = string.gsub(
 			source,
-			string.format("(%s)%s", keyword, parser.Patterns.CapsuleFromKeyword),
+			string.format("(%s)%s", keyword, parserModule.patterns.capsuleFromKeyword),
 			function(keyword, arguments)
 				--// Arguments need to be separated as they are the literal string
 				--// in the capsule at this point
-				local separatedArguments = Utility.getMatches(arguments, parser.Patterns.ArgumentsFromCollection)
+				local separatedArguments = Utility.getMatches(arguments, parserModule.patterns.argumentsFromCollection)
 				table.insert(captures, {[keyword] = separatedArguments})
 				return ""
 			end

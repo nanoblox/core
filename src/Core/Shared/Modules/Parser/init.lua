@@ -2,7 +2,7 @@ local Parser = {}
 
 --// CONSTANTS //--
 
-local MAIN = require(game.HDAdmin)
+local MAIN = require(game.Nanoblox)
 
 --// VARIABLES //--
 
@@ -19,22 +19,22 @@ function Parser.init()
     local ClientSettings = MAIN.services.SettingService.getGroup("Client")
 
     Parser.patterns = {
-		CommandStatementsFromBatch = string.format(
+		commandStatementsFromBatch = string.format(
 			"%s([^%s]+)",
 			";", --ClientSettings.prefix,
 			";" --ClientSettings.prefix
 		),
-		DescriptionsFromCommandStatement = string.format(
+		descriptionsFromCommandStatement = string.format(
 			"%s?([^%s]+)",
 			" ", --ClientSettings.descriptorSeparator,
 			" " --ClientSettings.descriptorSeparator
 		),
-		ArgumentsFromCollection = string.format(
+		argumentsFromCollection = string.format(
 			"([^%s]+)%s?",
 			",", --ClientSettings.collective,
 			"," --ClientSettings.collective
 		),
-		CapsuleFromKeyword = string.format(
+		capsuleFromKeyword = string.format(
 			"%%(%s%%)", --Capsule
 			string.format("(%s)", ".-")
 		)
@@ -123,7 +123,7 @@ function Parser.parseMessage(message)
     ]]--
 
         parsedDataModule.parseCommandStatement(parsedData)
-        if (parsedData.hasFailed) then table.insert(allParsedDatas, parsedData) continue end
+        if not (parsedData.isValid) then table.insert(allParsedDatas, parsedData) continue end
 
     --// STEP 3 //--
     --[[
@@ -133,7 +133,7 @@ function Parser.parseMessage(message)
     ]]--
     
         parsedDataModule.parseCommandDescriptionAndSetFlags(parsedData)
-        if (parsedData.hasFailed) then table.insert(allParsedDatas, parsedData) continue end
+        if not (parsedData.isValid) then table.insert(allParsedDatas, parsedData) continue end
 
     --// STEP 4 //--
     --[[
@@ -143,7 +143,7 @@ function Parser.parseMessage(message)
     ]]--
 
         parsedDataModule.parseQualifierDescription(parsedData)
-        if (parsedData.hasFailed) then table.insert(allParsedDatas, parsedData) continue end
+        if not (parsedData.isValid) then table.insert(allParsedDatas, parsedData) continue end
 
     --// STEP 5 //--
     --[[

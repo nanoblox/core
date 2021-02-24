@@ -2,7 +2,7 @@ local Algorithm = {}
 
 --// CONSTANTS //--
 
-local MAIN = require(game.HDAdmin)
+local MAIN = require(game.Nanoblox)
 
 --// VARIABLES //--
 
@@ -20,7 +20,7 @@ function Algorithm.getCommandStatementsFromBatch(batch)
     local utilityModule = MAIN.modules.Parser.Utility
 
     return utilityModule.getMatches(batch,
-        parserModule.pattersn.commandStatementsFromBatch)
+        parserModule.patterns.commandStatementsFromBatch)
 end
 
 --[[
@@ -33,7 +33,7 @@ function Algorithm.getDescriptionsFromCommandStatement(commandStatement)
     local utilityModule = MAIN.modules.Parser.Utility
 
     local descriptions = utilityModule.getMatches(commandStatement,
-        parserModule.patterns.DescriptionsFromCommandStatement)
+        parserModule.patterns.descriptionsFromCommandStatement)
     
     local extraArgumentDescription = {}
     if (#descriptions >= 3) then
@@ -89,7 +89,7 @@ function Algorithm.parseQualifierDescription(qualifierDescription)
 
     local unrecognizedQualifiers = utilityModule.getMatches(
         qualifierDescriptionResidue,
-        parserModule.patterns.ArgumentsFromCollection
+        parserModule.patterns.argumentsFromCollection
     )
 
     for _, match in pairs(unrecognizedQualifiers) do

@@ -2,7 +2,7 @@ local ParsedData = {}
 
 --// CONSTANTS //--
 
-local MAIN = require(game.HDAdmin)
+local MAIN = require(game.Nanoblox)
 
 --// VARIABLES //--
 
@@ -126,7 +126,7 @@ function ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejection)
 
     elseif (parserRejection == parserRejectionEnum.MALFORMED_COMMAND_DESCRIPTION) then
 
-        if (parsedData.commandDescription ~= "") then parsedData.isValid = false end
+        if (parsedData.commandDescriptionResidue ~= "") then parsedData.isValid = false end
 
     end
 
