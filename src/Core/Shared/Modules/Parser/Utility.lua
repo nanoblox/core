@@ -41,6 +41,7 @@ captures).
 function Utility.getCaptures(source, sortedKeywords)
     local parserModule = MAIN.modules.Parser
 
+	source = source:lower()
 	--// Find all the captures
 	local captures = {}
 	--// We need sorted table so that larger keywords get captured before smaller

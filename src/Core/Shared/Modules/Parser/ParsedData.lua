@@ -23,16 +23,16 @@ function ParsedData.generateEmptyParsedData()
         qualifierDescription = nil,
         extraArgumentDescription = nil,
 
-        commandCaptures = nil,
-        modifierCaptures = nil,
-        qualifierCaptures = nil,
+        commandCaptures = {},
+        modifierCaptures = {},
+        qualifierCaptures = {},
         prematureQualifierParsing = false,
-        unrecognizedQualifiers = nil,
+        unrecognizedQualifiers = {},
 
         commandDescriptionResdiue = nil,
 
-        requiresQualifier = nil,
-        hasTextArgument = nil,
+        requiresQualifier = false,
+        hasTextArgument = false,
 
         isValid = true,
         parserRejection = nil
@@ -144,21 +144,21 @@ function ParsedData.generateOrganizedParsedData(allParsedData)
         if (parsedData.isValid) then
 
             local commands = {}
-            for _, capture in pairs(parsedData.CommandCaptures) do
+            for _, capture in pairs(parsedData.commandCaptures) do
                 for command, arguments in pairs(capture) do
                     commands[command] = arguments
                 end
             end
                 
             local modifiers = {}
-            for _, capture in pairs(parsedData.ModifierCaptures) do
+            for _, capture in pairs(parsedData.modifierCaptures) do
                 for modifier, arguments in pairs(capture) do
                     modifiers[modifier] = arguments
                 end
             end
             
             local qualifiers = {}
-            for _, capture in pairs(parsedData.QualifierCaptures) do
+            for _, capture in pairs(parsedData.qualifierCaptures) do
                 for qualifier, arguments in pairs(capture) do
                     qualifiers[qualifier] = arguments
                 end
@@ -188,7 +188,7 @@ function ParsedData.parseCommandStatement(parsedData)
     )
 
     parsedData.commandDescription = descriptions[1]
-    parsedData.targetDescription = descriptions[2]
+    parsedData.qualifierDescription = descriptions[2]
     parsedData.extraArgumentDescription = descriptions[3]
 
     ParsedData.parsedDataUpdateIsValidFlag(parsedData,
@@ -237,12 +237,12 @@ end
 
 ]]--
 function ParsedData.parseQualifierDescription(parsedData)
-    if not (parsedData.requiresQualifiers) then return end
+    if not (parsedData.requiresQualifier) then return end
     if (parsedData.prematureQualifierParsing) then return end
 
     local algorithmModule = MAIN.modules.Parser.Algorithm
     
-    local qualifierCapturesAndUnrecognizedQualifiers = algorithmModule.parseQualifiers(
+    local qualifierCapturesAndUnrecognizedQualifiers = algorithmModule.parseQualifierDescription(
         parsedData.qualifierDescription
     )
     parsedData.qualifierCaptures = qualifierCapturesAndUnrecognizedQualifiers[1]
@@ -275,14 +275,14 @@ function ParsedData.parseExtraArgumentDescription(parsedData, allParsedDatas, or
 			foundIndex = select(2, string.find(originalMessage, ";", foundIndex + 1))
 		end
 
-		foundIndex = select(2, string.find(originalMessage, parsedData.CommandDescription, foundIndex + 1, true)) + 2
+		foundIndex = select(2, string.find(originalMessage, parsedData.commandDescription, foundIndex + 1, true)) + 2
 
-		if (parsedData.RequiresQualifier) then
-			foundIndex = select(2, string.find(originalMessage, parsedData.QualifierDescription, foundIndex, true)) + 2
+		if (parsedData.requiresQualifier) then
+			foundIndex = select(2, string.find(originalMessage, parsedData.qualifierDescription, foundIndex, true)) + 2
 		end
 
 		local extraArgument = string.sub(originalMessage, foundIndex)
-		for _, capture in pairs(parsedData.CommandCaptures) do
+		for _, capture in pairs(parsedData.commandCaptures) do
 			for _, arguments in pairs(capture) do
 				table.insert(arguments, extraArgument)
 			end

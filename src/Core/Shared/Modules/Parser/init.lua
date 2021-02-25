@@ -64,9 +64,11 @@ from the information of the commandstatement it appears in.
 function Parser.requiresQualifier(commandName)
     local qualifierRequiredEnum = MAIN.enum.QualifierRequired
 
-	local firstArgName = MAIN.services.CommandService.getTable("dictionary")[commandName].args[1]
+	local commandArgs = MAIN.services.CommandService.getTable("lowerCaseNameAndAliasToCommandDictionary")[commandName].args
+	if (#commandArgs == 0) then return qualifierRequiredEnum.Never end
+	local firstArgName = commandArgs[1]:lower()
 	local firstArg = MAIN.modules.Parser.Args.dictionary[firstArgName]
-	
+
 	if (firstArg.playerArg ~= true) then
 		return qualifierRequiredEnum.Never
 	else
@@ -84,12 +86,15 @@ end
 
 ]]--
 function Parser.hasTextArgument(commandName)
-    local argsDictionary = MAIN.modules.Parser.Args.dictionary
-	for _, arg in pairs(MAIN.services.CommandService.getTable("dictionary")[commandName].args) do
-		if (argsDictionary[arg] == argsDictionary["text"]) then
-			return true
-		end
+	local argsDictionary = MAIN.modules.Parser.Args.dictionary
+	local commandArgs = MAIN.services.CommandService.getTable("lowerCaseNameAndAliasToCommandDictionary")[commandName].args
+	if (#commandArgs == 0) then return false end
+	local lastArgName = commandArgs[#commandArgs]:lower()
+
+	if (argsDictionary[lastArgName] == argsDictionary["text"]) then
+		return true
 	end
+
 	return false
 end
 

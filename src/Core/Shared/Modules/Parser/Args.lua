@@ -356,9 +356,9 @@ Args.array = {
 -- you can simply do ``Args.dictionary.ARGUMENT_NAME`` to return its item
 Args.dictionary = {}
 for _, item in pairs(Args.array) do
-	Args.dictionary[item.name] = item
+	Args.dictionary[item.name:lower()] = item
 	for _, alias in pairs(item.aliases) do
-		Args.dictionary[alias] = item
+		Args.dictionary[alias:lower()] = item
 	end
 end
 
@@ -368,7 +368,7 @@ end
 Args.executeForEachPlayerArgsDictionary = {}
 for _, item in pairs(Args.array) do
 	if item.playerArg and item.executeForEachPlayer then
-		Args.executeForEachPlayerArgsDictionary[item.name] = true
+		Args.executeForEachPlayerArgsDictionary[item.name:lower()] = true
 	end
 end
 
