@@ -7,7 +7,7 @@ local Parser = {}
 -- METHODS
 function Parser.parseMessage(message)
 	-- You are welcome to split this method into submethods to achieve
-	-- the final parsed result (i.e. an array of parsed batches)
+	-- the final parsed result (i.e. a batch containing an array of statements)
 	-- The following examples below demonstrate how to reference data,
 	-- such as role and settings values, with V3. To view a records default values,
 	-- either load up 'Config' (under Nanoblox.Core.Config) the values
@@ -34,8 +34,8 @@ function Parser.parseMessage(message)
 	print(commandRecords)
 	print(commandRecordsSortedByNameLength)
 
-	local batches = {test345 = true}
-	return batches
+	local batch = {test345 = true}
+	return batch
 end
 
 

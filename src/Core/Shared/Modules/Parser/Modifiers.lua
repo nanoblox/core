@@ -1,4 +1,4 @@
--- Modifiers are items that can be applied to batches to enhance a commands default behaviour
+-- Modifiers are items that can be applied to statements to enhance a commands default behaviour
 -- They are split into two groups:
 -- 		1. PreAction Modifiers - these execute before a task is created and can block the task being created entirely
 --		2. Action Modifiers - these execute while a task is running and can extend the longevity of the task
@@ -17,10 +17,10 @@ Modifiers.array = {
 		aliases = {"pr-"},
 		order = 1,
 		description	= "Displays a menu that previews the command instead of executing it.",
-		preAction = function(callerUserId, batch)
+		preAction = function(callerUserId, statement)
 			local caller = main.Players:GetPlayerByUserId(callerUserId)
 			if caller then
-				main.services.CommandService.remotes.previewCommand:fireClient(caller, batch)
+				main.services.CommandService.remotes.previewCommand:fireClient(caller, statement)
 			end
 			return false
 		end,
@@ -33,14 +33,14 @@ Modifiers.array = {
 		name = "random",
 		aliases = {"r-"},
 		order = 2,
-		description	= "Randomly selects a command within a batch. All other commands are discarded.",
-		preAction = function(_, batch)
-			local commands = batch.commands
+		description	= "Randomly selects a command within a statement. All other commands are discarded.",
+		preAction = function(_, statement)
+			local commands = statement.commands
 			if #commands > 1 then
 				local randomIndex = math.random(1, #commands)
 				local selectedItem = commands[randomIndex]
 				commands = {selectedItem}
-				batch.commands = commands
+				statement.commands = commands
 			end
 			return true
 		end,
@@ -54,8 +54,8 @@ Modifiers.array = {
 		aliases = {"p-"},
 		order = 3,
 		description	= "Permanently saves the task. This means in addition to the initial execution, the command will be executed whenever a server starts, or if player specific, every time the player joins a server.",
-		preAction = function(_, batch)
-			local modifiers = batch.modifiers
+		preAction = function(_, statement)
+			local modifiers = statement.modifiers
 			local oldGlobal = modifiers.global
 			if oldGlobal then
 				-- Its important to ignore the global modifier in this situation as setting Task to
@@ -76,13 +76,13 @@ Modifiers.array = {
 		aliases = {"g-"},
 		order = 4,
 		description	= "Broadcasts the task to all servers.",
-		preAction = function(callerUserId, batch)
+		preAction = function(callerUserId, statement)
 			local CommandService = main.services.CommandService
-			local modifiers = batch.modifiers
+			local modifiers = statement.modifiers
 			local oldGlobal = modifiers.global
 			modifiers.global = nil
 			modifiers.wasGlobal = oldGlobal
-			CommandService.executeBatchGloballySender:fireAllServers(callerUserId, batch)
+			CommandService.executeStatementGloballySender:fireAllServers(callerUserId, statement)
 			return false
 		end,
 	};
@@ -95,10 +95,10 @@ Modifiers.array = {
 		aliases = {"un", "u-", "revoke"},
 		order = 5,
 		description	= "Revokes all tasks that match the given command name(s) (and associated player targets if specified). To revoke a task across all servers, the 'global' modifier must be included.",
-		preAction = function(callerUserId, batch)
+		preAction = function(callerUserId, statement)
 			local Args = main.modules.Args
-			local targets = Args.dictionary.player:parse(batch.qualifiers, callerUserId)
-			for commandName, _ in pairs(batch.commands) do
+			local targets = Args.dictionary.player:parse(statement.qualifiers, callerUserId)
+			for commandName, _ in pairs(statement.commands) do
 				local command = main.services.CommandService.getCommand(commandName)
 				if command then
 					local firstCommandArg = command.args[1]

@@ -29,14 +29,6 @@ function SettingsService.generateRecord(key)
 			
 			theme = "",
 			backgroundTransparency 	= 0.1,
-			
-			noticeVolume = 0.1,
-			noticePitch = 1,
-			noticePromptSoundId = 2865227271,
-			noticeErrorSoundId = 2865228021,
-			alertVolume = 0.5,
-			alertPitch = 1,
-			alertSoundId = 3140355872,
 			--]]
 		},
 		

@@ -48,8 +48,8 @@ function CommandController.start()
 	end)
 
 	local previewCommand = main.modules.Remote.new("previewCommand")
-	previewCommand.onClientEvent:Connect(function(batch)
-		--!!! preview command batch
+	previewCommand.onClientEvent:Connect(function(statement)
+		--!!! preview command statement
 	end)
 	
 end
