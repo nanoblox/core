@@ -19,8 +19,8 @@ function CommandService.begin()
 	-- Setup globals
 	CommandService.executeBatchGloballySender = main.services.GlobalService.createSender("executeBatchGlobally")
 	CommandService.executeBatchGloballyReceiver = main.services.GlobalService.createReceiver("executeBatchGlobally")
-	CommandService.executeBatchGloballyReceiver.onGlobalEvent:Connect(function(caller, batch)
-		CommandService.executeBatch(caller, batch)
+	CommandService.executeBatchGloballyReceiver.onGlobalEvent:Connect(function(callerUserId, batch)
+		CommandService.executeBatch(callerUserId, batch)
 	end)
 
 	-- Grab default commands
@@ -95,12 +95,6 @@ function CommandService.generateRecord(key)
 		remoteNames = {},
 		receiverNames = {},
 		senderNames = {},
-		invoke = function(this, caller, args)
-			
-		end,
-		revoke = function(this, caller, args)
-			
-		end,
 	}
 end
 
@@ -137,23 +131,24 @@ function CommandService.getTable(name)
 end 
 
 function CommandService.chatCommand(caller, message)
-	print(caller.name, "chatted: ", message)
+	print(caller.Name, "chatted: ", message)
+	local callerUserId = caller.UserId
 	local batches = main.modules.Parser.parseMessage(message)
 	if type(batches) == "table" then
 		for i, batch in pairs(batches) do
-			local approved, noticeDetails = CommandService.verifyBatch(caller, batch)
+			local approved, noticeDetails = CommandService.verifyBatch(callerUserId, batch)
 			if approved then
-				CommandService.executeBatch(caller, batch)
+				CommandService.executeBatch(callerUserId, batch)
 			end
 			for _, detail in pairs(noticeDetails) do
 				local method = main.services.MessageService[detail[1]]
-				method(caller.player, detail[2])
+				method(caller, detail[2])
 			end
 		end
 	end
 end
 
-function CommandService.verifyBatch(caller, batch)
+function CommandService.verifyBatch(callerUserId, batch)
 	local approved = true
 	local details = {}
 
@@ -179,7 +174,7 @@ function CommandService.verifyBatch(caller, batch)
 	return approved, details
 end
 
-function CommandService.executeBatch(caller, batch)
+function CommandService.executeBatch(callerUserId, batch)
 	----
 	batch.commands = batch.commands or {}
 	batch.modifiers = batch.modifiers or {}
@@ -187,7 +182,7 @@ function CommandService.executeBatch(caller, batch)
 	----
 	local Modifiers = main.modules.Modifiers
 	for _, item in pairs(Modifiers.sortedOrderArrayWithOnlyPreAction) do
-		local continueExecution = item.preAction(caller, batch)
+		local continueExecution = item.preAction(callerUserId, batch)
 		if not continueExecution then
 			return
 		end
@@ -201,7 +196,7 @@ function CommandService.executeBatch(caller, batch)
 		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(command.args[1])]
 		local TaskService = main.services.TaskService
 		local properties = TaskService.generateRecord()
-		properties.caller = batch.caller or properties.caller
+		properties.callerUserId = batch.callerUserId or properties.callerUserId
 		properties.commandName = commandName
 		properties.args = arguments or properties.args
 		properties.modifiers = batch.modifiers
@@ -229,7 +224,7 @@ function CommandService.executeBatch(caller, batch)
 			properties.qualifiers = batch.qualifiers or properties.qualifiers
 			main.services.TaskService.createTask(addToPerm, properties)
 		else
-			local targets = Args.dictionary.player:parse(batch.qualifiers)
+			local targets = Args.dictionary.player:parse(batch.qualifiers, callerUserId)
 			for _, plr in pairs(targets) do
 				properties.targetUserId = plr.targetUserId
 				main.services.TaskService.createTask(addToPerm, properties)
@@ -238,15 +233,15 @@ function CommandService.executeBatch(caller, batch)
 	end
 end
 
-function CommandService.invokeCommand(caller, commandName, ...)
-	CommandService.executeBatch(caller, {
+function CommandService.invokeCommand(callerUserId, commandName, ...)
+	CommandService.executeBatch(callerUserId, {
 		commands = {
 			--commandName = args -- !!! what about qualifiers?
 		}
 	})
 end
 
-function CommandService.revokeCommand(caller, commandName, qualifier)
+function CommandService.revokeCommand(callerUserId, commandName, qualifier)
 	
 end
 

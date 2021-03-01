@@ -43,14 +43,14 @@ function Task.new(properties)
 		self.qualifiers = nil
 	end
 
-	-- This filters all text arguments specific to the callerId and targetId
+	-- This filters all text arguments specific to the callerUserId and targetId
 	if main.isServer and self.args and not self.filteredAllArguments then
 		local commandArgs = self.command.args
 		local promises = {}
 		for i, argName in pairs(commandArgs) do
 			local argTable = main.modules.Args.dictionary[argName]
 			if argTable.filterText then
-				local fromUserId = self.caller.targetUserId
+				local fromUserId = self.callerUserId
 				local toUserId = self.targetUserId
 				local textToFilter = self.args[i]
 				table.insert(promises, main.modules.ChatUtil.filterText(fromUserId, toUserId, textToFilter)
@@ -196,7 +196,7 @@ function Task:execute()
 		for i, argString in pairs(self.args) do
 			local argName = command.args[i]
 			local argItem = main.modules.Args.dictionary[argName]
-			local parsedArg = argItem:parse(argString)
+			local parsedArg = argItem:parse(argString, self.callerUserId)
 			table.insert(parsedArgs, parsedArg)
 		end
 	end
@@ -228,13 +228,13 @@ function Task:execute()
 		end
 
 		-- If the task has no associated player *but* does contain qualifiers (such as in ;globalKill all)
-		local targets = firstArgItem:parse(self.qualifiers)
+		local targets = firstArgItem:parse(self.qualifiers, self.callerUserId)
 		if firstArgItem.executeForEachPlayer then -- If the firstArg has executeForEachPlayer, convert the task into subtasks for each player returned by the qualifiers
 			for i, plr in pairs(targets) do
 				self:track(main.modules.Thread.delayUntil(function() return self.filteredAllArguments == true end, function()
 					local TaskService = main.services.TaskService
 					local properties = TaskService.generateRecord()
-					properties.caller = self.caller
+					properties.callerUserId = self.callerUserId
 					properties.commandName = self.commandName
 					properties.args = self.args
 					properties.filteredAllArguments = true
@@ -248,7 +248,7 @@ function Task:execute()
 		end
 
 	end)
-
+	
 	return Promise.defer(function(resolve)
 		if invokedCommand then
 			self.executionThreadsCompleted:Wait()

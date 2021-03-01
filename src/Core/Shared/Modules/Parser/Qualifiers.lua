@@ -25,7 +25,7 @@ Qualifiers.array = {
 		hidden = true,
 		multi = false,
 		description	= "Default action, returns players with matching shorthand names.",
-		getTargets = function(caller, shorthandString, useDisplayName)
+		getTargets = function(_, shorthandString, useDisplayName)
 			local targets = {}
 			for i, plr in pairs(main.Players:GetPlayers()) do
 				local nameToUse = (useDisplayName and plr.DisplayName) or plr.Name
@@ -47,8 +47,13 @@ Qualifiers.array = {
 		aliases = {"you"},
 		multi = false,
 		description	= "You!",
-		getTargets = function(caller)
-			return {caller.player}
+		getTargets = function(callerUserId)
+			local targets = {}
+			local caller = main.Players:GetPlayerByUserId(callerUserId)
+			if caller then
+				table.insert(targets, caller)
+			end
+			return targets
 		end,
 	};
 	
@@ -60,7 +65,7 @@ Qualifiers.array = {
 		aliases = {"everyone"},
 		multi = true,
 		description	= "Every player in a server.",
-		getTargets = function(caller)
+		getTargets = function()
 			return main.Players:GetPlayers()
 		end,
 	};
@@ -73,14 +78,14 @@ Qualifiers.array = {
 		aliases = {},
 		multi = false,
 		description	= "One randomly selected player from a pool. To define a pool, do ``random(qualifier1,qualifier2,...)``. If not defined, the pool defaults to 'all'.",
-		getTargets = function(caller, ...)
+		getTargets = function(callerUserId, ...)
 			local subQualifiers = table.pack(...)
 			if #subQualifiers == 0 then
 				table.insert(subQualifiers, "all")
 			end
 			local pool = {}
 			for _, subQualifier in pairs(subQualifiers) do
-				local subPool = ((Qualifiers.dictionary[subQualifier] or Qualifiers.defaultQualifier).getTargets(caller)) or {}
+				local subPool = ((Qualifiers.dictionary[subQualifier] or Qualifiers.defaultQualifier).getTargets(callerUserId)) or {}
 				for _, plr in pairs(subPool) do
 					table.insert(pool, plr)
 				end
@@ -98,10 +103,10 @@ Qualifiers.array = {
 		aliases = {},
 		multi = true,
 		description	= "Every player in a server except you.",
-		getTargets = function(caller)
+		getTargets = function(callerUserId)
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
-				if plr.Name ~= caller.name then
+				if plr.UserId ~= callerUserId then
 					table.insert(targets, plr)
 				end
 			end
@@ -117,13 +122,16 @@ Qualifiers.array = {
 		aliases = {},
 		multi = true,
 		description	= "Players within x amount of studs from you. To specify studs, do ``radius(studs)``. If not defined, studs defaults to '10'.",
-		getTargets = function(caller, radiusString)
+		getTargets = function(callerUserId, radiusString)
 			local targets = {}
 			local radius = tonumber(radiusString) or 10
-			local callerHeadPos = main.modules.PlayerUtil.getHeadPos(caller.player) or Vector3.new(0, 0, 0)
-			for _, plr in pairs(main.Players:GetPlayers()) do
-				if plr:DistanceFromCharacter(callerHeadPos) <= radius then
-					table.insert(targets, plr)
+			local caller = main.Players:GetPlayerByUserId(callerUserId)
+			if caller then
+				local callerHeadPos = main.modules.PlayerUtil.getHeadPos(caller.player) or Vector3.new(0, 0, 0)
+				for _, plr in pairs(main.Players:GetPlayers()) do
+					if plr:DistanceFromCharacter(callerHeadPos) <= radius then
+						table.insert(targets, plr)
+					end
 				end
 			end
 			return targets
@@ -138,7 +146,7 @@ Qualifiers.array = {
 		aliases = {"teams", "$"},
 		multi = true,
 		description	= "Players within the specified team(s).",
-		getTargets = function(caller, ...)
+		getTargets = function(_, ...)
 			local targets = {}
 			local teamNames = table.pack(...)
 			local selectedTeams = {}
@@ -171,7 +179,7 @@ Qualifiers.array = {
 		aliases = {"roles", "@"},
 		multi = true,
 		description	= "Players who have the specified role(s).",
-		getTargets = function(caller, ...)
+		getTargets = function(_, ...)
 			local targets = {}
 			local roleNames = table.pack(...)
 			local selectedRoleUIDs = {}
@@ -211,7 +219,7 @@ Qualifiers.array = {
 		aliases = {"percentage", "%"},
 		multi = true,
 		description	= "Randomly selects x percent of players within a server. To define the percentage, do ``percent(number)``. If not defined, the percent defaults to '50'.",
-		getTargets = function(caller, percentString)
+		getTargets = function(_, percentString)
 			local targets = {}
 			local maxPercent = tonumber(percentString) or 50
 			local players = main.Players:GetPlayers()
@@ -238,7 +246,7 @@ Qualifiers.array = {
 		aliases = {},
 		multi = true,
 		description	= "Selects all admins",
-		getTargets = function(caller)
+		getTargets = function(_)
 			local targets = {}
 			for i, user in pairs(main.modules.PlayerStore:getUsers()) do
 				if not isNonadmin(user) then
@@ -257,7 +265,7 @@ Qualifiers.array = {
 		aliases = {},
 		multi = true,
 		description	= "Selects all nonadmins",
-		getTargets = function(caller)
+		getTargets = function(_)
 			local targets = {}
 			for i, user in pairs(main.modules.PlayerStore:getUsers()) do
 				if isNonadmin(user) then
@@ -276,7 +284,7 @@ Qualifiers.array = {
 		aliases = {"prem"},
 		multi = true,
 		description	= "Players with Roblox Premium membership",
-		getTargets = function(caller)
+		getTargets = function(_)
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
 				if plr.MembershipType == Enum.MembershipType.Premium then
@@ -295,10 +303,10 @@ Qualifiers.array = {
 		aliases = {},
 		multi = true,
 		description	= "Players you are friends with",
-		getTargets = function(caller)
+		getTargets = function(callerUserId)
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
-				if caller.player:IsFriendsWith(plr.UserId) then
+				if plr:IsFriendsWith(callerUserId) then
 					table.insert(targets, plr)
 				end
 			end
@@ -314,10 +322,10 @@ Qualifiers.array = {
 		aliases = {},
 		multi = true,
 		description	= "Players you are not friends with",
-		getTargets = function(caller)
+		getTargets = function(callerUserId)
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
-				if not caller.player:IsFriendsWith(plr.UserId) and caller.player ~= plr.UserId then
+				if not plr:IsFriendsWith(callerUserId) and callerUserId ~= plr.UserId then
 					table.insert(targets, plr)
 				end
 			end
@@ -333,7 +341,7 @@ Qualifiers.array = {
 		aliases = {},
 		multi = true,
 		description	= "Players with an R6 character rig",
-		getTargets = function(caller)
+		getTargets = function()
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
 				local humanoid = main.modules.PlayerUtil.getHumanoid(plr)
@@ -353,7 +361,7 @@ Qualifiers.array = {
 		aliases = {},
 		multi = true,
 		description	= "Players with an R15 character rig",
-		getTargets = function(caller)
+		getTargets = function()
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
 				local humanoid = main.modules.PlayerUtil.getHumanoid(plr)
@@ -373,7 +381,7 @@ Qualifiers.array = {
 		aliases = {},
 		multi = true,
 		description	= "Players with a Body Type value greater than or equal to 90%",
-		getTargets = function(caller)
+		getTargets = function()
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
 				local humanoid = main.modules.PlayerUtil.getHumanoid(plr)
@@ -394,7 +402,7 @@ Qualifiers.array = {
 		aliases = {},
 		multi = true,
 		description	= "Players with a Body Type value less than 90%",
-		getTargets = function(caller)
+		getTargets = function()
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
 				local humanoid = main.modules.PlayerUtil.getHumanoid(plr)

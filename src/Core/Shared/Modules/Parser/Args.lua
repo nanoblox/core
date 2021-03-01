@@ -14,10 +14,11 @@ Args.array = {
 		defaultValue = 0,
 		playerArg = true,
 		executeForEachPlayer = true,
-		parse = function(self, qualifiers)
+		parse = function(self, qualifiers, callerUserId)
 			local targetsDict = {}
 			for qualifierName, qualifierArgs in pairs(qualifiers or {}) do
-				local targets = main.modules.Qualifiers.dictionary[qualifierName]
+				local qualifierDetail = main.modules.Qualifiers.dictionary[qualifierName]
+				local targets = qualifierDetail.getTargets(callerUserId, table.unpack(qualifierArgs))
 				for _, plr in pairs(targets) do
 					targetsDict[plr] = true
 				end
@@ -40,8 +41,8 @@ Args.array = {
 		defaultValue = 0,
 		playerArg = true,
 		executeForEachPlayer = false,
-		parse = function(self, qualifiers)
-			return main.modules.Args.dictionary.player:parse(qualifiers)
+		parse = function(self, qualifiers, callerUserId)
+			return main.modules.Args.dictionary.player:parse(qualifiers, callerUserId)
 		end,
 	};
 	
@@ -56,12 +57,12 @@ Args.array = {
 		playerArg = true,
 		hidden = true,
 		executeForEachPlayer = true,
-		parse = function(self, qualifiers)
+		parse = function(self, qualifiers, callerUserId)
 			local defaultToAll = qualifiers == nil or main.modules.TableUtil.isEmpty(self.qualifiers)
 			if defaultToAll then
 				return main.Players:GetPlayers()
 			end
-			return main.modules.Args.dictionary.player:parse(qualifiers)
+			return main.modules.Args.dictionary.player:parse(qualifiers, callerUserId)
 		end,
 	};
 	
@@ -76,8 +77,8 @@ Args.array = {
 		playerArg = true,
 		hidden = true,
 		executeForEachPlayer = false,
-		parse = function(self, qualifiers)
-			return main.modules.Args.dictionary.optionalplayer:parse(qualifiers)
+		parse = function(self, qualifiers, callerUserId)
+			return main.modules.Args.dictionary.optionalplayer:parse(qualifiers, callerUserId)
 		end,
 	};
 	

@@ -18,7 +18,7 @@ Silent, cover the entire screen, fade dark, disappear after read duration, canno
 messageDetails = {
 	title = [String],
 	subtitle = [String],
-	body0 = [String],
+	body = [String],
 	icon = [ImageId],
 	titleColor = [Color3],
 	subtitleColor = [Color3],
@@ -27,6 +27,17 @@ messageDetails = {
 }
 ```
 ]]
+
+MessageService.messageProperties = {
+	defaultTitleColor = Color3.fromRGB(255, 255, 255),
+	defaultSubtitleColor = Color3.fromRGB(255, 255, 255),
+	defaultBodyColor = Color3.fromRGB(255, 255, 255),
+	defaultBackgroundColor = Color3.fromRGB(0, 0, 0),
+	soundEnabled = false,
+	soundId = 0,
+	soundVolume = 0.2,
+	soundPitch = 1,
+}
 
 function MessageService.message(player, messageDetails)
 	MessageService.remotes.message:Fire(player, messageDetails)
@@ -51,10 +62,18 @@ hintDetails = {
 	textColor = [Color3],
 	backgroundColor = [Color3],
 	disappear = [Bool],
-	soundId = [Integer],
 }
 ```
 ]]
+
+MessageService.hintProperties = {
+	defaultTextColor = Color3.fromRGB(255, 255, 255),
+	defaultBackgroundColor = Color3.fromRGB(0, 0, 0),
+	soundEnabled = false,
+	soundId = 0,
+	soundVolume = 0.2,
+	soundPitch = 1,
+}
 
 function MessageService.hint(player, hintDetails)
 	MessageService.remotes.message:Fire(player, hintDetails)
@@ -85,6 +104,14 @@ noticeDetails = {
 ```
 ]]
 
+MessageService.noticeProperties = {
+	soundEnabled = true,
+	promptSoundId = 2865227271,
+	errorSoundId = 2865228021,
+	soundVolume = 0.1,
+	soundPitch = 1,
+}
+
 function MessageService.notice(player, noticeDetails)
 	MessageService.remotes.message:Fire(player, noticeDetails)
 end
@@ -110,6 +137,13 @@ snackbarDetails = {
 }
 ```
 ]]
+
+MessageService.snackbarProperties = {
+	soundEnabled = false,
+	soundId = 0,
+	soundVolume = 0.2,
+	soundPitch = 1,
+}
 
 function MessageService.snackbar(player, snackbarDetails)
 	MessageService.remotes.message:Fire(player, snackbarDetails)
@@ -137,6 +171,14 @@ popupDetails = {
 }
 ```
 ]]
+
+MessageService.popupProperties = {
+	soundEnabled = true,
+	promptSoundId = 3140355872,
+	alertSoundId = 3140355872,
+	volume = 0.5,
+	pitch = 1,
+}
 
 function MessageService.popup(player, popupDetails)
 	MessageService.remotes.message:Fire(player, popupDetails)

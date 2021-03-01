@@ -17,9 +17,10 @@ Modifiers.array = {
 		aliases = {"pr-"},
 		order = 1,
 		description	= "Displays a menu that previews the command instead of executing it.",
-		preAction = function(caller, batch)
-			if caller.player then
-				main.services.CommandService.remotes.previewCommand:fireClient(caller.player, batch)
+		preAction = function(callerUserId, batch)
+			local caller = main.Players:GetPlayerByUserId(callerUserId)
+			if caller then
+				main.services.CommandService.remotes.previewCommand:fireClient(caller, batch)
 			end
 			return false
 		end,
@@ -75,20 +76,13 @@ Modifiers.array = {
 		aliases = {"g-"},
 		order = 4,
 		description	= "Broadcasts the task to all servers.",
-		preAction = function(caller, batch)
+		preAction = function(callerUserId, batch)
 			local CommandService = main.services.CommandService
 			local modifiers = batch.modifiers
 			local oldGlobal = modifiers.global
-			local callerCopy = {}
-			callerCopy.name = caller.name
-			callerCopy.userId = caller.userId
-			callerCopy.player = {
-				Name = caller.name,
-				UserId = caller.userId,
-			}
 			modifiers.global = nil
 			modifiers.wasGlobal = oldGlobal
-			CommandService.executeBatchGloballySender:fireAllServers(callerCopy, batch)
+			CommandService.executeBatchGloballySender:fireAllServers(callerUserId, batch)
 			return false
 		end,
 	};
@@ -101,9 +95,9 @@ Modifiers.array = {
 		aliases = {"un", "u-", "revoke"},
 		order = 5,
 		description	= "Revokes all tasks that match the given command name(s) (and associated player targets if specified). To revoke a task across all servers, the 'global' modifier must be included.",
-		preAction = function(_, batch)
+		preAction = function(callerUserId, batch)
 			local Args = main.modules.Args
-			local targets = Args.dictionary.player:parse(batch.qualifiers)
+			local targets = Args.dictionary.player:parse(batch.qualifiers, callerUserId)
 			for commandName, _ in pairs(batch.commands) do
 				local command = main.services.CommandService.getCommand(commandName)
 				if command then
