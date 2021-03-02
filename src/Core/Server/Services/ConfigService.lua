@@ -83,7 +83,7 @@ function ConfigService.start()
 		local service = ConfigService.getServiceFromCategory(categoryName)
 		if not service then return end
 		local generateRecord = service and service.generateRecord
-		local categoryTable = main.modules.State.new()
+		local categoryTable = main.modules.State.new(nil, true)
 		local configCategory = TableUtil.copy(config[categoryName] or {})
 		-- Transform config values into it, ignoring nilled values
 		categoryTable:transformToWithoutNilling(configCategory)

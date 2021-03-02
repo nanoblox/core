@@ -25,10 +25,10 @@ function User.new(dataStoreName, key)
 	self._maid = maid
 	
 	-- Main
-	self.temp = maid:give(State.new())
-	self.perm = maid:give(State.new())
-	self.backup = maid:give(State.new())
-	self._data = maid:give(State.new())
+	self.temp = maid:give(State.new(nil, true))
+	self.perm = maid:give(State.new(nil, true))
+	self.backup = maid:give(State.new(nil, true))
+	self._data = maid:give(State.new(nil, true))
 	
 	-- Config
 	local currentTick = tick()

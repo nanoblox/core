@@ -68,14 +68,14 @@ end
 
 
 -- CONSTRUCTOR
-function State.new(props)
+function State.new(props, convertDescendantsToTables)
 	
 	local newTable = {}
 	local maid = Maid.new()
-	if typeof(props) == "table" then
+	if typeof(props) == "table" and (convertDescendantsToTables or props._convertDescendantsToTables) then
 		for k,v in pairs(props) do
 			if typeof(v) == "table" then
-				v = maid:give(State.new(v))
+				v = maid:give(State.new(v, convertDescendantsToTables))
 			end
 			newTable[k] = v
 		end
@@ -83,6 +83,7 @@ function State.new(props)
 	
 	local hiddenKeys = {}
 	hiddenKeys["_tables"] = {}
+	hiddenKeys["_convertDescendantsToTables"] = convertDescendantsToTables
 	hiddenKeys["changedFirst"] = maid:give(Signal.new())
 	hiddenKeys["changed"] = maid:give(Signal.new())
 	setmetatable(newTable, {
@@ -170,10 +171,10 @@ end
 
 function State:set(stat, value)
 	local oldValue = self[stat]
-	if type(value) == "table" and not value.new then
+	if type(value) == "table" and self._convertDescendantsToTables then--and not value.new then
 		-- Convert tables and descending tables into States unless an object
 		local thisMaid = activeTables[self].maid
-		value = thisMaid:give(State.new(value))
+		value = thisMaid:give(State.new(value, true))
 	elseif value == nil and type(oldValue) == "table" and oldValue.isState then
 		-- Destroy State and descending States
 		oldValue:destroy()
