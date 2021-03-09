@@ -1,34 +1,9 @@
 local main = require(game.Nanoblox)
-local players = game:GetService("Players")
 local httpService = game:GetService("HttpService")
-local bodyGroups = require(script.Parent.BodyGroups)
-local effects = require(script.Parent.Effects)
 local Maid = main.modules.Maid
+local Signal = main.modules.Signal
 local Buff = {}
 Buff.__index = Buff
-
-
-
--- EFFECTS
-local function getHumanoid(player)
-    local char = player and player.Character
-    local humanoid = char and char:FindFirstChild("Humanoid")
-    return humanoid
-end
-
-
-
--- LOCAL FUNCTIONS
-local function updateBuffs(player)
-    local buffs = playersAndBuffs[player]
-    --
-    local properties = buff.effectFunction(buff.player)
-    -- give tweens maid
-    --
-    for buffId, buff in pairs(buffs) do
-        
-    end
-end
 
 
 
@@ -40,10 +15,13 @@ function Buff.new(effect, weight)
     local buffId = httpService:GenerateGUID(true)
     self.buffId = buffId
     self.timeCreated = os.clock()
-    self._maid = Maid.new()
-    
-    playersAndBuffs[player][buffId] = self
-    updateBuffs(player)
+    local maid = Maid.new()
+    self._maid = maid
+    self.destroyed = maid:give(Signal.new())
+    self.effect = effect
+    self.weight = weight
+    self.updated = maid:give(Signal.new())
+    self.agent = nil
 
 	return self
 end
@@ -52,25 +30,42 @@ end
 
 -- METHODS
 function Buff:set(value)
-    
+    self.override = true
+    self.increment = false
+    self.tweenInfo = nil
+    self.valueReducer = function() return value end
+    self.updated:Fire(self.effect)
 end
 
 function Buff:tweenSet(value, tweenInfo)
-    
+    self.override = true
+    self.increment = false
+    self.tweenInfo = tweenInfo
+    self.valueReducer = function() return value end
+    self.updated:Fire(self.effect)
 end
 
 function Buff:increment(value)
-    
+    self.override = false
+    self.increment = true
+    self.tweenInfo = nil
+    self.valueReducer = function(baseValue) return baseValue + value end
+    self.updated:Fire(self.effect)
 end
 
 function Buff:tweenIncrement(value, tweenInfo)
-    
+    self.override = false
+    self.increment = true
+    self.tweenInfo = tweenInfo
+    self.valueReducer = function(baseValue) return baseValue + value end
+    self.updated:Fire(self.effect)
 end
 
 function Buff:destroy()
-    playersAndBuffs[self.player][self.buffId] = nil
+    self.destroyed:Fire()
     self._maid:clean()
 end
+Buff.Destroy = Buff.destroy
 
 
 

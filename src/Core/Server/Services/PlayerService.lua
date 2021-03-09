@@ -40,6 +40,7 @@ local function playerAdded(player)
 	
 	-- Setup user object
 	local user = PlayerStore:createUser(player)
+	user.agent = user._maid:give(main.modules.Agent.new(player, false))
 	user:initAutoSave()
 
 	-- Listen for chat
