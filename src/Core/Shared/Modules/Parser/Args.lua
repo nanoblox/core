@@ -15,7 +15,7 @@ Args.array = {
 		playerArg = true,
 		executeForEachPlayer = true,
 		parse = function(self, qualifiers, callerUserId)
-			local targetsDict = {}
+			local targetsDict = {} -- IF THIS IS COMPLETELY EMPTY THEN DEFAULY TO 'ME' BUT CONSIDER HOW IT IMPACTS OTHER PLAYERS ONES
 			for qualifierName, qualifierArgs in pairs(qualifiers or {}) do
 				local qualifierDetail = main.modules.Qualifiers.dictionary[qualifierName]
 				local targets = qualifierDetail.getTargets(callerUserId, table.unpack(qualifierArgs))
@@ -90,9 +90,9 @@ Args.array = {
 		aliases = {"string", "reason", "question", "teamname"},
 		description	= "",
 		defaultValue = 0,
-		filterText = true,
-		parse = function(self, stringToParse)
-			
+		parse = function(self, textToFilter, callerUserId, targetUserId)
+			local _, value = main.modules.ChatUtil.filterText(callerUserId, targetUserId, textToFilter):await()
+			return value
 		end,
 	};
 	
@@ -105,7 +105,7 @@ Args.array = {
 		description	= "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
+			return stringToParse
 		end,
 	};
 	
@@ -178,12 +178,14 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		name = "color",
+		name = "color", -- have a predefined list of colors such as 'red', 'blue', etc which the user can reference. also consider rgb capsules
 		aliases = {"colour", "color3", "uigradient", "colorgradient", "gradient"},
 		description	= "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
+			-- predifined terms like 'blue', 'red', etc
+			-- RGB codes such as '100,110,120'
+			-- hex codes such as #FF5733
 		end,
 	};
 	
@@ -270,7 +272,7 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		name = "playerOrUser", -- returns a string instead of a player instance - it fist looks for a player in the server otherwise defaults to the given string
+		name = "playeroruser", -- returns a string instead of a player instance - it fist looks for a player in the server otherwise defaults to the given string
 		aliases = {},
 		description	= "",
 		defaultValue = 0,

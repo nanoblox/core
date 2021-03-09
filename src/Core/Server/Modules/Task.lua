@@ -24,7 +24,6 @@ function Task.new(properties)
 	self.isDead = false
 	self.begun = false
 	self.executing = false
-	self.filteredAllArguments = self.filteredAllArguments or false
 	self.totalExecutionThreads = 0
 	self.executionThreadsCompleted = maid:give(Signal.new())
 	self.executionCompleted = maid:give(Signal.new())
@@ -41,28 +40,6 @@ function Task.new(properties)
 	end
 	if not qualifierPresent then
 		self.qualifiers = nil
-	end
-
-	-- This filters all text arguments specific to the callerUserId and targetId
-	if main.isServer and self.args and not self.filteredAllArguments then
-		local commandArgs = self.command.args
-		local promises = {}
-		for i, argName in pairs(commandArgs) do
-			local argTable = main.modules.Args.dictionary[argName]
-			if argTable.filterText then
-				local fromUserId = self.callerUserId
-				local toUserId = self.targetUserId
-				local textToFilter = self.args[i]
-				table.insert(promises, main.modules.ChatUtil.filterText(fromUserId, toUserId, textToFilter)
-					:andThen(function(filteredText)
-						self.args[i] = filteredText
-					end))
-			end
-		end
-		main.modules.Promise.all(promises)
-			:finally(function()
-				self.filteredAllArguments = true
-			end)
 	end
 
 	-- This handles the killing of tasks depending upon the command.persistence enum
@@ -184,28 +161,47 @@ function Task:execute()
 	end
 	self.executing = true
 
-	-- Convert arg strings into arg values
 	local command = self.command
 	local firstCommandArg
 	local firstArgItem
-	local parsedArgs
 	if self.args then
 		firstCommandArg = command.args[1]
 		firstArgItem = main.modules.Args.dictionary[firstCommandArg]
-		parsedArgs = {}
-		for i, argString in pairs(self.args) do
-			local argName = command.args[i]
-			local argItem = main.modules.Args.dictionary[argName]
-			local parsedArg = argItem:parse(argString, self.callerUserId)
-			table.insert(parsedArgs, parsedArg)
-		end
 	end
 
 	local invokedCommand = false
-	local function invokeCommand(...)
-		local additional = table.unpack(...)
+	local function invokeCommand(parseArgs, ...)
+		local additional = table.pack(...)
 		invokedCommand = true
-		self:track(main.modules.Thread.delayUntil(function() return self.isClient or self.filteredAllArguments == true end, function()
+		
+		-- Convert arg strings into arg values
+		-- Only execute the command once all args have been converted
+		-- Some arg parsers, such as text, may be aschronous due to filter requests
+		local promises = {}
+		local filteredAllArguments = false
+		if main.isServer and parseArgs and self.args then
+			local currentArgs = additional[1]
+			local parsedArgs = (type(currentArgs) == "table" and currentArgs)
+			if not parsedArgs then
+				parsedArgs = {}
+				additional[1] = parsedArgs
+			end
+			for i, argString in pairs(self.args) do
+				local argName = command.args[i]
+				local argItem = main.modules.Args.dictionary[argName]
+				table.insert(promises, argItem:parse(argString, self.callerUserId, self.targetUserId)
+					:andThen(function(parsedArg)
+						table.insert(parsedArgs, parsedArg)
+					end)
+				)
+			end
+		end
+		main.modules.Promise.all(promises)
+			:finally(function()
+				filteredAllArguments = true
+			end)
+		
+		self:track(main.modules.Thread.delayUntil(function() return filteredAllArguments == true end, function()
 			command:invoke(self, table.unpack(additional))
 		end))
 	end
@@ -214,37 +210,36 @@ function Task:execute()
 
 		-- If client task, execute with task.clientArgs
 		if self.isClient then
-			return invokeCommand(table.unpack(self.clientArgs))
+			return invokeCommand(false, table.unpack(self.clientArgs))
 		end
 
 		-- If the task is player-specific (such as in ;kill foreverhd, ;kill all) find the associated player and execute the command on them
 		if self.targetPlayer then
-			return invokeCommand({self.targetPlayer, table.unpack(parsedArgs)})
+			return invokeCommand(true, {self.targetPlayer})
 		end
 		
 		-- If the task has no associated player or qualifiers (such as in ;music <musicId>) then simply execute right away
 		if not firstArgItem.playerArg then
-			return invokeCommand(parsedArgs)
+			return invokeCommand(true, {})
 		end
 
 		-- If the task has no associated player *but* does contain qualifiers (such as in ;globalKill all)
 		local targets = firstArgItem:parse(self.qualifiers, self.callerUserId)
 		if firstArgItem.executeForEachPlayer then -- If the firstArg has executeForEachPlayer, convert the task into subtasks for each player returned by the qualifiers
 			for i, plr in pairs(targets) do
-				self:track(main.modules.Thread.delayUntil(function() return self.filteredAllArguments == true end, function()
+				--self:track(main.modules.Thread.delayUntil(function() return self.filteredAllArguments == true end, function()
 					local TaskService = main.services.TaskService
 					local properties = TaskService.generateRecord()
 					properties.callerUserId = self.callerUserId
 					properties.commandName = self.commandName
 					properties.args = self.args
-					properties.filteredAllArguments = true
 					properties.targetUserId = plr.targetUserId
 					local subtask = TaskService.createTask(false, properties)
 					subtask:begin()
-				end))
+				--end))
 			end
 		else
-			invokeCommand({targets, table.unpack(parsedArgs)})
+			invokeCommand(true, {targets})
 		end
 
 	end)
