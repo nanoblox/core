@@ -1,12 +1,12 @@
 return function(player)
     local character = player.Character
-    local props = {}
+    local instancesAndProps = {}
     if character then
         for _, basePart in pairs(character:GetDescendants()) do
             if basePart:IsA("BasePart") then
-                table.insert(props, basePart)
+                table.insert(instancesAndProps, {basePart, "Transparency"})
             end
         end
     end
-    return props
+    return instancesAndProps
 end

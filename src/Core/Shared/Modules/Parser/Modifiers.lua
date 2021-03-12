@@ -201,6 +201,7 @@ Modifiers.array = {
 			if targetPlayer then
 				task.persistence = main.enum.Persistence.UntilLeave
 				task.maid:give(targetPlayer.CharacterAdded:Connect(function(char)
+					main.RunService.Heartbeat:Wait()
 					char:WaitForChild("HumanoidRootPart")
 					char:WaitForChild("Humanoid")
 					task:execute()

@@ -9,6 +9,25 @@ Buff.__index = Buff
 
 -- CONSTRUCTOR
 function Buff.new(effect, weight)
+    --[[
+        Effect can be a string, or a table containing a string and additional value
+        For instance:
+
+        agent:buff("WalkSpeed", 5):set(0)
+        vs
+        agent:buff({"BodyGroupTransparency", "LeftArm"}, 5):set(0)
+
+        The table is necessary for effects where additional needs to be defined (such as 'BodyGroupTransparency')
+
+    --]]
+    local realEffect = effect
+    local realAdditional
+    if type(effect) == "table" then
+        realEffect = effect[1]
+        realAdditional = effect[2]
+    end
+        
+
 	local self = {}
 	setmetatable(self, Buff)
 	
@@ -18,10 +37,12 @@ function Buff.new(effect, weight)
     local maid = Maid.new()
     self._maid = maid
     self.destroyed = maid:give(Signal.new())
-    self.effect = effect
-    self.weight = weight
+    self.effect = realEffect
+    self.additional = realAdditional
+    self.weight = weight or 1
     self.updated = maid:give(Signal.new())
     self.agent = nil
+    self.differenceValues = {}
 
 	return self
 end
@@ -29,41 +50,61 @@ end
 
 
 -- METHODS
-function Buff:set(value)
+function Buff:set(value, additional)
     self.override = true
-    self.increment = false
     self.tweenInfo = nil
+    self.additional = additional
+    self.value = value
     self.valueReducer = function() return value end
     self.updated:Fire(self.effect)
+    return self
 end
 
-function Buff:tweenSet(value, tweenInfo)
+function Buff:tweenSet(value, tweenInfo, additional)
     self.override = true
-    self.increment = false
     self.tweenInfo = tweenInfo
+    self.additional = additional
+    self.value = value
     self.valueReducer = function() return value end
     self.updated:Fire(self.effect)
+    return self
 end
 
-function Buff:increment(value)
+function Buff:increment(value, additional)
+    assert(type(value) == "number", "incremental value must be a number!")
     self.override = false
-    self.increment = true
     self.tweenInfo = nil
+    self.additional = additional
+    self.value = value
     self.valueReducer = function(baseValue) return baseValue + value end
     self.updated:Fire(self.effect)
+    return self
 end
 
-function Buff:tweenIncrement(value, tweenInfo)
+function Buff:tweenIncrement(value, tweenInfo, additional)
+    assert(type(value) == "number", "incremental value must be a number!")
     self.override = false
-    self.increment = true
     self.tweenInfo = tweenInfo
+    self.additional = additional
+    self.value = value
     self.valueReducer = function(baseValue) return baseValue + value end
     self.updated:Fire(self.effect)
+    return self
+end
+
+function Buff:_getDifferenceValueTable(effect)
+    local tab = self.differenceValues[effect]
+    if not tab then
+        tab = {}
+        self.differenceValues[effect] = tab
+    end
+    return tab
 end
 
 function Buff:destroy()
     self.destroyed:Fire()
     self._maid:clean()
+    return self
 end
 Buff.Destroy = Buff.destroy
 

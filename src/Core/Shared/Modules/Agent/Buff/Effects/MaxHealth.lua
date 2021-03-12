@@ -5,5 +5,10 @@ local function getHumanoid(player)
 end
 
 return function(player)
-
+    local humanoid = getHumanoid(player)
+    local instancesAndProps = {}
+    if humanoid then
+        instancesAndProps = {{humanoid, "MaxHealth"}}
+    end
+    return instancesAndProps
 end

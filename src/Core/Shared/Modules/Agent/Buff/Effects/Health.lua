@@ -1,13 +1,17 @@
 local function getHumanoid(player)
     local char = player and player.Character
     local humanoid = char and char:FindFirstChild("Humanoid")
+    return humanoid
 end
 
-return function(player)
+return function(player, value)
     local humanoid = getHumanoid(player)
-    local props = {}
+    local instancesAndProps = {}
     if humanoid then
-        props = {humanoid.MaxHealth, humanoid.Health}
+        instancesAndProps = {{humanoid, "Health"}}
+        if value > humanoid.MaxHealth then
+            table.insert(instancesAndProps, 1, {humanoid, "MaxHealth"})
+        end
     end
-    return props
+    return instancesAndProps
 end

@@ -1,8 +1,8 @@
 local effects = {}
-for _, module in pairs(script.Parent:GetChildren()) do
+for _, module in pairs(script:GetChildren()) do
     if module:IsA("ModuleScript") then
         local effect = require(module)
-        table.insert(effects, effect)
+        effects[module.Name] = effect
     end
 end
 return effects

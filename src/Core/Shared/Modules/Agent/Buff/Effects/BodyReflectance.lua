@@ -1,8 +1,12 @@
-local function getHumanoid(player)
-    local char = player and player.Character
-    local humanoid = char and char:FindFirstChild("Humanoid")
-end
-
 return function(player)
-
+    local character = player.Character
+    local instancesAndProps = {}
+    if character then
+        for _, basePart in pairs(character:GetDescendants()) do
+            if basePart:IsA("BasePart") then
+                table.insert(instancesAndProps, {basePart, "Reflectance"})
+            end
+        end
+    end
+    return instancesAndProps
 end
