@@ -24,6 +24,12 @@ function SettingsService.generateRecord(key)
 			spaceSeparator = " ",
 			batchSeparator = " ",
 			playerIdentifier = "@",
+
+			previewIncompleteCommands = false,
+			
+			theme = "",
+			backgroundTransparency 	= 0.1,
+			--]]
 		},
 		
 		

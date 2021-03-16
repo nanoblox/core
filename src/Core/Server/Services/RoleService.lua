@@ -7,16 +7,22 @@ local Role = main.modules.Role
 local PlayerStore = main.modules.PlayerStore
 local DataUtil = main.modules.DataUtil
 local TableUtil = main.modules.TableUtil
+local Signal = main.modules.Signal
 local roles = {}
 
 
 
 -- EVENTS
+RoleService.roleAdded = Signal.new()
+RoleService.roleChanged = Signal.new()
+RoleService.roleRemoved = Signal.new()
+
 RoleService.recordAdded:Connect(function(roleUID, record)
 	--warn(("ROLE '%s' ADDED!"):format(record.name))
 	local role = Role.new(record)
 	role.UID = roleUID
 	roles[roleUID] = role
+	RoleService.roleAdded:Fire(role)
 end)
 
 RoleService.recordRemoved:Connect(function(roleUID, oldRecord)
@@ -26,6 +32,7 @@ RoleService.recordRemoved:Connect(function(roleUID, oldRecord)
 		role:destroy()
 		roles[roleUID] = nil
 	end
+	RoleService.roleRemoved:Fire(role)
 end)
 
 RoleService.recordChanged:Connect(function(roleUID, propertyName, propertyValue, propertyOldValue)
@@ -33,6 +40,7 @@ RoleService.recordChanged:Connect(function(roleUID, propertyName, propertyValue,
 	if role then
 		role[propertyName] = propertyValue
 	end
+	RoleService.roleChanged:Fire(role, propertyName, propertyValue, propertyOldValue)
 	--warn(("ROLE '%s' CHANGED %s to %s (from %s)"):format(tostring(role and role.name), tostring(propertyName), tostring(propertyValue), tostring(propertyOldValue)))
 end)
 
@@ -105,7 +113,7 @@ function RoleService.generateRecord()
 		globalRefreshInterval = 20,
 		globalLimit = 5,
 		limitExecutions = false,
-		executionCooldown = 1, -- if 'limitExecutions' is true, this amount of seconds must be waited before being allowed to execute another batch
+		executionCooldown = 1, -- if 'limitExecutions' is true, this amount of seconds must be waited before being allowed to execute another statement
 		limitScale = true,
 		scaleLimit = 5,
 		limitDenylistedIDs = true,

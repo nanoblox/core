@@ -82,11 +82,11 @@ end
 function BanService.generateRecord(targetUserId)
 	local currentTime = os.time()
 	return {
-		userId = targetUserId or 0,
 		banTime = currentTime,
 		expiryTime = currentTime + unbanLimit*2,
 		reason = "",
-		callerId = 0,
+		targetUserId = targetUserId or 0,
+		callerUserId = 0,
 		callerHighestRoleUID = "",
 		accurate = true, -- if not accurate, a check will be performed when the bannedUser enters the game
 	}
@@ -121,7 +121,7 @@ function BanService.ban(targetUserId, callerUser, isGlobal, properties)
 	end
 	-- Create ban record
 	local RoleService = main.services.RoleService
-	properties.callerId = callerUser.userId
+	properties.callerUserId = callerUser.userId
 	properties.callerHighestRoleUID = RoleService.getHighestRole(callerUser.perm.roles).UID
 	if warning == "NotAccurate" then
 		properties.accurate = false

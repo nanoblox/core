@@ -12,6 +12,7 @@ TaskService.remotes = {
 local systemUser = TaskService.user
 local tasks = {}
 local Task = main.modules.Task
+local Signal = main.modules.Signal.new()
 
 
 
@@ -24,7 +25,7 @@ function TaskService.start()
 		local targetPoolName = main.enum.TargetPool.getName(targetPool)
 		if not task then
 			errorMessage = "Replication blocked: Task not found!"
-		elseif task.caller.userId ~= player.UserId then
+		elseif task.callerUserId ~= player.UserId then
 			errorMessage = "Replication blocked: Requester's UserId does not match caller's UserId!"
 		elseif not task.command.preReplication then
 			errorMessage = "Replication blocked: ServerCommand:PreReplication(task, targetPool, packedData) must be specified!"
@@ -72,6 +73,11 @@ end
 -- EVENTS
 local commandNameToTask = main.modules.State.new() -- This allows for super quick retrieval of a group of tasks with the same commandName
 local targetUserIdToTaskGroup = main.modules.State.new() -- This allows for super quick retrieval of a group of tasks with the same targetUserId
+
+TaskService.taskAdded = Signal.new()
+TaskService.taskChanged = Signal.new()
+TaskService.taskRemoved = Signal.new()
+
 TaskService.recordAdded:Connect(function(UID, record)
 	--warn(("TASK '%s' ADDED!"):format(UID))
 	local task = Task.new(record)
@@ -82,6 +88,7 @@ TaskService.recordAdded:Connect(function(UID, record)
 		targetUserIdToTaskGroup:getOrSetup(task.targetUserId, task.commandName):set(UID, task)  -- This allows for super quick retrieval of a group of tasks with the same targetUserId
 	end
 	commandNameToTask:getOrSetup(task.commandName):set(UID, task)
+	TaskService.taskAdded:Fire(task)
 end)
 
 TaskService.recordRemoved:Connect(function(UID)
@@ -99,6 +106,7 @@ TaskService.recordRemoved:Connect(function(UID)
 	if taskCommandGroup then
 		taskCommandGroup:set(UID, nil)
 	end
+	TaskService.taskRemoved:Fire(task)
 end)
 
 TaskService.recordChanged:Connect(function(UID, propertyName, propertyValue, propertyOldValue)
@@ -107,6 +115,7 @@ TaskService.recordChanged:Connect(function(UID, propertyName, propertyValue, pro
 	if task then
 		task[propertyName] = propertyValue
 	end
+	TaskService.taskChanged:Fire(task, propertyName, propertyValue, propertyOldValue)
 end)
 
 
@@ -116,7 +125,7 @@ function TaskService.generateRecord(key)
 	return {
 		executionTime = os.time(),
 		executionOffset = os.time() - tick(),
-		caller = nil,
+		callerUserId = nil,
 		commandName = "",
 		args = {},
 		qualifiers = {},

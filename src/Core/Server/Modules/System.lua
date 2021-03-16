@@ -208,7 +208,7 @@ function System.new(name, ignoreTempChanges)
 	if not ignoreTempChanges then
 		local realRecords = {}
 		----
-		self.records = main.modules.State.new()
+		self.records = main.modules.State.new(nil, true)
 		----
 		self.recordAdded = maid:give(Signal.new())
 		self.recordRemoved = maid:give(Signal.new())
