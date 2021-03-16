@@ -4,14 +4,11 @@ local function getHumanoid(player)
     return humanoid
 end
 
-return function(player, value)
+return function(player)
     local humanoid = getHumanoid(player)
     local instancesAndProps = {}
     if humanoid then
         instancesAndProps = {{humanoid, "Health"}}
-        if value > humanoid.MaxHealth then
-            table.insert(instancesAndProps, 1, {humanoid, "MaxHealth"})
-        end
     end
     return instancesAndProps
 end

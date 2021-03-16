@@ -42,7 +42,9 @@ function Buff.new(effect, weight)
     self.weight = weight or 1
     self.updated = maid:give(Signal.new())
     self.agent = nil
-    self.differenceValues = {}
+    self.appliedValueTables = {}
+    self.incremental = nil
+    self.previousIncremental = nil
 
 	return self
 end
@@ -51,52 +53,57 @@ end
 
 -- METHODS
 function Buff:set(value, additional)
-    self.override = true
+    self.previousIncremental = self.incremental
+    self.incremental = false
     self.tweenInfo = nil
     self.additional = additional
     self.value = value
-    self.valueReducer = function() return value end
     self.updated:Fire(self.effect)
     return self
 end
 
 function Buff:tweenSet(value, tweenInfo, additional)
-    self.override = true
+    self.previousIncremental = self.incremental
+    self.incremental = false
     self.tweenInfo = tweenInfo
     self.additional = additional
     self.value = value
-    self.valueReducer = function() return value end
     self.updated:Fire(self.effect)
     return self
 end
 
 function Buff:increment(value, additional)
     assert(type(value) == "number", "incremental value must be a number!")
-    self.override = false
+    self.previousIncremental = self.incremental
+    self.incremental = true
     self.tweenInfo = nil
     self.additional = additional
     self.value = value
-    self.valueReducer = function(baseValue) return baseValue + value end
     self.updated:Fire(self.effect)
     return self
 end
 
 function Buff:tweenIncrement(value, tweenInfo, additional)
     assert(type(value) == "number", "incremental value must be a number!")
-    self.override = false
+    self.previousIncremental = self.incremental
+    self.incremental = true
     self.tweenInfo = tweenInfo
     self.additional = additional
     self.value = value
-    self.valueReducer = function(baseValue) return baseValue + value end
     self.updated:Fire(self.effect)
     return self
 end
 
-function Buff:_getDifferenceValueTable(effect)
-    local tab = self.differenceValues[effect]
+function Buff:_getAppliedValueTable(effect, instance)
+    local parentTab = self.appliedValueTables[effect]
+    if not parentTab then
+        parentTab = {}
+        self.appliedValueTables[effect] = parentTab
+    end
+    local tab = parentTab[instance]
     if not tab then
         tab = {}
-        self.differenceValues[effect] = tab
+        parentTab[instance] = tab
     end
     return tab
 end

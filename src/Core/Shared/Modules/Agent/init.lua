@@ -1,3 +1,5 @@
+-- This is responsible for handling player effects which can stack and/or where the original value needs to be remembered
+
 local Agent = {}
 Agent.__index = Agent
 
@@ -12,10 +14,6 @@ local effects = require(script.Buff.Effects)
 
 
 -- LOCAL FUNCTIONS
-local function getDifferenceKey(instanceName, propertyName)
-	return instanceName.."-"..propertyName
-end
-
 local function isSuperiorWeight(baseBuff, toCompareBuff)
 	if baseBuff == nil then
 		return true
@@ -47,10 +45,11 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 
 	maid:give(player.CharacterAdded:Connect(function()
 		if reapplyBuffsOnRespawn then
+			self:clearDefaultValues()
 			self:reduceAndApplyEffects()
-			return
+		else
+			self:assassinateBuffs()
 		end
-		self:assassinateBuffs()
 	end))
 
 	return self
@@ -74,26 +73,27 @@ function Agent:buff(effect, weight)
 		local additionalString = tostring(additional)
 		local buffsInGroup = (additionalTable and additionalTable[additionalString])
 		if buffsInGroup then
-			local defaultGroup = self:getDefaultGroup(effect)
-			local defaultValue = defaultGroup[additionalString]
-			local instancesAndProperties = effects[effect](self.player, defaultValue, additional)
+			local instancesAndProperties = effects[effect](self.player, additional)
 			for _, group in pairs(instancesAndProperties) do
 				local instance = group[1]
-				local instanceName = tostring(instance)
 				local propertyName = group[2]
-				if #buffsInGroup == 0 and not self.silentlyEndBuffs then
+				local defaultGroup = self:_getDefaultGroup(effect, instance)
+				local defaultValue = defaultGroup[additionalString]
+				if defaultValue ~= nil and #buffsInGroup <= 1 and not self.silentlyEndBuffs then
 					-- This reverts non-numerical items
+					--print("RESET TO DEFAULT VALUE: ", propertyName, defaultValue)
 					instance[propertyName] = defaultValue
+					defaultGroup[additionalString] = nil
 				end
-				local key = getDifferenceKey(instanceName, propertyName)
-				local differenceTable = buff:_getDifferenceValueTable(effect)
-				local currentDifference = differenceTable[key]
-				if currentDifference then
+				local appliedTable = buff:_getAppliedValueTable(effect, instance)
+				local currentAppliedValue = appliedTable[propertyName]
+				if currentAppliedValue then
 					-- This reverts numerical items
-					instance[propertyName] -= currentDifference
+					--print(("take off appliedValue of %s for '%s' (originally %s)"):format(currentAppliedValue, propertyName, instance[propertyName]))
+					appliedTable[propertyName] = nil
+					instance[propertyName] -= currentAppliedValue
 				end
 			end
-			defaultGroup[additionalString] = nil
 		end
 		if not self.silentlyEndBuffs then
 			self:reduceAndApplyEffects(effect)
@@ -127,7 +127,7 @@ function Agent:getBuffsWithEffect(effect)
 	return buffs
 end
 
-function Agent:updateBuffsGroup()
+function Agent:updateBuffGroups()
 	-- This organises buffs into groups by effect and additonal value
 	local groupedBuffs = {}
 	for buffId, buff in pairs(self.buffs) do
@@ -147,69 +147,51 @@ function Agent:updateBuffsGroup()
 	self.groupedBuffs = groupedBuffs
 end
 
-function Agent:getDefaultGroup(effect)
-	local defaultGroup = self.defaultValues[effect]
+function Agent:_getDefaultGroup(effect, instance)
+	local defaultParentGroup = self.defaultValues[effect]
+	if defaultParentGroup == nil then
+		defaultParentGroup = {}
+		self.defaultValues[effect] = defaultParentGroup
+	end
+	local defaultGroup = defaultParentGroup[instance]
 	if defaultGroup == nil then
 		defaultGroup = {}
-		self.defaultValues[effect] = defaultGroup
+		defaultParentGroup[instance] = defaultGroup
 	end
 	return defaultGroup
 end
 
+function Agent:clearDefaultValues()
+	self.defaultValues = {}
+	local buffs = self:getBuffs()
+	for _, buff in pairs(buffs) do
+		buff.appliedValueTables = {}
+	end
+end
+
 function Agent:reduceAndApplyEffects(specificEffect)
-	self:updateBuffsGroup()
+	self:updateBuffGroups()
 	for effect, additionalTable in pairs(self.groupedBuffs) do
 		if not(specificEffect == nil or effect == specificEffect) then
 			continue
 		end
-		local defaultGroup = self:getDefaultGroup(effect)
-		for additional, buffs in pairs(additionalTable) do
-		
-			-- The default value should only be for only remembering non-numerical values (such as colors, materials, etc)
-			-- This is due to numerical based properties having a greater tendency to change on their own (such as Health regeneration)
-			-- For numerical values we instead records its 'difference' to deterine the previous value when a buff is removed
+		for additionalString, buffs in pairs(additionalTable) do
 			
-			-- This determines what buffs should be reduced and applied
-			local additionalString = tostring(additional)
-			local overrrideBuff
-			local totalBuffs = 0
-			local incrementBuffs = {}
+			-- This retrieves a nonincremental buff with the greatest weight. If only incremental buffs exist, the one with the highest weight is chosen.
+			-- The boss then determines how other buffs will be applied (if at all)
+			local bossBuff
 			for _, buff in pairs(buffs) do
-				if buff.override and isSuperiorWeight(overrrideBuff, buff) then
-					overrrideBuff = buff
-				elseif not buff.override then
-					table.insert(incrementBuffs, buff)
+				if bossBuff == nil or (not buff.incremental and bossBuff.incremental) or (buff.incremental == bossBuff.incremental and isSuperiorWeight(bossBuff, buff)) then
+					bossBuff = buff
 				end
-				totalBuffs += 1
 			end
 
-			-- This calculates the final value
-			local finalValue = 0
-			local isIncremental = false
-			local isNumerical = true
-			local numericalBuffs = {}
-			local superiorBuff
-			if overrrideBuff then
-				finalValue = overrrideBuff.valueReducer(finalValue)
-				if tonumber(finalValue) then
-					table.insert(numericalBuffs, overrrideBuff)
-				else
-					isNumerical = false
-				end
-				superiorBuff = overrrideBuff
-			else
-				isIncremental = true
-				for _, buff in pairs(incrementBuffs) do
-					table.insert(numericalBuffs, buff)
-					finalValue = buff.valueReducer(finalValue)
-					if isSuperiorWeight(superiorBuff, buff) then
-						superiorBuff = buff
-					end		
-				end
-			end
+			local isIncremental = bossBuff.incremental
+			local isNumerical = type(bossBuff.value) == "number"
 			
-			local finalValueTweenInfo = superiorBuff.tweenInfo
-			local tweenReference = tostring(effect)..tostring(additional)
+			-- This determines whether to tween the final value and cancels any other currently tweening values
+			local finalValueTweenInfo = bossBuff.tweenInfo
+			local tweenReference = tostring(effect)..additionalString
 			local reduceTweenMaid = self.reduceMaids[tweenReference]
 			if reduceTweenMaid then
 				reduceTweenMaid:clean()
@@ -217,50 +199,80 @@ function Agent:reduceAndApplyEffects(specificEffect)
 				reduceTweenMaid = self._maid:give(Maid.new())
 				self.reduceMaids[tweenReference] = reduceTweenMaid
 			end
-			local instancesAndProperties = effects[effect](self.player, finalValue, additional)
+			
+			-- This retrieves the associated instances then calculates and applies a final value
+			-- The default value should only be for only remembering non-numerical values (such as colors, materials, etc)
+			-- This is due to numerical based properties having a greater tendency to change on their own (such as Health regeneration)
+			-- For numerical values we instead records its 'difference' to deterine the previous value when a buff is removed
+			local instancesAndProperties = effects[effect](self.player, additionalString)
 			for _, group in pairs(instancesAndProperties) do
+				
 				local instance = group[1]
-				local instanceName = tostring(instance)
 				local propertyName = group[2]
 				local propertyValue = instance[propertyName]
+				local finalValue = propertyValue
 
-				if isNumerical then
-					-- This records the difference between a buffs value and the props value for numerical items
-					for _, buff in pairs(numericalBuffs) do
-						local key = getDifferenceKey(instanceName, propertyName)
-						local differenceTable = buff:_getDifferenceValueTable(effect)
-						local currentDifference = differenceTable[key]
-						if currentDifference then
-							finalValue -= currentDifference
-						end
-						local difference = buff.value
-						if buff.override then
-							difference = buff.value - propertyValue
-						end
-						differenceTable[key] = difference
+				if not isNumerical then
+					-- For nonnumerical items we simply 'remember' the original value if the first time setting
+					-- This original value is then reapplied when all buffs are removed
+					local defaultGroup = self:_getDefaultGroup(effect, instance)
+					if not defaultGroup[additionalString] then
+						defaultGroup[additionalString] = propertyValue
 					end
-				elseif not defaultGroup[additionalString] then
-					-- This records the default (original) value for non-numerical items
-					defaultGroup[additionalString] = propertyValue
+					finalValue = bossBuff.value
+
+				else
+					-- For numerical items we instead remember the incremental value, only apply it once, the take it off when the buff is destroyed
+					if not isIncremental then
+						-- Since 'set' was called, only 1 buff needs to be applied (i.e. the boss buff)
+						local previousDifference = 0
+						for _, setBuff in pairs(buffs) do
+							if not setBuff.incremental then
+								local appliedTable = setBuff:_getAppliedValueTable(effect, instance)
+								local currentAppliedValue = appliedTable[propertyName]
+								if currentAppliedValue then
+									previousDifference += currentAppliedValue
+									appliedTable[propertyName] = nil
+								end
+							end
+						end
+						local bossAppliedTable = bossBuff:_getAppliedValueTable(effect, instance)
+						bossAppliedTable[propertyName] = bossBuff.value - propertyValue + previousDifference
+						finalValue = bossBuff.value
+					else
+						
+						for _, incrementalBuff in pairs(buffs) do
+							if incrementalBuff.incremental then
+								local appliedTable = incrementalBuff:_getAppliedValueTable(effect, instance)
+								local currentAppliedValue = appliedTable[propertyName]
+								local incrementValue = incrementalBuff.value
+								if currentAppliedValue == nil then
+									-- If a value has never been applied
+									finalValue += incrementValue
+									appliedTable[propertyName] = incrementValue
+								elseif currentAppliedValue ~= incrementValue then
+									-- If a value was previously applied but has changed
+									finalValue -= currentAppliedValue + incrementValue--buff.valueReducer(finalValue)
+									appliedTable[propertyName] = incrementValue
+								end
+							end
+						end
+					end
 				end
 
 				-- This applies the final value
-				local absoluteFinalValue = finalValue
-				if isIncremental then
-					absoluteFinalValue = propertyValue + finalValue
-				end
-				if propertyValue ~= absoluteFinalValue then
+				if propertyValue ~= finalValue then
 					if not finalValueTweenInfo then
-						instance[propertyName] = absoluteFinalValue
+						instance[propertyName] = finalValue
 					else
 						-- It's important tweens are auto-completed if another effect of same additional value is called before its tween has completed
-						local tween = tweenService:Create(instance, finalValueTweenInfo, {[propertyName] = absoluteFinalValue})
+						local tween = tweenService:Create(instance, finalValueTweenInfo, {[propertyName] = finalValue})
 						tween:Play()
 						reduceTweenMaid:give(function()
 							if tween.PlaybackState ~= Enum.PlaybackState.Completed then
 								tween:Pause()
 								tween:Destroy()
-								instance[propertyName] = absoluteFinalValue
+								instance[propertyName] = finalValue
 							end
 						end)
 					end
