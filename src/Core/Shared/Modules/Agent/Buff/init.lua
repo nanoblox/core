@@ -33,7 +33,7 @@ function Buff.new(effect, weight)
 	
     local buffId = httpService:GenerateGUID(true)
     self.buffId = buffId
-    self.timeCreated = os.clock()
+    self.timeUpdated = os.clock()
     local maid = Maid.new()
     self._maid = maid
     self.destroyed = maid:give(Signal.new())
@@ -52,45 +52,29 @@ end
 
 
 -- METHODS
-function Buff:set(value, additional)
+function Buff:set(value, optionalTweenInfo)
     self.previousIncremental = self.incremental
     self.incremental = false
-    self.tweenInfo = nil
-    self.additional = additional
+    self.tweenInfo = optionalTweenInfo
     self.value = value
+    self.timeUpdated = os.clock()
     self.updated:Fire(self.effect)
     return self
 end
 
-function Buff:tweenSet(value, tweenInfo, additional)
-    self.previousIncremental = self.incremental
-    self.incremental = false
-    self.tweenInfo = tweenInfo
-    self.additional = additional
-    self.value = value
-    self.updated:Fire(self.effect)
-    return self
-end
-
-function Buff:increment(value, additional)
+function Buff:increment(value, optionalTweenInfo)
     assert(type(value) == "number", "incremental value must be a number!")
     self.previousIncremental = self.incremental
     self.incremental = true
-    self.tweenInfo = nil
-    self.additional = additional
+    self.tweenInfo = optionalTweenInfo
     self.value = value
+    self.timeUpdated = os.clock()
     self.updated:Fire(self.effect)
     return self
 end
 
-function Buff:tweenIncrement(value, tweenInfo, additional)
-    assert(type(value) == "number", "incremental value must be a number!")
-    self.previousIncremental = self.incremental
-    self.incremental = true
-    self.tweenInfo = tweenInfo
-    self.additional = additional
-    self.value = value
-    self.updated:Fire(self.effect)
+function Buff:decrement(value, optionalTweenInfo)
+    self:increment(-value, optionalTweenInfo)
     return self
 end
 
