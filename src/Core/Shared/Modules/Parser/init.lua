@@ -20,10 +20,10 @@ function Parser.parseMessage(message)
 	local commandNameOrAliasToRecordDictionary = CommandService.getTable("dictionary")
 	local commandRecordsSortedByNameLength = CommandService.getTable("sortedNameAndAliasLengthArray")
 	local SettingService = (main.isServer and main.services.SettingService) or main.controllers.SettingController
-	local clientSettings = SettingService.getGroup("Client")
-	local prefixes = clientSettings.prefixes
-	local collective = clientSettings.collective
-	local spaceSeparator = clientSettings.spaceSeparator
+	local playerSettings = SettingService.getGroup("Player")
+	local prefixes = playerSettings.prefixes
+	local collective = playerSettings.collective
+	local spaceSeparator = playerSettings.spaceSeparator
 	local Args = main.modules.Parser.Args
 	local argsDictionary = Args.dictionary
 	local Modifiers = main.modules.Parser.Modifiers

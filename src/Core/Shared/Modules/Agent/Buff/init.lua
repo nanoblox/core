@@ -36,7 +36,7 @@ function Buff.new(effect, weight)
     self.timeUpdated = os.clock()
     local maid = Maid.new()
     self._maid = maid
-    self.destroyed = maid:give(Signal.new())
+    self.isDestroyed = false
     self.effect = realEffect
     self.additional = realAdditional
     self.weight = weight or 1
@@ -93,7 +93,8 @@ function Buff:_getAppliedValueTable(effect, instance)
 end
 
 function Buff:destroy()
-    self.destroyed:Fire()
+    self.isDestroyed = true
+    self.updated:Fire()
     self._maid:clean()
     return self
 end

@@ -497,7 +497,7 @@ function System:updateRecord(key, propertiesToUpdate)
 	--
 	local data = (newGlobal == true and user.perm) or user.temp
 	for propName, propValue in pairs(propertiesToUpdate) do
-		data[key]:set(propName, propValue)
+		data:getOrSetup(key):set(propName, propValue)
 	end
 	return data
 end

@@ -67,43 +67,7 @@ end
 function Agent:buff(effect, weight)
 	local buff = Buff.new(effect, weight)
 	local buffId = buff.buffId
-	local additional = buff.additional
 	buff.agent = self
-	buff.destroyed:Connect(function()
-		---------------
-		self.buffs[buffId] = nil
-		---------------
-		-- This re-applies the original value (if necessary)
-		local groupedBuffs = self.groupedBuffs
-		local additionalTable = groupedBuffs[effect]
-		local additionalString = tostring(additional)
-		local buffsInGroup = (additionalTable and additionalTable[additionalString])
-		if buffsInGroup then
-			local instancesAndProperties = effects[effect](self.player, additional)
-			for _, group in pairs(instancesAndProperties) do
-				local instance = group[1]
-				local propertyName = group[2]
-				local defaultGroup = self:_getDefaultGroup(effect, instance)
-				local defaultValue = defaultGroup[additionalString]
-				if defaultValue ~= nil and #buffsInGroup <= 1 and not self.silentlyEndBuffs then
-					-- This reverts non-numerical items
-					instance[propertyName] = defaultValue
-					defaultGroup[additionalString] = nil
-				end
-				local appliedTable = buff:_getAppliedValueTable(effect, instance)
-				local currentAppliedValue = appliedTable[propertyName]
-				if currentAppliedValue then
-					-- This reverts numerical items
-					appliedTable[propertyName] = nil
-					instance[propertyName] -= currentAppliedValue
-				end
-			end
-		end
-		if not self.silentlyEndBuffs then
-			self:reduceAndApplyEffects(effect)
-		end
-		---------------
-	end)
 	buff.updated:Connect(function(specificEffect)
 		self:reduceAndApplyEffects(specificEffect)
 	end)
@@ -179,13 +143,15 @@ function Agent:reduceAndApplyEffects(specificEffect)
 		if not(specificEffect == nil or effect == specificEffect) then
 			continue
 		end
+		
 		for additionalString, buffs in pairs(additionalTable) do
 			
 			-- This retrieves a nonincremental buff with the greatest weight. If only incremental buffs exist, the one with the highest weight is chosen.
 			-- The boss then determines how other buffs will be applied (if at all)
 			local bossBuff
+			local totalBuffs = #buffs
 			for _, buff in pairs(buffs) do
-				if bossBuff == nil or (not buff.incremental and bossBuff.incremental) or (buff.incremental == bossBuff.incremental and isSuperiorWeight(bossBuff, buff)) then
+				if (not buff.isDestroyed or totalBuffs <= 1) and (bossBuff == nil or (not buff.incremental and bossBuff.incremental) or (buff.incremental == bossBuff.incremental and isSuperiorWeight(bossBuff, buff))) then
 					bossBuff = buff
 				end
 			end
@@ -224,16 +190,22 @@ function Agent:reduceAndApplyEffects(specificEffect)
 				local propertyName = group[2]
 				local propertyValue = forcedBaseValue or instance[propertyName]
 				local finalValue = propertyValue
-				local appliedBuffTables = {}
-
+				
 				if not isNumerical then
 					-- For nonnumerical items we simply 'remember' the original value if the first time setting
 					-- This original value is then reapplied when all buffs are removed
 					local defaultGroup = self:_getDefaultGroup(effect, instance)
-					if not defaultGroup[additionalString] then
+					local defaultValue = defaultGroup[additionalString]
+					if not defaultValue then
 						defaultGroup[additionalString] = propertyValue
 					end
-					finalValue = bossBuff.value
+					if bossBuff.isDestroyed then
+						finalValue = defaultValue
+						defaultGroup[additionalString] = nil
+						self.buffs[bossBuff.buffId] = nil
+					else
+						finalValue = bossBuff.value
+					end
 
 				else
 					-- For numerical items we instead remember the incremental value, only apply it once, the take it off when the buff is destroyed
@@ -253,7 +225,6 @@ function Agent:reduceAndApplyEffects(specificEffect)
 						local bossAppliedTable = bossBuff:_getAppliedValueTable(effect, instance)
 						bossAppliedTable[propertyName] = bossBuff.value - propertyValue + previousDifference
 						finalValue = bossBuff.value
-						table.insert(appliedBuffTables, bossAppliedTable)
 					else
 						
 						for _, incrementalBuff in pairs(buffs) do
@@ -265,20 +236,32 @@ function Agent:reduceAndApplyEffects(specificEffect)
 									-- If a value has never been applied
 									finalValue += incrementValue
 									appliedTable[propertyName] = incrementValue
-									table.insert(appliedBuffTables, appliedTable)
 								elseif currentAppliedValue ~= incrementValue then
 									-- If a value was previously applied but has changed
 									finalValue -= currentAppliedValue + incrementValue--buff.valueReducer(finalValue)
 									appliedTable[propertyName] = incrementValue
-									table.insert(appliedBuffTables, appliedTable)
 								end
 							end
 						end
 					end
+
+					-- This accounts for destoyed buffs in the finalValue then forgets them
+					for _, buff in pairs(buffs) do
+						if buff.isDestroyed then
+							local appliedTable = buff:_getAppliedValueTable(effect, instance)
+							local currentAppliedValue = appliedTable[propertyName]
+							if currentAppliedValue then
+								finalValue -= currentAppliedValue
+							end
+							appliedTable[propertyName] = nil
+							self.buffs[buff.buffId] = nil
+						end
+					end
+
 				end
 
 				-- This applies the final value
-				if propertyValue ~= finalValue then
+				if propertyValue ~= finalValue and not self.silentlyEndBuffs then
 					if not finalValueTweenInfo then
 						instance[propertyName] = finalValue
 					else

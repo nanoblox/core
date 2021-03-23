@@ -15,6 +15,21 @@ User.__index = User
 
 
 
+-- LOCAL FUNCTIONS
+local function deepCopyTable(t)
+	local tCopy = table.create(#t)
+	for k,v in pairs(t) do
+		if (type(v) == "table") then
+			tCopy[k] = deepCopyTable(v)
+		else
+			tCopy[k] = v
+		end
+	end
+	return tCopy
+end
+
+
+
 -- CONSTRUCTOR
 function User.new(dataStoreName, key)
 	local self = {}
@@ -101,7 +116,9 @@ function User:loadAsync()
 
 	-- Setup perm; if nothing found, apply start data, else deserialize loaded data
 	if not data then
-		data = self.startData
+		data = {
+			_appliedStartData =  {}
+		}
 		self.isNewUser = true
 	else
 		data = Serializer.deserialize(data)
@@ -124,6 +141,14 @@ function User:loadAsync()
 		self._data._backupData = nil
 	end
 	
+	-- If start data changed, apply
+	for k, v in pairs(self.startData) do
+		if self._data._appliedStartData[k] == nil then
+			self._data._appliedStartData[k] = v
+			self.perm:set(k, v)
+		end
+	end
+
 	-- Complete
 	self.isLoaded = true
 	self.loaded:Fire()

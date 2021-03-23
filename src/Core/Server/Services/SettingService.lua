@@ -16,7 +16,7 @@ end)
 function SettingsService.generateRecord(key)
 	local defaultRecords = {
 		---------------------------
-		["Client"] = {
+		["Player"] = {
 			prefixes = {","},
 			argCapsule = "(%s)",
 			collective = ",",
@@ -51,7 +51,6 @@ function SettingsService.generateRecord(key)
 
 			-- Commands
 			preventRepeatCommands = true,
-
 			playerUndefinedSearch = main.enum.PlayerSearch.UserName, -- 'Undefined' means *without* the 'playerIdentifier' (e.g. ";kill Ben)
 			playerDefinedSearch = main.enum.PlayerSearch.DisplayName, -- 'Defined' means *with* the 'playerIdentifier' (e.g. ";kill @ForeverHD)
 			
@@ -73,6 +72,44 @@ function SettingsService.generateRecord(key)
 	return defaultRecords[key]
 end
 
+function SettingsService.getPlayerSetting(settingName, optionalPlayer)
+	local group = SettingsService.getGroup("Player")
+	local user = optionalPlayer and main.modules.PlayerStore:getLoadedUser(optionalPlayer)
+	local settingValue
+	if user then
+		settingValue = user.perm.playerSettings:get(settingName)
+	end
+	if settingValue == nil then
+		settingValue = group[settingName]
+	end
+	return settingValue
+end
+
+function SettingsService.updatePlayerSetting(settingName, settingValue, optionalPlayer)
+	if optionalPlayer ~= nil then
+		local user = main.modules.PlayerStore:getLoadedUser(optionalPlayer)
+		if user then
+			user.perm.playerSettings:set(settingName, settingValue)
+		end
+	else
+		SettingsService.updateGroup("Player", {
+			[settingName] = settingValue
+		})
+	end
+end
+
+function SettingsService.getSystemSetting(settingName)
+	local group = SettingsService.getGroup("System")
+	local settingValue = group[settingName]
+	return settingValue
+end
+
+function SettingsService.updateSystemSetting(settingName, settingValue)
+	SettingsService.updateGroup("System", {
+		[settingName] = settingValue
+	})
+end
+
 function SettingsService.getGroup(groupName)
 	return SettingsService:getRecord(groupName)
 end
@@ -83,6 +120,7 @@ end
 
 function SettingsService.updateGroup(groupName, propertiesToUpdate)
 	local key = tostring(groupName)
+	--propertiesToUpdate["_global"] = true
 	SettingsService:updateRecord(key, propertiesToUpdate)
 	return true
 end
