@@ -40,6 +40,7 @@ function main.initiate(loader)
 	main.location = location
 	main.modules = {}
 	main.services = {}
+	main.enum = require(main.shared.Modules.Enum).getEnums()
 	
 	
 	-- LOCATION SPECIFIC DETAILS
@@ -131,7 +132,6 @@ function main.initiate(loader)
 			end
 	    end
 	})
-	main.enum = main.modules.Enum.getEnums()
 	Thread = main.modules.Thread
 	
 	

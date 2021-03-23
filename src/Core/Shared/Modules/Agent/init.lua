@@ -6,7 +6,7 @@ Agent.__index = Agent
 local main = require(game.Nanoblox)
 local Buff = require(script.Buff)
 local Maid = main.modules.Maid
-local sortBuffsByTimeCreatedFunc = function(buffA, buffB)return buffA.timeCreated > buffB.timeCreated() end
+local sortBuffsByTimeUpdatedFunc = function(buffA, buffB)return buffA.timeUpdated > buffB.timeUpdated() end
 local players = game:GetService("Players")
 local tweenService = game:GetService("TweenService")
 local effects = require(script.Buff.Effects)
@@ -20,7 +20,7 @@ local function isSuperiorWeight(baseBuff, toCompareBuff)
 	end
 	local baseWeight = baseBuff.weight
 	local toCompareWeight = toCompareBuff.weight
-	if toCompareWeight > baseWeight or (toCompareWeight == baseWeight and toCompareBuff.timeCreated > baseBuff.timeCreated) then
+	if toCompareWeight > baseWeight or (toCompareWeight == baseWeight and toCompareBuff.timeUpdated > baseBuff.timeUpdated) then
 		return true
 	end
 	return false
@@ -52,6 +52,12 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 		end
 	end))
 
+	maid:give(players.PlayerRemoving:Connect(function(leavingPlayer)
+		if leavingPlayer == player then
+			self:destroy()
+		end
+	end))
+
 	return self
 end
 
@@ -61,45 +67,7 @@ end
 function Agent:buff(effect, weight)
 	local buff = Buff.new(effect, weight)
 	local buffId = buff.buffId
-	local additional = buff.additional
 	buff.agent = self
-	buff.destroyed:Connect(function()
-		---------------
-		self.buffs[buffId] = nil
-		---------------
-		-- This re-applies the original value (if necessary)
-		local groupedBuffs = self.groupedBuffs
-		local additionalTable = groupedBuffs[effect]
-		local additionalString = tostring(additional)
-		local buffsInGroup = (additionalTable and additionalTable[additionalString])
-		if buffsInGroup then
-			local instancesAndProperties = effects[effect](self.player, additional)
-			for _, group in pairs(instancesAndProperties) do
-				local instance = group[1]
-				local propertyName = group[2]
-				local defaultGroup = self:_getDefaultGroup(effect, instance)
-				local defaultValue = defaultGroup[additionalString]
-				if defaultValue ~= nil and #buffsInGroup <= 1 and not self.silentlyEndBuffs then
-					-- This reverts non-numerical items
-					--print("RESET TO DEFAULT VALUE: ", propertyName, defaultValue)
-					instance[propertyName] = defaultValue
-					defaultGroup[additionalString] = nil
-				end
-				local appliedTable = buff:_getAppliedValueTable(effect, instance)
-				local currentAppliedValue = appliedTable[propertyName]
-				if currentAppliedValue then
-					-- This reverts numerical items
-					--print(("take off appliedValue of %s for '%s' (originally %s)"):format(currentAppliedValue, propertyName, instance[propertyName]))
-					appliedTable[propertyName] = nil
-					instance[propertyName] -= currentAppliedValue
-				end
-			end
-		end
-		if not self.silentlyEndBuffs then
-			self:reduceAndApplyEffects(effect)
-		end
-		---------------
-	end)
 	buff.updated:Connect(function(specificEffect)
 		self:reduceAndApplyEffects(specificEffect)
 	end)
@@ -112,7 +80,7 @@ function Agent:getBuffs()
 	for buffId, buff in pairs(self.buffs) do
 		table.insert(buffs, buff)
 	end
-	table.sort(buffs, sortBuffsByTimeCreatedFunc)
+	table.sort(buffs, sortBuffsByTimeUpdatedFunc)
 	return buffs
 end
 
@@ -123,7 +91,7 @@ function Agent:getBuffsWithEffect(effect)
 			table.insert(buffs, buff)
 		end
 	end
-	table.sort(buffs, sortBuffsByTimeCreatedFunc)
+	table.sort(buffs, sortBuffsByTimeUpdatedFunc)
 	return buffs
 end
 
@@ -175,13 +143,15 @@ function Agent:reduceAndApplyEffects(specificEffect)
 		if not(specificEffect == nil or effect == specificEffect) then
 			continue
 		end
+		
 		for additionalString, buffs in pairs(additionalTable) do
 			
 			-- This retrieves a nonincremental buff with the greatest weight. If only incremental buffs exist, the one with the highest weight is chosen.
 			-- The boss then determines how other buffs will be applied (if at all)
 			local bossBuff
+			local totalBuffs = #buffs
 			for _, buff in pairs(buffs) do
-				if bossBuff == nil or (not buff.incremental and bossBuff.incremental) or (buff.incremental == bossBuff.incremental and isSuperiorWeight(bossBuff, buff)) then
+				if (not buff.isDestroyed or totalBuffs <= 1) and (bossBuff == nil or (not buff.incremental and bossBuff.incremental) or (buff.incremental == bossBuff.incremental and isSuperiorWeight(bossBuff, buff))) then
 					bossBuff = buff
 				end
 			end
@@ -193,8 +163,17 @@ function Agent:reduceAndApplyEffects(specificEffect)
 			local finalValueTweenInfo = bossBuff.tweenInfo
 			local tweenReference = tostring(effect)..additionalString
 			local reduceTweenMaid = self.reduceMaids[tweenReference]
+			local forcedBaseValue
 			if reduceTweenMaid then
 				reduceTweenMaid:clean()
+				local validUntilTime = reduceTweenMaid.forcedBaseValueValidUntilTime
+				if validUntilTime then
+					if os.clock() < validUntilTime then
+						forcedBaseValue = reduceTweenMaid.forcedBaseValue
+					end
+					rawset(reduceTweenMaid, "forcedBaseValueValidUntilTime", nil)
+					rawset(reduceTweenMaid, "forcedBaseValue", nil)
+				end
 			elseif tweenReference then
 				reduceTweenMaid = self._maid:give(Maid.new())
 				self.reduceMaids[tweenReference] = reduceTweenMaid
@@ -209,17 +188,24 @@ function Agent:reduceAndApplyEffects(specificEffect)
 				
 				local instance = group[1]
 				local propertyName = group[2]
-				local propertyValue = instance[propertyName]
+				local propertyValue = forcedBaseValue or instance[propertyName]
 				local finalValue = propertyValue
-
+				
 				if not isNumerical then
 					-- For nonnumerical items we simply 'remember' the original value if the first time setting
 					-- This original value is then reapplied when all buffs are removed
 					local defaultGroup = self:_getDefaultGroup(effect, instance)
-					if not defaultGroup[additionalString] then
+					local defaultValue = defaultGroup[additionalString]
+					if not defaultValue then
 						defaultGroup[additionalString] = propertyValue
 					end
-					finalValue = bossBuff.value
+					if bossBuff.isDestroyed then
+						finalValue = defaultValue
+						defaultGroup[additionalString] = nil
+						self.buffs[bossBuff.buffId] = nil
+					else
+						finalValue = bossBuff.value
+					end
 
 				else
 					-- For numerical items we instead remember the incremental value, only apply it once, the take it off when the buff is destroyed
@@ -258,22 +244,41 @@ function Agent:reduceAndApplyEffects(specificEffect)
 							end
 						end
 					end
+
+					-- This accounts for destoyed buffs in the finalValue then forgets them
+					for _, buff in pairs(buffs) do
+						if buff.isDestroyed then
+							local appliedTable = buff:_getAppliedValueTable(effect, instance)
+							local currentAppliedValue = appliedTable[propertyName]
+							if currentAppliedValue then
+								finalValue -= currentAppliedValue
+							end
+							appliedTable[propertyName] = nil
+							self.buffs[buff.buffId] = nil
+						end
+					end
+
 				end
 
 				-- This applies the final value
-				if propertyValue ~= finalValue then
+				if propertyValue ~= finalValue and not self.silentlyEndBuffs then
 					if not finalValueTweenInfo then
 						instance[propertyName] = finalValue
 					else
 						-- It's important tweens are auto-completed if another effect of same additional value is called before its tween has completed
+						local completeTime = os.clock() + finalValueTweenInfo.Time
 						local tween = tweenService:Create(instance, finalValueTweenInfo, {[propertyName] = finalValue})
 						tween:Play()
 						reduceTweenMaid:give(function()
 							if tween.PlaybackState ~= Enum.PlaybackState.Completed then
 								tween:Pause()
-								tween:Destroy()
-								instance[propertyName] = finalValue
+								--instance[propertyName] = finalValue
+								if type(finalValue) == "number" then
+									rawset(reduceTweenMaid, "forcedBaseValueValidUntilTime", completeTime)
+									rawset(reduceTweenMaid, "forcedBaseValue", finalValue)
+								end
 							end
+							tween:Destroy()
 						end)
 					end
 				end
