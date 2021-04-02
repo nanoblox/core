@@ -93,6 +93,7 @@ function Buff:_getAppliedValueTable(effect, instance)
 end
 
 function Buff:destroy()
+    if self.isDestroyed then return end
     self.isDestroyed = true
     self.updated:Fire()
     self._maid:clean()

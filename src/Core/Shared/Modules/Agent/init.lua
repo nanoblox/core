@@ -10,6 +10,7 @@ local sortBuffsByTimeUpdatedFunc = function(buffA, buffB) return buffA.timeUpdat
 local players = game:GetService("Players")
 local tweenService = game:GetService("TweenService")
 local effects = require(script.Buff.Effects)
+local bodyUtilPathway = script.Buff.BodyUtil
 
 
 
@@ -135,6 +136,10 @@ function Agent:clearDefaultValues()
 	for _, buff in pairs(buffs) do
 		buff.appliedValueTables = {}
 	end
+	for tweenReference, reduceMaid in pairs(self.reduceMaids) do
+		reduceMaid:destroy()
+		self.reduceMaids[tweenReference] = nil
+	end
 end
 
 function Agent:reduceAndApplyEffects(specificEffect)
@@ -153,6 +158,13 @@ function Agent:reduceAndApplyEffects(specificEffect)
 			for _, buff in pairs(buffs) do
 				if (not buff.isDestroyed or totalBuffs <= 1) and (bossBuff == nil or (not buff.incremental and bossBuff.incremental) or (buff.incremental == bossBuff.incremental and isSuperiorWeight(bossBuff, buff))) then
 					bossBuff = buff
+				end
+			end
+			if bossBuff == nil then
+				for _, buff in pairs(buffs) do
+					if isSuperiorWeight(bossBuff, buff) then
+						bossBuff = buff
+					end
 				end
 			end
 
@@ -190,19 +202,25 @@ function Agent:reduceAndApplyEffects(specificEffect)
 				local propertyName = group[2]
 				local propertyValue = forcedBaseValue or instance[propertyName]
 				local finalValue = propertyValue
-				
+				local activeAppliedTables = {}
+
 				if not isNumerical then
 					-- For nonnumerical items we simply 'remember' the original value if the first time setting
 					-- This original value is then reapplied when all buffs are removed
 					local defaultGroup = self:_getDefaultGroup(effect, instance)
 					local defaultValue = defaultGroup[additionalString]
-					if not defaultValue then
+					if defaultValue == nil then
 						defaultGroup[additionalString] = propertyValue
+						defaultValue = propertyValue
 					end
 					if bossBuff.isDestroyed then
 						finalValue = defaultValue
 						defaultGroup[additionalString] = nil
 						self.buffs[bossBuff.buffId] = nil
+						--
+						local BodyUtil = require(bodyUtilPathway)
+						BodyUtil.clearFakeBodyParts(self.player, effect, additionalString)
+						--
 					else
 						finalValue = bossBuff.value
 					end
@@ -225,6 +243,7 @@ function Agent:reduceAndApplyEffects(specificEffect)
 						local bossAppliedTable = bossBuff:_getAppliedValueTable(effect, instance)
 						bossAppliedTable[propertyName] = bossBuff.value - propertyValue + previousDifference
 						finalValue = bossBuff.value
+						table.insert(activeAppliedTables, bossAppliedTable)
 					else
 						
 						for _, incrementalBuff in pairs(buffs) do
@@ -236,10 +255,12 @@ function Agent:reduceAndApplyEffects(specificEffect)
 									-- If a value has never been applied
 									finalValue += incrementValue
 									appliedTable[propertyName] = incrementValue
+									table.insert(activeAppliedTables, appliedTable)
 								elseif currentAppliedValue ~= incrementValue then
 									-- If a value was previously applied but has changed
 									finalValue -= currentAppliedValue + incrementValue--buff.valueReducer(finalValue)
 									appliedTable[propertyName] = incrementValue
+									table.insert(activeAppliedTables, appliedTable)
 								end
 							end
 						end
@@ -255,6 +276,10 @@ function Agent:reduceAndApplyEffects(specificEffect)
 							end
 							appliedTable[propertyName] = nil
 							self.buffs[buff.buffId] = nil
+							--
+							local BodyUtil = require(bodyUtilPathway)
+							BodyUtil.clearFakeBodyParts(self.player, effect, additionalString)
+							--
 						end
 					end
 
@@ -262,17 +287,34 @@ function Agent:reduceAndApplyEffects(specificEffect)
 
 				-- This applies the final value
 				if propertyValue ~= finalValue and not self.silentlyEndBuffs then
+					local function updateActiveAppliedTables()
+						local difference = finalValue - instance[propertyName]
+						for _, appliedTable in pairs(activeAppliedTables) do
+							if type(appliedTable[propertyName]) == "number" then
+								appliedTable[propertyName] -= difference
+							end
+						end
+					end
+
 					if not finalValueTweenInfo then
 						instance[propertyName] = finalValue
+						if isNumerical then
+							updateActiveAppliedTables()
+						end
+						
 					else
 						-- It's important tweens are auto-completed if another effect of same additional value is called before its tween has completed
 						local completeTime = os.clock() + finalValueTweenInfo.Time
 						local tween = tweenService:Create(instance, finalValueTweenInfo, {[propertyName] = finalValue})
+						if isNumerical then
+							tween.Completed:Connect(function()
+								updateActiveAppliedTables()
+							end)
+						end
 						tween:Play()
 						reduceTweenMaid:give(function()
 							if tween.PlaybackState ~= Enum.PlaybackState.Completed then
 								tween:Pause()
-								--instance[propertyName] = finalValue
 								if type(finalValue) == "number" then
 									rawset(reduceTweenMaid, "forcedBaseValueValidUntilTime", completeTime)
 									rawset(reduceTweenMaid, "forcedBaseValue", finalValue)

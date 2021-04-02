@@ -1,12 +1,11 @@
-return function(player)
-    local character = player.Character
+local BodyUtil = require(script.Parent.Parent.BodyUtil)
+
+return function(player, additional)
     local instancesAndProps = {}
-    if character then
-        for _, basePart in pairs(character:GetDescendants()) do
-            if basePart:IsA("BasePart") then
-                table.insert(instancesAndProps, {basePart, "Reflectance"})
-            end
-        end
+    local parts = BodyUtil.getPartsByBodyGroup(player, additional)
+    local fakeParts = BodyUtil.getOrSetupFakeBodyParts(player, parts, script.Name, additional)
+    for _, fakePart  in pairs(fakeParts) do
+        table.insert(instancesAndProps, {fakePart, "Reflectance"})
     end
     return instancesAndProps
 end
