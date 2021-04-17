@@ -146,8 +146,11 @@ end
 
 function Directory.requireModule(module)
 	local success, moduleData = pcall(function() return require(module) end)
+	if not success then
+		error(("Module '%s' failed to load: %s"):format(tostring(module.Name), moduleData))
+	end
 	local moduleToMerge = nil--module:FindFirstChild(MERGED_MODULE_NAME)
-	if success and moduleToMerge then
+	if moduleToMerge then
 		local moduleToMergeData = require(moduleToMerge)
 		if type(moduleData) == "table" and type(moduleToMergeData) == "table" then
 			for key, value in pairs(moduleToMergeData) do
@@ -156,7 +159,7 @@ function Directory.requireModule(module)
 		end
 		moduleToMerge:Destroy()
 	end
-	return success, moduleData
+	return moduleData
 end
 
 -- This moves and replaces any matching children

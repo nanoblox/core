@@ -40,6 +40,10 @@ local function playerAdded(player)
 	
 	-- Setup user object
 	local user = PlayerStore:createUser(player)
+	user:setStartData({
+		playerSettings = {},
+	})
+	user.agent = main.modules.Agent.new(player) -- an agent is automatically destroyed on player leave so no need to give to maid
 	user:initAutoSave()
 
 	-- Listen for chat

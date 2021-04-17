@@ -40,6 +40,7 @@ function main.initiate(loader)
 	main.location = location
 	main.modules = {}
 	main.services = {}
+	main.enum = require(main.shared.Modules.Enum).getEnums()
 	
 	
 	-- LOCATION SPECIFIC DETAILS
@@ -70,14 +71,10 @@ function main.initiate(loader)
 		local moduleName = module.Name
 		
 		-- Retrieve module data
-		local success, moduleData = Directory.requireModule(module)
-		
-		-- Warn of module error
-		if not success then
-			warn(module.Name," | ",moduleData)
+		local moduleData = Directory.requireModule(module)
 		
 		-- There should not be two-of-the same module:module, service:service or controlle:controller so throw an error
-		elseif rawget(modulePathway, moduleName) then
+		if rawget(modulePathway, moduleName) then
 			error(("%s duplicate detected!"):format(moduleName))
 			
 		-- Else setup new module and call init()
@@ -135,7 +132,6 @@ function main.initiate(loader)
 			end
 	    end
 	})
-	main.enum = main.modules.Enum.getEnums()
 	Thread = main.modules.Thread
 	
 	

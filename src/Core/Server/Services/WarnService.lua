@@ -43,7 +43,7 @@ function WarnService.generateRecord(targetUserId)
 		banTime = currentTime,
 		expiryTime = currentTime + unbanLimit*2,
 		reason = "",
-		callerId = 0,
+		callerUserId = 0,
 		callerHighestRoleUID = "",
 		--]]
 	}

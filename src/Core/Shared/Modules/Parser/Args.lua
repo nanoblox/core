@@ -14,10 +14,11 @@ Args.array = {
 		defaultValue = 0,
 		playerArg = true,
 		executeForEachPlayer = true,
-		parse = function(self, qualifiers)
-			local targetsDict = {}
+		parse = function(self, qualifiers, callerUserId)
+			local targetsDict = {} -- IF THIS IS COMPLETELY EMPTY THEN DEFAULY TO 'ME' BUT CONSIDER HOW IT IMPACTS OTHER PLAYERS ONES
 			for qualifierName, qualifierArgs in pairs(qualifiers or {}) do
-				local targets = main.modules.Qualifiers.dictionary[qualifierName]
+				local qualifierDetail = main.modules.Qualifiers.dictionary[qualifierName]
+				local targets = qualifierDetail.getTargets(callerUserId, table.unpack(qualifierArgs))
 				for _, plr in pairs(targets) do
 					targetsDict[plr] = true
 				end
@@ -40,8 +41,8 @@ Args.array = {
 		defaultValue = 0,
 		playerArg = true,
 		executeForEachPlayer = false,
-		parse = function(self, qualifiers)
-			return main.modules.Args.dictionary.player:parse(qualifiers)
+		parse = function(self, qualifiers, callerUserId)
+			return main.modules.Args.dictionary.player:parse(qualifiers, callerUserId)
 		end,
 	};
 	
@@ -56,12 +57,12 @@ Args.array = {
 		playerArg = true,
 		hidden = true,
 		executeForEachPlayer = true,
-		parse = function(self, qualifiers)
+		parse = function(self, qualifiers, callerUserId)
 			local defaultToAll = qualifiers == nil or main.modules.TableUtil.isEmpty(self.qualifiers)
 			if defaultToAll then
 				return main.Players:GetPlayers()
 			end
-			return main.modules.Args.dictionary.player:parse(qualifiers)
+			return main.modules.Args.dictionary.player:parse(qualifiers, callerUserId)
 		end,
 	};
 	
@@ -76,8 +77,8 @@ Args.array = {
 		playerArg = true,
 		hidden = true,
 		executeForEachPlayer = false,
-		parse = function(self, qualifiers)
-			return main.modules.Args.dictionary.optionalplayer:parse(qualifiers)
+		parse = function(self, qualifiers, callerUserId)
+			return main.modules.Args.dictionary.optionalplayer:parse(qualifiers, callerUserId)
 		end,
 	};
 	
@@ -89,9 +90,9 @@ Args.array = {
 		aliases = {"string", "reason", "question", "teamname"},
 		description	= "",
 		defaultValue = 0,
-		filterText = true,
-		parse = function(self, stringToParse)
-			
+		parse = function(self, textToFilter, callerUserId, targetUserId)
+			local _, value = main.modules.ChatUtil.filterText(callerUserId, targetUserId, textToFilter):await()
+			return value
 		end,
 	};
 	
@@ -104,7 +105,7 @@ Args.array = {
 		description	= "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
+			return stringToParse
 		end,
 	};
 	
@@ -177,12 +178,14 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		name = "color",
+		name = "color", -- have a predefined list of colors such as 'red', 'blue', etc which the user can reference. also consider rgb capsules
 		aliases = {"colour", "color3", "uigradient", "colorgradient", "gradient"},
 		description	= "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
+			-- predifined terms like 'blue', 'red', etc
+			-- RGB codes such as '100,110,120'
+			-- hex codes such as #FF5733
 		end,
 	};
 	
@@ -269,7 +272,7 @@ Args.array = {
 	
 	-----------------------------------
 	{
-		name = "playerOrUser", -- returns a string instead of a player instance - it fist looks for a player in the server otherwise defaults to the given string
+		name = "playeroruser", -- returns a string instead of a player instance - it fist looks for a player in the server otherwise defaults to the given string
 		aliases = {},
 		description	= "",
 		defaultValue = 0,

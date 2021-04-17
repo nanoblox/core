@@ -208,7 +208,7 @@ function System.new(name, ignoreTempChanges)
 	if not ignoreTempChanges then
 		local realRecords = {}
 		----
-		self.records = main.modules.State.new()
+		self.records = main.modules.State.new(nil, true)
 		----
 		self.recordAdded = maid:give(Signal.new())
 		self.recordRemoved = maid:give(Signal.new())
@@ -497,7 +497,7 @@ function System:updateRecord(key, propertiesToUpdate)
 	--
 	local data = (newGlobal == true and user.perm) or user.temp
 	for propName, propValue in pairs(propertiesToUpdate) do
-		data[key]:set(propName, propValue)
+		data:getOrSetup(key):set(propName, propValue)
 	end
 	return data
 end
