@@ -103,6 +103,15 @@ end
 
 
 ]]--
+function Parser.getPlayersFromString(string)
+	return {}
+end
+
+--[[
+
+
+
+]]--
 function Parser.parseMessage(message)
     local algorithmModule = MAIN.modules.Parser.Algorithm
     local parsedDataModule = MAIN.modules.Parser.ParsedData

@@ -58,4 +58,12 @@ return function()
         expect(result[1].commands.alert[1]).to.be.equal("we are going to have a fun")
         expect(result[1].qualifiers.all).to.be.ok()
     end)
+
+    it("should parse ;alert all we are going to have a fun ;rainbow all", function(context)
+        local result = context.Parser.parseMessage(";alert all we are going to have a fun ;rainbow all")
+
+        expect(result[1].commands.alert).to.be.ok()
+        expect(result[1].commands.alert[1]).to.be.equal("we are going to have a fun ;rainbow all")
+        expect(result[1].qualifiers.all).to.be.ok()
+    end)
 end

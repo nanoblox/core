@@ -72,6 +72,15 @@ function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData)
         if (next(parsedData.qualifiersCaptures) ~= nil) then
             parsedData.requiresQualifier = true
         else
+
+            --[[
+
+                (1) The unrecognized qualifier must be prefixed with playerIdentifier
+                (2) Only the player names rather than display names must be searched
+                (3) The unrecognized qualifier must match completely (ignorecase)
+
+            ]]--
+
             local playerNames = {}
 			for _, player in pairs(game:GetService("Players"):GetPlayers()) do
 				table.insert(playerNames, player.Name:lower())

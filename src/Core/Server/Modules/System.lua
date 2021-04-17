@@ -252,7 +252,6 @@ function System.new(name, ignoreTempChanges)
 					end
 					-- Mark record as global if present within config
 					if main.config[self.name][recordKey] ~= nil and user.temp[recordKey]._global == nil then
-						print(self.name, recordKey)
 						user.temp[recordKey]:set("_global", true)
 					end
 					action = function()
