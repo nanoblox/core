@@ -150,11 +150,21 @@ function BodyUtil.getOrSetupFakeBodyParts(player, parts, effect, additional)
                 local fakePart = fakeFolder:FindFirstChild(part.Name)
                 if not fakePart then
                     local updateSize
-                    if part.Name == "Head" and not part:IsA("MeshPart") then
+
+                    local isAHead = part.Name == "Head"
+                    if isAHead and not part:IsA("MeshPart") then
                         fakePart = main.shared.Assets.FakeHead:Clone()
                         updateSize = function()
                             fakePart.Size = Vector3.new(part.Size.X/2, part.Size.Y, part.Size.Z)*1.2
                         end
+                    else
+                        fakePart = part:Clone()
+                        fakePart:ClearAllChildren()
+                        updateSize = function()
+                            fakePart.Size = part.Size + Vector3.new(0.001, 0.001, 0.001)
+                        end
+                    end
+                    if isAHead then
                         local face = part:FindFirstChild("face") or part:FindFirstChildOfClass("Decal")
                         if face then
                             local fakeFace = face:Clone()
@@ -166,13 +176,8 @@ function BodyUtil.getOrSetupFakeBodyParts(player, parts, effect, additional)
                                 fakeFace.Transparency = face.Transparency
                             end))
                         end
-                    else
-                        fakePart = part:Clone()
-                        fakePart:ClearAllChildren()
-                        updateSize = function()
-                            fakePart.Size = part.Size + Vector3.new(0.001, 0.001, 0.001)
-                        end
                     end
+
                     fakePart.CFrame = part.CFrame
                     fakePart.Name = part.Name
                     fakePart.CanCollide = false

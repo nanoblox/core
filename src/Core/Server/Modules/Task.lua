@@ -1,3 +1,11 @@
+--[[
+
+A task is an object which runs for the duration of a command. If you applied a walkspeed of 50 to a player for example the task will remain until that command is revoked.
+
+--]]
+
+
+
 -- LOCAL
 local main = require(game.Nanoblox)
 local Maid = main.modules.Maid
@@ -31,6 +39,26 @@ function Task.new(properties)
 	self.trackingClients = {}
 	self.totalReplications = 0
 	self.replicationsThisSecond = 0
+	self.buffs = {}
+
+	-- This dynamically creates agents for client commands
+	if main.isServer then
+		local user = main.modules.PlayerStore:getUser(self.targetPlayer)
+		if user then
+			self.agent = user.agent
+		end
+	else
+		local agentDetail = main.clientCommandAgents[self.targetPlayer]
+		if not agentDetail then
+			agentDetail = {
+				agent = main.modules.Agent.new(self.targetPlayer),
+				activeAreas = 0,
+			}
+			main.clientCommandAgents[self.targetPlayer] = agentDetail
+		end
+		agentDetail.activeAreas +=1
+		self.agent = agentDetail.agent
+	end
 
 	local qualifierPresent = false
 	if self.qualifiers then
@@ -259,6 +287,7 @@ function Task:execute()
 		end
 		self.executionCompleted:Fire()
 		self.executing = false
+		self:clearBuffs()
 		resolve()
 	end)
 end
@@ -313,16 +342,50 @@ function Task:kill()
 		self.command:revoke()
 	end
 	self.isDead = true
+	self:clearBuffs()
 	self.maid:clean()
 	if main.isServer then
 		self:revokeAllClients()
 		if not self.modifiers.perm then --self._global == false then
 			main.services.TaskService.removeTask(self.UID)
 		end
+	else
+		-- This dynamically removes agents for client commands
+		local agentDetail = main.clientCommandAgents[self.targetPlayer]
+		if agentDetail then
+			agentDetail.activeAreas -=1
+			if agentDetail.activeAreas <= 0 then
+				agentDetail.agent:destroy()
+				main.clientCommandAgents[self.targetPlayer] = nil
+			end
+		end
 	end
 end
 Task.destroy = Task.kill
 Task.Destroy = Task.kill
+
+-- An abstraction of ``task.maid:give(...)``
+function Task:give(...)
+	return self.maid:give(...)
+end
+
+-- An abstraction of ``task.agent:buff(...)``
+function Task:buff(effect, value, optionalTweenInfo)
+	local agent = self.agent
+	if agent then
+		local buff = agent:buff(effect):set(value, optionalTweenInfo)
+		table.insert(self.buffs, buff)
+	end
+end
+
+function Task:clearBuffs()
+	for _, buff in pairs(self.buffs) do
+		if not buff.isDestroyed then
+			buff:destroy()
+		end
+	end
+	self.buffs = {}
+end
 
 
 
@@ -353,7 +416,10 @@ function Task:_invoke(playersArray, ...)
 			UID = self.UID,
 			commandName = self.commandName,
 			killAfterExecution = killAfterExecution,
-			clientArgs = table.pack(...)
+			clientArgs = table.pack(...),
+			targetUserId = self.targetUserId,
+			targetPlayer = self.targetPlayer,
+			callerUserId = self.callerUserId,
 		}
 		table.insert(promises, main.services.TaskService.remotes.invokeClientCommand:invokeClient(player, clientTaskProperties)
 			:timeout(timeoutValue)

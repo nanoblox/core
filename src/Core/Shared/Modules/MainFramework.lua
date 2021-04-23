@@ -54,6 +54,7 @@ function main.initiate(loader)
 		main.locationGroup = main.client
 		main.controllers = {}
 		main.localPlayer = main.Players.LocalPlayer
+		main.clientCommandAgents = {}
 	end
 	
 	
