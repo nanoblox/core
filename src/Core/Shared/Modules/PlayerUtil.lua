@@ -47,5 +47,35 @@ function PlayerUtil.getHumanoid(playerOrUserId)
 	return humanoid
 end
 
+function PlayerUtil.getNameFromUserId(userId)
+	return main.modules.Promise.new(function(resolve, reject)
+		local player = main.Players:GetPlayerByUserId(userId)
+		if player then
+			resolve(player.Name)
+		end
+		local success, result = pcall(function() return main.Players:GetNameFromUserIdAsync(userId) end)
+		if success then
+			resolve(result)
+		else
+			reject(result)
+		end
+	end)
+end
+
+function PlayerUtil.getUserIdFromName(username)
+	return main.modules.Promise.new(function(resolve, reject)
+		local player = main.Players:FindFirstChild(username)
+		if player and player:IsA("Player") then
+			resolve(player.UserId)
+		end
+		local success, result = pcall(function() return main.Players:GetUserIdFromNameAsync(username) end)
+		if success then
+			resolve(result)
+		else
+			reject(result)
+		end
+	end)
+end
+
 
 return PlayerUtil
