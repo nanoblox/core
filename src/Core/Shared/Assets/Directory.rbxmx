@@ -1,4 +1,15 @@
-local Directory = {}
+<roblox version="4">
+  <Item class="ModuleScript" referent="0">
+    <Properties>
+      <string name="Name">Directory</string>
+      <BinaryString name="AttributesSerialize">
+      </BinaryString>
+      <Content name="LinkedSource">
+        <null>
+        </null>
+      </Content>
+      <BinaryString name="ScriptGuid"><![CDATA[ezU1NDI4RTk3LTk4RTgtNDFDNi04MEQxLTkwRjYxODg5NjJGMH0=]]></BinaryString>
+      <string name="Source">local Directory = {}
 
 
 
@@ -181,4 +192,10 @@ end
 
 
 
-return Directory
+return Directory</string>
+      <int64 name="SourceAssetId">-1</int64>
+      <BinaryString name="Tags">
+      </BinaryString>
+    </Properties>
+  </Item>
+</roblox>

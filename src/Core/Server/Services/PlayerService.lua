@@ -38,6 +38,9 @@ local function playerAdded(player)
 		return
 	end
 	
+	-- Setup collision group
+	main.modules.CollisionUtil.joinPlayerCollisionGroup(player)
+
 	-- Setup user object
 	local user = PlayerStore:createUser(player)
 	user:setStartData({
