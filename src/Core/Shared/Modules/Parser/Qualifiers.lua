@@ -13,18 +13,16 @@ local function isNonadmin(user)
 	end
 end
 
-
-
 -- ARRAY
 Qualifiers.array = {
-	
+
 	-----------------------------------
 	{
 		name = "users",
-		aliases = {"user"},
+		aliases = { "user" },
 		hidden = true,
 		multi = false,
-		description	= "Default action, returns players with matching shorthand names.",
+		description = "Default action, returns players with matching shorthand names.",
 		getTargets = function(_, shorthandString, useDisplayName)
 			local targets = {}
 			for i, plr in pairs(main.Players:GetPlayers()) do
@@ -37,16 +35,14 @@ Qualifiers.array = {
 			--!!! IF CALLER HAS MULTI DISABLED, ONLY RETURN 1
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "me",
-		aliases = {"you"},
+		aliases = { "you" },
 		multi = false,
-		description	= "You!",
+		description = "You!",
 		getTargets = function(callerUserId)
 			local targets = {}
 			local caller = main.Players:GetPlayerByUserId(callerUserId)
@@ -55,29 +51,25 @@ Qualifiers.array = {
 			end
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "all",
-		aliases = {"everyone"},
+		aliases = { "everyone" },
 		multi = true,
-		description	= "Every player in a server.",
+		description = "Every player in a server.",
 		getTargets = function()
 			return main.Players:GetPlayers()
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "random",
 		aliases = {},
 		multi = false,
-		description	= "One randomly selected player from a pool. To define a pool, do ``random(qualifier1,qualifier2,...)``. If not defined, the pool defaults to 'all'.",
+		description = "One randomly selected player from a pool. To define a pool, do ``random(qualifier1,qualifier2,...)``. If not defined, the pool defaults to 'all'.",
 		getTargets = function(callerUserId, ...)
 			local subQualifiers = table.pack(...)
 			if #subQualifiers == 0 then
@@ -85,24 +77,25 @@ Qualifiers.array = {
 			end
 			local pool = {}
 			for _, subQualifier in pairs(subQualifiers) do
-				local subPool = ((Qualifiers.dictionary[subQualifier] or Qualifiers.defaultQualifier).getTargets(callerUserId)) or {}
+				local subPool = (
+						(Qualifiers.dictionary[subQualifier] or Qualifiers.defaultQualifier).getTargets(callerUserId)
+					)
+					or {}
 				for _, plr in pairs(subPool) do
 					table.insert(pool, plr)
 				end
 			end
-			local targets = {pool[math.random(1, #pool)]}
+			local targets = { pool[math.random(1, #pool)] }
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "others",
 		aliases = {},
 		multi = true,
-		description	= "Every player in a server except you.",
+		description = "Every player in a server except you.",
 		getTargets = function(callerUserId)
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
@@ -112,16 +105,14 @@ Qualifiers.array = {
 			end
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "radius",
 		aliases = {},
 		multi = true,
-		description	= "Players within x amount of studs from you. To specify studs, do ``radius(studs)``. If not defined, studs defaults to '10'.",
+		description = "Players within x amount of studs from you. To specify studs, do ``radius(studs)``. If not defined, studs defaults to '10'.",
 		getTargets = function(callerUserId, radiusString)
 			local targets = {}
 			local radius = tonumber(radiusString) or 10
@@ -136,23 +127,23 @@ Qualifiers.array = {
 			end
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "team",
-		aliases = {"teams", "$"},
+		aliases = { "teams", "$" },
 		multi = true,
-		description	= "Players within the specified team(s).",
+		description = "Players within the specified team(s).",
 		getTargets = function(_, ...)
 			local targets = {}
 			local teamNames = table.pack(...)
 			local selectedTeams = {}
 			local validTeams = false
-			if #teamNames == 0 then return {} end
-			for _,team in pairs(main.Teams:GetChildren()) do
+			if #teamNames == 0 then
+				return {}
+			end
+			for _, team in pairs(main.Teams:GetChildren()) do
 				local teamName = string.lower(team.Name)
 				for _, selectedTeamName in pairs(teamNames) do
 					if string.sub(teamName, 1, #selectedTeamName) == selectedTeamName then
@@ -161,7 +152,9 @@ Qualifiers.array = {
 					end
 				end
 			end
-			if not validTeams then return {} end
+			if not validTeams then
+				return {}
+			end
 			for i, plr in pairs(main.Players:GetPlayers()) do
 				if selectedTeams[tostring(plr.TeamColor)] then
 					table.insert(targets, plr)
@@ -169,31 +162,36 @@ Qualifiers.array = {
 			end
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "role",
-		aliases = {"roles", "@"},
+		aliases = { "roles", "@" },
 		multi = true,
-		description	= "Players who have the specified role(s).",
+		description = "Players who have the specified role(s).",
 		getTargets = function(_, ...)
 			local targets = {}
 			local roleNames = table.pack(...)
 			local selectedRoleUIDs = {}
-			if #roleNames == 0 then return {} end
+			if #roleNames == 0 then
+				return {}
+			end
 			for _, role in pairs(main.services.RoleService.getRoles()) do
 				local roleName = string.lower(role.name)
 				local roleUID = role.UID
 				for _, selectedRoleName in pairs(roleNames) do
-					if string.sub(roleName, 1, #selectedRoleName) == selectedRoleName or roleUID == selectedRoleName then
+					if
+						string.sub(roleName, 1, #selectedRoleName) == selectedRoleName
+						or roleUID == selectedRoleName
+					then
 						table.insert(selectedRoleUIDs, roleUID)
 					end
 				end
 			end
-			if #selectedRoleUIDs == 0 then return {} end
+			if #selectedRoleUIDs == 0 then
+				return {}
+			end
 			for i, user in pairs(main.modules.PlayerStore:getUsers()) do
 				local function isValidUser()
 					for _, roleUID in pairs(selectedRoleUIDs) do
@@ -209,22 +207,20 @@ Qualifiers.array = {
 			end
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "percent",
-		aliases = {"percentage", "%"},
+		aliases = { "percentage", "%" },
 		multi = true,
-		description	= "Randomly selects x percent of players within a server. To define the percentage, do ``percent(number)``. If not defined, the percent defaults to '50'.",
+		description = "Randomly selects x percent of players within a server. To define the percentage, do ``percent(number)``. If not defined, the percent defaults to '50'.",
 		getTargets = function(_, percentString)
 			local targets = {}
 			local maxPercent = tonumber(percentString) or 50
 			local players = main.Players:GetPlayers()
-			local interval = 100/#players
-			if maxPercent >= (100-(interval*0.1)) then
+			local interval = 100 / #players
+			if maxPercent >= (100 - (interval * 0.1)) then
 				return players
 			end
 			local selectedPercent = 0
@@ -236,16 +232,14 @@ Qualifiers.array = {
 			until #players == 0 or selectedPercent >= maxPercent
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "admins",
 		aliases = {},
 		multi = true,
-		description	= "Selects all admins",
+		description = "Selects all admins",
 		getTargets = function(_)
 			local targets = {}
 			for i, user in pairs(main.modules.PlayerStore:getUsers()) do
@@ -255,16 +249,14 @@ Qualifiers.array = {
 			end
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "nonadmins",
 		aliases = {},
 		multi = true,
-		description	= "Selects all nonadmins",
+		description = "Selects all nonadmins",
 		getTargets = function(_)
 			local targets = {}
 			for i, user in pairs(main.modules.PlayerStore:getUsers()) do
@@ -274,16 +266,14 @@ Qualifiers.array = {
 			end
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "premium",
-		aliases = {"prem"},
+		aliases = { "prem" },
 		multi = true,
-		description	= "Players with Roblox Premium membership",
+		description = "Players with Roblox Premium membership",
 		getTargets = function(_)
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
@@ -293,16 +283,14 @@ Qualifiers.array = {
 			end
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "friends",
 		aliases = {},
 		multi = true,
-		description	= "Players you are friends with",
+		description = "Players you are friends with",
 		getTargets = function(callerUserId)
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
@@ -312,16 +300,14 @@ Qualifiers.array = {
 			end
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "nonfriends",
 		aliases = {},
 		multi = true,
-		description	= "Players you are not friends with",
+		description = "Players you are not friends with",
 		getTargets = function(callerUserId)
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
@@ -331,16 +317,14 @@ Qualifiers.array = {
 			end
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "r6",
 		aliases = {},
 		multi = true,
-		description	= "Players with an R6 character rig",
+		description = "Players with an R6 character rig",
 		getTargets = function()
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
@@ -351,16 +335,14 @@ Qualifiers.array = {
 			end
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "r15",
 		aliases = {},
 		multi = true,
-		description	= "Players with an R15 character rig",
+		description = "Players with an R15 character rig",
 		getTargets = function()
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
@@ -371,16 +353,14 @@ Qualifiers.array = {
 			end
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "rthro",
 		aliases = {},
 		multi = true,
-		description	= "Players with a Body Type value greater than or equal to 90%",
+		description = "Players with a Body Type value greater than or equal to 90%",
 		getTargets = function()
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
@@ -392,16 +372,14 @@ Qualifiers.array = {
 			end
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "nonrthro",
 		aliases = {},
 		multi = true,
-		description	= "Players with a Body Type value less than 90%",
+		description = "Players with a Body Type value less than 90%",
 		getTargets = function()
 			local targets = {}
 			for _, plr in pairs(main.Players:GetPlayers()) do
@@ -413,15 +391,10 @@ Qualifiers.array = {
 			end
 			return targets
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
-	
-};
-
-
+}
 
 -- DICTIONARY
 -- This means instead of scanning through the array to find a name match
@@ -440,11 +413,11 @@ Qualifiers.sortedNameAndAliasLengthArray = {}
 for itemNameOrAlias, item in pairs(Qualifiers.dictionary) do
 	table.insert(Qualifiers.sortedNameAndAliasLengthArray, itemNameOrAlias)
 end
-table.sort(Qualifiers.sortedNameAndAliasLengthArray, function(a, b) return #a > #b end)
+table.sort(Qualifiers.sortedNameAndAliasLengthArray, function(a, b)
+	return #a > #b
+end)
 
 -- OTHER
 Qualifiers.defaultQualifier = Qualifiers.dictionary["user"]
-
-
 
 return Qualifiers

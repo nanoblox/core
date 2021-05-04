@@ -6,111 +6,108 @@ local MAIN = require(game.Nanoblox)
 
 --// VARIABLES //--
 
-
-
 --// FUNCTIONS //--
 
 --[[
 
 
 
-]]--
+]]
 function ParsedData.generateEmptyParsedData()
-    return {
-        commandStatement = nil,
+	return {
+		commandStatement = nil,
 
-        commandDescription = nil,
-        qualifierDescription = nil,
-        extraArgumentDescription = nil,
+		commandDescription = nil,
+		qualifierDescription = nil,
+		extraArgumentDescription = nil,
 
-        commandCaptures = {},
-        modifierCaptures = {},
-        qualifierCaptures = {},
-        prematureQualifierParsing = false,
-        unrecognizedQualifiers = {},
+		commandCaptures = {},
+		modifierCaptures = {},
+		qualifierCaptures = {},
+		prematureQualifierParsing = false,
+		unrecognizedQualifiers = {},
 
-        commandDescriptionResdiue = nil,
+		commandDescriptionResdiue = nil,
 
-        requiresQualifier = false,
-        hasTextArgument = false,
+		requiresQualifier = false,
+		hasTextArgument = false,
 
-        isValid = true,
-        parserRejection = nil
-    }
+		isValid = true,
+		parserRejection = nil,
+	}
 end
 
 --[[
 
 
 
-]]--
+]]
 function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData)
-    local parserModule = MAIN.modules.Parser
+	local parserModule = MAIN.modules.Parser
 
-    local qualifierRequiredEnum = MAIN.enum.QualifierRequired
-    local parsedDataRequiresQualifier = qualifierRequiredEnum.Sometimes
+	local qualifierRequiredEnum = MAIN.enum.QualifierRequired
+	local parsedDataRequiresQualifier = qualifierRequiredEnum.Sometimes
 
-    for _, capture in pairs(parsedData.commandCaptures) do
-        for commandName, _ in pairs(capture) do
-            local commandRequiresQualifier = parserModule.requiresQualifier(commandName)
-            if (commandRequiresQualifier == qualifierRequiredEnum.Always) then
-                parsedDataRequiresQualifier = qualifierRequiredEnum.Always
-                break
-            elseif (commandRequiresQualifier == qualifierRequiredEnum.Never) then
-                parsedDataRequiresQualifier = qualifierRequiredEnum.Never
-            end
-        end
-    end
+	for _, capture in pairs(parsedData.commandCaptures) do
+		for commandName, _ in pairs(capture) do
+			local commandRequiresQualifier = parserModule.requiresQualifier(commandName)
+			if (commandRequiresQualifier == qualifierRequiredEnum.Always) then
+				parsedDataRequiresQualifier = qualifierRequiredEnum.Always
+				break
+			elseif (commandRequiresQualifier == qualifierRequiredEnum.Never) then
+				parsedDataRequiresQualifier = qualifierRequiredEnum.Never
+			end
+		end
+	end
 
-    if (parsedDataRequiresQualifier ~= qualifierRequiredEnum.Sometimes) then
-        parsedData.requiresQualifier = (parsedDataRequiresQualifier == qualifierRequiredEnum.Always)
-    else
-        parsedData.requiresQualifier = true
-        ParsedData.parseQualifierDescription(parsedData)
-        parsedData.prematureQualifierParsing = true
+	if (parsedDataRequiresQualifier ~= qualifierRequiredEnum.Sometimes) then
+		parsedData.requiresQualifier = (parsedDataRequiresQualifier == qualifierRequiredEnum.Always)
+	else
+		parsedData.requiresQualifier = true
+		ParsedData.parseQualifierDescription(parsedData)
+		parsedData.prematureQualifierParsing = true
 
-        if (next(parsedData.qualifiersCaptures) ~= nil) then
-            parsedData.requiresQualifier = true
-        else
-
-            --[[
+		if (next(parsedData.qualifiersCaptures) ~= nil) then
+			parsedData.requiresQualifier = true
+		else
+			--[[
 
                 (1) The unrecognized qualifier must be prefixed with playerIdentifier
                 (2) Only the player names rather than display names must be searched
                 (3) The unrecognized qualifier must match completely (ignorecase)
 
-            ]]--
+            ]]
 
-            local playerNames = {}
+			local playerNames = {}
 			for _, player in pairs(game:GetService("Players"):GetPlayers()) do
 				table.insert(playerNames, player.Name:lower())
 			end
 
-            for _, qualifier in pairs(parsedData.unrecognizedQualifiers) do
-                if (table.find(playerNames, qualifier:lower())) then
-                    parsedData.requiresQualifier = true
-                    return
-                end
-            end
+			for _, qualifier in pairs(parsedData.unrecognizedQualifiers) do
+				if (table.find(playerNames, qualifier:lower())) then
+					parsedData.requiresQualifier = true
+					return
+				end
+			end
 
-            parsedData.requiresQualifier = false
-        end
-    end
+			parsedData.requiresQualifier = false
+		end
+	end
 end
 
 --[[
 
 
 
-]]--
+]]
 function ParsedData.parsedDataSetHasTextArgumentFlag(parsedData)
-    local parserModule = MAIN.modules.Parser
+	local parserModule = MAIN.modules.Parser
 
 	for _, capture in pairs(parsedData.commandCaptures) do
 		for commandName, _ in pairs(capture) do
 			if (parserModule.hasTextArgument(commandName)) then
 				parsedData.hasTextArgument = true
-                return
+				return
 			end
 		end
 	end
@@ -121,173 +118,172 @@ end
 
 
 
-]]--
+]]
 function ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejection)
-    local parserRejectionEnum = MAIN.enum.ParserRejection
+	local parserRejectionEnum = MAIN.enum.ParserRejection
 
-    if (parserRejection == parserRejectionEnum.MISSING_COMMAND_DESCRIPTION) then
+	if (parserRejection == parserRejectionEnum.MISSING_COMMAND_DESCRIPTION) then
+		if (parsedData.commandDescription == "") then
+			parsedData.isValid = false
+		end
+	elseif (parserRejection == parserRejectionEnum.MISSING_COMMANDS) then
+		if (#parsedData.commandCaptures == 0) then
+			parsedData.isValid = false
+		end
+	elseif (parserRejection == parserRejectionEnum.MALFORMED_COMMAND_DESCRIPTION) then
+		if (parsedData.commandDescriptionResidue ~= "") then
+			parsedData.isValid = false
+		end
+	end
 
-        if (parsedData.commandDescription == "") then parsedData.isValid = false end
-
-    elseif (parserRejection == parserRejectionEnum.MISSING_COMMANDS) then
-
-        if (#parsedData.commandCaptures == 0) then parsedData.isValid = false end
-
-    elseif (parserRejection == parserRejectionEnum.MALFORMED_COMMAND_DESCRIPTION) then
-
-        if (parsedData.commandDescriptionResidue ~= "") then parsedData.isValid = false end
-
-    end
-
-    if not (parsedData.isValid) then parsedData.parserRejection = parserRejection end
+	if not parsedData.isValid then
+		parsedData.parserRejection = parserRejection
+	end
 end
 
 --[[
 
 
 
-]]--
+]]
 function ParsedData.generateOrganizedParsedData(allParsedData)
-    local organizedData = {}
-    for _, parsedData in pairs(allParsedData) do
-        if (parsedData.isValid) then
+	local organizedData = {}
+	for _, parsedData in pairs(allParsedData) do
+		if parsedData.isValid then
+			local commands = {}
+			for _, capture in pairs(parsedData.commandCaptures) do
+				for command, arguments in pairs(capture) do
+					commands[command] = arguments
+				end
+			end
 
-            local commands = {}
-            for _, capture in pairs(parsedData.commandCaptures) do
-                for command, arguments in pairs(capture) do
-                    commands[command] = arguments
-                end
-            end
-                
-            local modifiers = {}
-            for _, capture in pairs(parsedData.modifierCaptures) do
-                for modifier, arguments in pairs(capture) do
-                    modifiers[modifier] = arguments
-                end
-            end
-            
-            local qualifiers = {}
-            for _, capture in pairs(parsedData.qualifierCaptures) do
-                for qualifier, arguments in pairs(capture) do
-                    qualifiers[qualifier] = arguments
-                end
-            end
+			local modifiers = {}
+			for _, capture in pairs(parsedData.modifierCaptures) do
+				for modifier, arguments in pairs(capture) do
+					modifiers[modifier] = arguments
+				end
+			end
 
-            table.insert(organizedData, {
-                commands = commands,
-                modifiers = modifiers,
-                qualifiers = qualifiers
-            })
-        end
-    end
-    return organizedData
+			local qualifiers = {}
+			for _, capture in pairs(parsedData.qualifierCaptures) do
+				for qualifier, arguments in pairs(capture) do
+					qualifiers[qualifier] = arguments
+				end
+			end
+
+			table.insert(organizedData, {
+				commands = commands,
+				modifiers = modifiers,
+				qualifiers = qualifiers,
+			})
+		end
+	end
+	return organizedData
 end
 
 --[[
 
 
 
-]]--
+]]
 function ParsedData.parseCommandStatement(parsedData)
-    local parserRejectionEnum = MAIN.enum.ParserRejection
-    local algorithmModule = MAIN.modules.Parser.Algorithm
+	local parserRejectionEnum = MAIN.enum.ParserRejection
+	local algorithmModule = MAIN.modules.Parser.Algorithm
 
-    local descriptions = algorithmModule.getDescriptionsFromCommandStatement(
-        parsedData.commandStatement
-    )
+	local descriptions = algorithmModule.getDescriptionsFromCommandStatement(parsedData.commandStatement)
 
-    parsedData.commandDescription = descriptions[1]
-    parsedData.qualifierDescription = descriptions[2]
-    parsedData.extraArgumentDescription = descriptions[3]
+	parsedData.commandDescription = descriptions[1]
+	parsedData.qualifierDescription = descriptions[2]
+	parsedData.extraArgumentDescription = descriptions[3]
 
-    ParsedData.parsedDataUpdateIsValidFlag(parsedData,
-        parserRejectionEnum.MISSING_COMMAND_DESCRIPTION)
+	ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejectionEnum.MISSING_COMMAND_DESCRIPTION)
 end
 
 --[[
 
 
 
-]]--
+]]
 function ParsedData.parseCommandDescription(parsedData)
-    local parserRejectionEnum = MAIN.enum.ParserRejection
-    local algorithmModule = MAIN.modules.Parser.Algorithm
+	local parserRejectionEnum = MAIN.enum.ParserRejection
+	local algorithmModule = MAIN.modules.Parser.Algorithm
 
-    local capturesAndResidue = algorithmModule.parseCommandDescription(
-        parsedData.commandDescription
-    )
+	local capturesAndResidue = algorithmModule.parseCommandDescription(parsedData.commandDescription)
 
-    parsedData.commandCaptures = capturesAndResidue[1]
-    parsedData.modifierCaptures = capturesAndResidue[2]
-    parsedData.commandDescriptionResidue = capturesAndResidue[3]
+	parsedData.commandCaptures = capturesAndResidue[1]
+	parsedData.modifierCaptures = capturesAndResidue[2]
+	parsedData.commandDescriptionResidue = capturesAndResidue[3]
 
-    ParsedData.parsedDataUpdateIsValidFlag(parsedData,
-        parserRejectionEnum.MISSING_COMMANDS)
-    ParsedData.parsedDataUpdateIsValidFlag(parsedData,
-        parserRejectionEnum.MALFORMED_COMMAND_DESCRIPTION)
+	ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejectionEnum.MISSING_COMMANDS)
+	ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejectionEnum.MALFORMED_COMMAND_DESCRIPTION)
 end
 
 --[[
 
 
 
-]]--
+]]
 function ParsedData.parseCommandDescriptionAndSetFlags(parsedData)
-    ParsedData.parseCommandDescription(parsedData)
-    if (parsedData.isValid) then
-        ParsedData.parsedDataSetRequiresQualifierFlag(parsedData)
-        ParsedData.parsedDataSetHasTextArgumentFlag(parsedData)
-    end
+	ParsedData.parseCommandDescription(parsedData)
+	if parsedData.isValid then
+		ParsedData.parsedDataSetRequiresQualifierFlag(parsedData)
+		ParsedData.parsedDataSetHasTextArgumentFlag(parsedData)
+	end
 end
 
 --[[
 
 
 
-]]--
+]]
 function ParsedData.parseQualifierDescription(parsedData)
-    if not (parsedData.requiresQualifier) then return end
-    if (parsedData.prematureQualifierParsing) then return end
+	if not parsedData.requiresQualifier then
+		return
+	end
+	if parsedData.prematureQualifierParsing then
+		return
+	end
 
-    local algorithmModule = MAIN.modules.Parser.Algorithm
-    
-    local qualifierCapturesAndUnrecognizedQualifiers = algorithmModule.parseQualifierDescription(
-        parsedData.qualifierDescription
-    )
-    parsedData.qualifierCaptures = qualifierCapturesAndUnrecognizedQualifiers[1]
-    parsedData.unrecognizedQualifiers = qualifierCapturesAndUnrecognizedQualifiers[2]
+	local algorithmModule = MAIN.modules.Parser.Algorithm
+
+	local qualifierCapturesAndUnrecognizedQualifiers =
+		algorithmModule.parseQualifierDescription(parsedData.qualifierDescription)
+	parsedData.qualifierCaptures = qualifierCapturesAndUnrecognizedQualifiers[1]
+	parsedData.unrecognizedQualifiers = qualifierCapturesAndUnrecognizedQualifiers[2]
 end
 
 --[[
 
 
 
-]]--
+]]
 function ParsedData.parseExtraArgumentDescription(parsedData, allParsedDatas, originalMessage)
-    if not (parsedData.hasTextArgument) then
-        if not (parsedData.requiresQualifier) then
-            table.insert(parsedData.extraArgumentDescription, parsedData.qualifierDescription)
-            parsedData.qualifierDescription = nil
-        end
+	if not parsedData.hasTextArgument then
+		if not parsedData.requiresQualifier then
+			table.insert(parsedData.extraArgumentDescription, parsedData.qualifierDescription)
+			parsedData.qualifierDescription = nil
+		end
 
-        for _, extraArgument in pairs(parsedData.extraArgumentDescription) do
-            for _, capture in pairs(parsedData.commandCaptures) do
-                for _, arguments in pairs(capture) do
-                    table.insert(arguments, extraArgument)
-                end
-            end
-        end
-    else
-        local foundIndex = 0
+		for _, extraArgument in pairs(parsedData.extraArgumentDescription) do
+			for _, capture in pairs(parsedData.commandCaptures) do
+				for _, arguments in pairs(capture) do
+					table.insert(arguments, extraArgument)
+				end
+			end
+		end
+	else
+		local foundIndex = 0
 
 		for counter = 1, #allParsedDatas + 1 do
 			foundIndex = select(2, string.find(originalMessage, ";", foundIndex + 1))
 		end
 
-		foundIndex = select(2, string.find(originalMessage, parsedData.commandDescription, foundIndex + 1, true)) + 2
+		foundIndex = select(2, string.find(originalMessage, parsedData.commandDescription, foundIndex + 1, true))
+			+ 2
 
-		if (parsedData.requiresQualifier) then
-			foundIndex = select(2, string.find(originalMessage, parsedData.qualifierDescription, foundIndex, true)) + 2
+		if parsedData.requiresQualifier then
+			foundIndex = select(2, string.find(originalMessage, parsedData.qualifierDescription, foundIndex, true))
+				+ 2
 		end
 
 		local extraArgument = string.sub(originalMessage, foundIndex)
@@ -296,11 +292,9 @@ function ParsedData.parseExtraArgumentDescription(parsedData, allParsedDatas, or
 				table.insert(arguments, extraArgument)
 			end
 		end
-    end
+	end
 end
 
 --// INSTRUCTIONS //--
-
-
 
 return ParsedData

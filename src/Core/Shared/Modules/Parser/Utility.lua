@@ -6,17 +6,15 @@ local MAIN = require(game.Nanoblox)
 
 --// VARIABLES //--
 
-
-
 --// FUNCTIONS //--
 
 --[[
 
 Return all matches in a source using a pattern.
 
-]]--
+]]
 function Utility.getMatches(source, pattern)
-    local matches = {}
+	local matches = {}
 
 	for match in string.gmatch(source, pattern) do
 		table.insert(matches, match)
@@ -37,9 +35,9 @@ Returns all the captures found in a source using a sortedKeywords table and
 also returns residue (anything left behind in the source after extracting
 captures).
 
-]]--
+]]
 function Utility.getCaptures(source, sortedKeywords)
-    local parserModule = MAIN.modules.Parser
+	local parserModule = MAIN.modules.Parser
 
 	source = source:lower()
 	--// Find all the captures
@@ -48,36 +46,34 @@ function Utility.getCaptures(source, sortedKeywords)
 	--// keywords so we solve the issue of large keywords made of smaller ones
 	for counter = 1, #sortedKeywords do
 		--// If the source became empty or whitespace then continue
-		if (string.match(source, "^%s*$") ~= nil) then break end
+		if (string.match(source, "^%s*$") ~= nil) then
+			break
+		end
 
 		--// If the keyword is empty or whitespace (maybe default value?) then continue
 		--// to the next iteration
 		local keyword = sortedKeywords[counter]:lower()
-		if (string.match(keyword, "^%s*$") ~= nil) then continue end
+		if (string.match(keyword, "^%s*$") ~= nil) then
+			continue
+		end
 		keyword = Utility.escapeSpecialCharacters(keyword)
 
 		--// Captures with argument capsules are stripped away from the source
-		source = string.gsub(
-			source,
-			string.format("(%s)%s", keyword, parserModule.patterns.capsuleFromKeyword),
-			function(keyword, arguments)
+		source =
+			string.gsub(source, string.format("(%s)%s", keyword, parserModule.patterns.capsuleFromKeyword), function(keyword, arguments)
 				--// Arguments need to be separated as they are the literal string
 				--// in the capsule at this point
-				local separatedArguments = Utility.getMatches(arguments, parserModule.patterns.argumentsFromCollection)
-				table.insert(captures, {[keyword] = separatedArguments})
+				local separatedArguments =
+					Utility.getMatches(arguments, parserModule.patterns.argumentsFromCollection)
+				table.insert(captures, { [keyword] = separatedArguments })
 				return ""
-			end
-		)
+			end)
 		--// Only captures without argument capsules are left in the source and are
 		--// collected at this point
-		source = string.gsub(
-			source,
-			string.format("(%s)", keyword),
-			function(keyword)
-				table.insert(captures, {[keyword] = {}})
-				return ""
-			end
-		)
+		source = string.gsub(source, string.format("(%s)", keyword), function(keyword)
+			table.insert(captures, { [keyword] = {} })
+			return ""
+		end)
 	end
 
 	return captures, source
@@ -87,16 +83,24 @@ end
 
 
 
-]]--
+]]
 function Utility.escapeSpecialCharacters(source)
-    return source:gsub(
-		"([%.%%%^%$%(%)%[%]%+%*%-%?])",
-        "%%%1"
-	)
+	return source:gsub("([%.%%%^%$%(%)%[%]%+%*%-%?])", "%%%1")
+end
+
+--[[
+
+
+
+]]
+function Utility.ternary(condition, ifTrue, ifFalse)
+	if condition then
+		return ifTrue
+	else
+		return ifFalse
+	end
 end
 
 --// INSTRUCTIONS //--
-
-
 
 return Utility
