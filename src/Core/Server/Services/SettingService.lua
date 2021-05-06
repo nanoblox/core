@@ -17,7 +17,7 @@ function SettingsService.generateRecord(key)
 	local defaultRecords = {
 		---------------------------
 		["Player"] = {
-			prefixes = {","},
+			prefixes = {";"},
 			argCapsule = "(%s)",
 			collective = ",",
 			descriptorSeparator = "",

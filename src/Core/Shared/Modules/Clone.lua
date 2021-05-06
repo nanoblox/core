@@ -432,6 +432,7 @@ function Clone:watch(playerOrBasePart)
     else
         basePart = playerOrBasePart
     end
+    self.watchingPlayerOrBasePart = playerOrBasePart
 
     watchMaid:give(main.RunService.Stepped:Connect(function()
         local timeNow = os.clock()
@@ -494,16 +495,230 @@ function Clone:unwatch()
 	self._maid.watchMaid = nil
 end
 
-function Clone:moveTo(updateFrequency)
-	
+function Clone:_setScale(propertyName, value)
+    local sMaidName = ("scaleMaid%s"):format(propertyName)
+    local sMaid = main.modules.Maid.new()
+    self._maid[sMaidName] = sMaid
+    
+    local function updateScaleValue()
+        local humanoidDesc = self.humanoid:GetAppliedDescription()
+        humanoidDesc[propertyName] = value
+        self.humanoid:ApplyDescription(humanoidDesc)
+    end
+
+    local humanoidValueInstance = self.humanoid:FindFirstChild(propertyName) or self.humanoid:FindFirstChild("Body"..propertyName)
+    if humanoidValueInstance then
+        sMaid:give(humanoidValueInstance.Changed:Connect(function()
+            main.RunService.Heartbeat:Wait()
+            if self.watchingPlayerOrBasePart then
+                self:unwatch()
+            end
+            updateScaleValue()
+            main.RunService.Heartbeat:Wait()
+            self:watch(self.watchingPlayerOrBasePart)
+        end))
+    end
+    
+    updateScaleValue()
 end
 
-function Clone:follow(basePart)
+function Clone:setSize(number)
+	self:_setScale("DepthScale", number)
+    self:_setScale("HeadScale", number)
+    self:_setScale("HeightScale", number)
+    self:_setScale("WidthScale", number)
+end
+Clone.setScale = Clone.setSize
+Clone.setBodySize = Clone.setSize
+Clone.setBodyScale = Clone.setSize
+
+function Clone:setHeadSize(number)
+	self:_setScale("HeadScale", number)
+end
+Clone.setHeadScale = Clone.setHeadSize
+
+function Clone:setHeight(number)
+	self:_setScale("HeightScale", number)
+end
+
+function Clone:setWidth(number)
+	self:_setScale("WidthScale", number)
+end
+
+function Clone:setDepth(number)
+	self:_setScale("DepthScale", number)
+end
+
+function Clone:setBodyType(number)
+	self:_setScale("BodyTypeScale", number)
+end
+
+function Clone:setProportion(number)
+	self:_setScale("ProportionScale", number)
+end
+
+function Clone:moveTo(targetPosition)
 	
+    local pathMaid = main.modules.Maid.new()
+    self._maid.pathMaid = pathMaid
+    
+    local agentHrpSize = self.hrp.Size
+    local agentHead = self.clone.Head
+    local pathParams = {
+        AgentRadius = agentHrpSize.X,
+        AgentHeight = (agentHrpSize.Y  *2) + agentHead.Size.Y,
+        AgentCanJump = true,
+    }
+    local path = pathMaid:give(main.PathfindingService:CreatePath(pathParams))
+    local cloneHRP = self.clone.HumanoidRootPart
+    local cloneHumanoid = self.humanoid
+    
+    local waypoints = {}
+    local currentWaypointIndex = 1
+
+    self.reachedTarget = false
+
+    local function moveToWaypoint()
+        local currentWaypoint = waypoints[currentWaypointIndex]
+        if currentWaypoint then
+            local newPosition = currentWaypoint.Position
+            local hrpHeight = self.hrp.Size.Y
+            local stepHeight = newPosition.Y - (self.hrp.Position.Y - (hrpHeight * 1.5))
+            cloneHumanoid:MoveTo(currentWaypoint.Position)
+            if stepHeight >= 2 then
+                cloneHumanoid.Jump = true
+            end
+        end
+    end
+
+    local function computeWaypoints()
+        path:ComputeAsync(cloneHRP.Position, targetPosition)
+        currentWaypointIndex = 1
+        if path.Status == Enum.PathStatus.Success then
+            waypoints = path:GetWaypoints()
+
+            --[[
+            local r = math.random(1, 255)
+            local g = math.random(1, 255)
+            local b = math.random(1, 255)
+            for i, waypoint in pairs(waypoints) do
+                local part = pathMaid:give(Instance.new("Part"))
+                part.Name = "Waypoint"..i
+                part.Color = Color3.fromRGB(r, g, b)
+                part.Anchored = true
+                part.CanCollide = false
+                part.Transparency = 0.2
+                part.CFrame = CFrame.new(waypoint.Position)
+                part.Size = Vector3.new(2,2,2)
+                part.Parent = workspace
+            end
+            ---]]
+
+            moveToWaypoint()
+        else
+            main.modules.Thread.delay(1, function()
+                self.reachedTarget = true
+                self._maid.pathMaid = nil
+                cloneHumanoid:MoveTo(self.hrp.Position)
+            end)
+        end
+    end
+
+    local function onWaypointReached(reached)
+        if currentWaypointIndex == #waypoints then
+            self.reachedTarget = true
+            self._maid.pathMaid = nil
+            return
+        end
+        if reached then
+            currentWaypointIndex +=1
+        else
+            cloneHumanoid.Jump = true
+        end
+        moveToWaypoint()
+    end
+
+    local function onPathBlocked(blockedWaypointIndex)
+        if blockedWaypointIndex > currentWaypointIndex then
+            computeWaypoints()
+        end
+    end
+
+    main.modules.Thread.spawnNow(computeWaypoints)
+
+    pathMaid:give(path.Blocked:Connect(onPathBlocked))
+    pathMaid:give(cloneHumanoid.MoveToFinished:Connect(onWaypointReached))
+end
+
+function Clone:follow(playerOrBasePart)
+    local followMaid = main.modules.Maid.new()
+    self._maid.followMaid = followMaid
+
+	local basePart
+    if playerOrBasePart:IsA("Player") then
+        coroutine.wrap(function()
+            local currentChar = playerOrBasePart.Character or playerOrBasePart.CharacterAdded:Wait()
+            basePart = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:WaitForChild("HumanoidRootPart", 3)
+        end)()
+        followMaid:give(playerOrBasePart.CharacterAdded:Connect(function(newChar)
+            basePart = newChar:WaitForChild("HumanoidRootPart", 3)
+        end))
+    else
+        basePart = playerOrBasePart
+    end
+
+    local targetPosition = basePart.Position
+    local function getDistanceFromClone(positionOfTarget)
+        local clonePosition = self.hrp.Position
+        local normalisedClonePosition = Vector3.new(clonePosition.X, positionOfTarget.Y, clonePosition.Z)
+        local distanceFromClone = (positionOfTarget - normalisedClonePosition).Magnitude
+        return distanceFromClone
+    end
+
+    local function stillPresentCheck()
+        local stillPresent = basePart:FindFirstAncestorWhichIsA("Workspace") or basePart:FindFirstAncestorWhichIsA("ReplicatedStorage")
+        if not stillPresent then
+            self._maid.followMaid = nil
+            return false
+        end
+        return true
+    end
+
+    local REACTIVATE_DISTANCE = 4
+    local MAXIMUM_DISTANCE_DRIFT = 10
+    followMaid:give(self.humanoid.MoveToFinished:Connect(function()
+        if not stillPresentCheck() then return end
+        local newTargetPosition = basePart.Position
+        local distanceFromPreviousTarget = (newTargetPosition - targetPosition).Magnitude
+        local distanceFromClone = getDistanceFromClone(newTargetPosition)
+        targetPosition = newTargetPosition
+
+        if (self.reachedTarget and distanceFromClone > REACTIVATE_DISTANCE) or distanceFromPreviousTarget > MAXIMUM_DISTANCE_DRIFT then
+            self:moveTo(targetPosition)
+        elseif self.reachedTarget then
+            local nextCheck = 0
+            followMaid.positionChangedChecker = main.RunService.Heartbeat:Connect(function()
+                local timeNow = os.clock()
+                if timeNow >= nextCheck then
+                    nextCheck = timeNow + 0.5
+                    if not stillPresentCheck() then return end
+                    if basePart then
+                        newTargetPosition = basePart.Position
+                        distanceFromClone = getDistanceFromClone(newTargetPosition)
+                        if distanceFromClone > REACTIVATE_DISTANCE then
+                            followMaid.positionChangedChecker = nil
+                            self:moveTo(newTargetPosition)
+                        end
+                    end
+                end
+            end)
+        end
+    end))
+    self:moveTo(targetPosition)
 end
 
 function Clone:unfollow()
-	
+	self._maid.followMaid = nil
 end
 
 function Clone:destroy()

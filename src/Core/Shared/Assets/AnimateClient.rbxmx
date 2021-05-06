@@ -9,7 +9,7 @@
         <null>
         </null>
       </Content>
-      <BinaryString name="ScriptGuid"><![CDATA[ezU5RDE2NzY2LTlBMjUtNDk0QS1CQ0JDLTVERjg3Qjk2RTZBM30=]]></BinaryString>
+      <BinaryString name="ScriptGuid"><![CDATA[ezM0NEVEMkVELTgyOTQtNDk5OS04Qjk1LTEyNjhEQTQ3NUVCRX0=]]></BinaryString>
       <string name="Source"><![CDATA[local Character = script.CloneCharacter.Value
 local animateContainer = Instance.new("Folder")
 animateContainer.Name = "Animate"
@@ -596,9 +596,18 @@ end
 -------------------------------------------------------------------------------------------
 -- STATE CHANGE HANDLERS
 
+local heartbeat = game:GetService("RunService").Heartbeat
+local onRunningId = 0
 function onRunning(speed)
-	local movedDuringEmote =
-		userEmoteToRunThresholdChange and currentlyPlayingEmote and Humanoid.MoveDirection == Vector3.new(0, 0, 0)
+	onRunningId +=1
+	local currentRunningId = onRunningId
+	for i = 1,8 do
+		heartbeat:Wait()
+		if currentRunningId ~= onRunningId then
+			return
+		end
+	end
+	local movedDuringEmote = userEmoteToRunThresholdChange and currentlyPlayingEmote and Humanoid.MoveDirection == Vector3.new(0, 0, 0)
 	local speedThreshold = movedDuringEmote and Humanoid.WalkSpeed or 0.75
 	if speed > speedThreshold then
 		local scale = 16.0

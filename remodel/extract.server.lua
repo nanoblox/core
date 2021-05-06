@@ -1,6 +1,6 @@
 --[[
 This retrieves assets under NanobloxCore/ClientOrServerOrShared/Assets and writes them into the local repository.
-Ensure the rojo plugin is disconnected, then paste the following into the command line to execute:
+IMPORTANT: Ensure the rojo plugin is disconnected, then paste the following into the command line to execute:
 ```
 remodel run remodel/extract.server.lua
 ```
