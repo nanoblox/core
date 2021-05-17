@@ -96,13 +96,13 @@ Modifiers.array = {
 		order = 5,
 		description	= "Revokes all tasks that match the given command name(s) (and associated player targets if specified). To revoke a task across all servers, the 'global' modifier must be included.",
 		preAction = function(callerUserId, statement)
-			local Args = main.modules.Args
-			local targets = Args.dictionary.player:parse(statement.qualifiers, callerUserId)
+			local Args = main.modules.Parser.Args
+			local targets = Args.get("player"):parse(statement.qualifiers, callerUserId)
 			for commandName, _ in pairs(statement.commands) do
 				local command = main.services.CommandService.getCommand(commandName)
 				if command then
 					local firstCommandArg = command.args[1]
-					local firstArgItem = main.modules.Args.dictionary[firstCommandArg]
+					local firstArgItem = Args.get(firstCommandArg)
 					if firstArgItem.playerArg then
 						for _, plr in pairs(targets) do
 							main.services.TaskService.removeTasksWithCommandNameAndTargetUserId(commandName, plr.UserId)
@@ -243,10 +243,13 @@ Modifiers.array = {
 -- This means instead of scanning through the array to find a name match
 -- you can simply do ``Modifiers.dictionary.MODIFIER_NAME`` to return its item
 Modifiers.dictionary = {}
+Modifiers.lowerCaseNameAndAliasToModifierDictionary = {}
 for _, item in pairs(Modifiers.array) do
 	Modifiers.dictionary[item.name] = item
+	Modifiers.lowerCaseNameAndAliasToModifierDictionary[item.name:lower()] = item
 	for _, alias in pairs(item.aliases) do
 		Modifiers.dictionary[alias] = item
+		Modifiers.lowerCaseNameAndAliasToModifierDictionary[alias:lower()] = item
 	end
 end
 
@@ -272,6 +275,13 @@ for _, item in pairs(Modifiers.sortedOrderArray) do
 	if item.action then
 		table.insert(Modifiers.sortedOrderArrayWithOnlyAction, item)
 	end
+end
+
+
+
+-- METHODS
+function Modifiers.get(name)
+	return Modifiers.lowerCaseNameAndAliasToModifierDictionary[name:lower()]
 end
 
 

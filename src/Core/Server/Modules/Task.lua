@@ -112,6 +112,8 @@ function Task.new(properties)
 		end)
 	end
 
+	print("CREATED TASK: ", self)
+
 	return self
 end
 
@@ -124,7 +126,7 @@ function Task:begin()
 
 	local sortedActionModifiers = {}
 	local totalModifiers = 0
-	for _, actionModifier in pairs(main.modules.Modifiers.sortedOrderArray) do
+	for _, actionModifier in pairs(main.modules.Parser.Modifiers.sortedOrderArray) do
 		if self.modifiers[actionModifier.name] and actionModifier.action then
 			table.insert(sortedActionModifiers, actionModifier)
 			totalModifiers += 1
@@ -194,11 +196,12 @@ function Task:execute()
 	local firstArgItem
 	if self.args then
 		firstCommandArg = command.args[1]
-		firstArgItem = main.modules.Args.dictionary[firstCommandArg]
+		firstArgItem = main.modules.Parser.Args.get(firstCommandArg)
 	end
 
 	local invokedCommand = false
 	local function invokeCommand(parseArgs, ...)
+		print("invokeCommand = ", parseArgs, ...)
 		local additional = table.pack(...)
 		invokedCommand = true
 		
@@ -216,7 +219,7 @@ function Task:execute()
 			end
 			for i, argString in pairs(self.args) do
 				local argName = command.args[i]
-				local argItem = main.modules.Args.dictionary[argName]
+				local argItem = main.modules.Parser.Args.get(argName)
 				table.insert(promises, argItem:parse(argString, self.callerUserId, self.targetUserId)
 					:andThen(function(parsedArg)
 						table.insert(parsedArgs, parsedArg)

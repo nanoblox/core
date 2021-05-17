@@ -17,8 +17,15 @@ Args.array = {
 		parse = function(self, qualifiers, callerUserId)
 			local targetsDict = {} -- IF THIS IS COMPLETELY EMPTY THEN DEFAULY TO 'ME' BUT CONSIDER HOW IT IMPACTS OTHER PLAYERS ONES
 			for qualifierName, qualifierArgs in pairs(qualifiers or {}) do
-				local qualifierDetail = main.modules.Qualifiers.dictionary[qualifierName]
-				local targets = qualifierDetail.getTargets(callerUserId, table.unpack(qualifierArgs))
+				local Qualifiers = main.modules.Parser.Qualifiers
+				local qualifierDetail = Qualifiers.get(qualifierName)
+				local targets
+				if not qualifierDetail then
+					qualifierDetail = Qualifiers.get("users")
+					targets = qualifierDetail.getTargets(callerUserId, qualifierName)
+				else
+					targets = qualifierDetail.getTargets(callerUserId, table.unpack(qualifierArgs))
+				end
 				for _, plr in pairs(targets) do
 					targetsDict[plr] = true
 				end
@@ -42,7 +49,7 @@ Args.array = {
 		playerArg = true,
 		executeForEachPlayer = false,
 		parse = function(self, qualifiers, callerUserId)
-			return main.modules.Args.dictionary.player:parse(qualifiers, callerUserId)
+			return main.modules.Parser.Args.get("player"):parse(qualifiers, callerUserId)
 		end,
 	};
 	
@@ -62,7 +69,7 @@ Args.array = {
 			if defaultToAll then
 				return main.Players:GetPlayers()
 			end
-			return main.modules.Args.dictionary.player:parse(qualifiers, callerUserId)
+			return main.modules.Parser.Args.get("player"):parse(qualifiers, callerUserId)
 		end,
 	};
 	
@@ -78,7 +85,7 @@ Args.array = {
 		hidden = true,
 		executeForEachPlayer = false,
 		parse = function(self, qualifiers, callerUserId)
-			return main.modules.Args.dictionary.optionalplayer:parse(qualifiers, callerUserId)
+			return main.modules.Parser.Args.get("optionalplayer"):parse(qualifiers, callerUserId)
 		end,
 	};
 	
@@ -358,10 +365,13 @@ Args.array = {
 -- This means instead of scanning through the array to find a name match
 -- you can simply do ``Args.dictionary.ARGUMENT_NAME`` to return its item
 Args.dictionary = {}
+Args.lowerCaseNameAndAliasToArgDictionary = {}
 for _, item in pairs(Args.array) do
 	Args.dictionary[item.name] = item
+	Args.lowerCaseNameAndAliasToArgDictionary[item.name:lower()] = item
 	for _, alias in pairs(item.aliases) do
 		Args.dictionary[alias] = item
+		Args.lowerCaseNameAndAliasToArgDictionary[alias:lower()] = item
 	end
 end
 
@@ -373,6 +383,13 @@ for _, item in pairs(Args.array) do
 	if item.playerArg and item.executeForEachPlayer then
 		Args.executeForEachPlayerArgsDictionary[item.name] = true
 	end
+end
+
+
+
+-- METHODS
+function Args.get(name)
+	return Args.lowerCaseNameAndAliasToArgDictionary[name:lower()]
 end
 
 

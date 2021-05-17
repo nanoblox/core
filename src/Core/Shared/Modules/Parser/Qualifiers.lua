@@ -85,7 +85,7 @@ Qualifiers.array = {
 			end
 			local pool = {}
 			for _, subQualifier in pairs(subQualifiers) do
-				local subPool = ((Qualifiers.dictionary[subQualifier] or Qualifiers.defaultQualifier).getTargets(callerUserId)) or {}
+				local subPool = ((Qualifiers.get(subQualifier) or Qualifiers.defaultQualifier).getTargets(callerUserId)) or {}
 				for _, plr in pairs(subPool) do
 					table.insert(pool, plr)
 				end
@@ -427,10 +427,13 @@ Qualifiers.array = {
 -- This means instead of scanning through the array to find a name match
 -- you can simply do ``Qualifiers.dictionary.QUALIFIER_NAME`` to return its item
 Qualifiers.dictionary = {}
+Qualifiers.lowerCaseNameAndAliasToArgDictionary = {}
 for _, item in pairs(Qualifiers.array) do
 	Qualifiers.dictionary[item.name] = item
+	Qualifiers.lowerCaseNameAndAliasToArgDictionary[item.name:lower()] = item
 	for _, alias in pairs(item.aliases) do
 		Qualifiers.dictionary[alias] = item
+		Qualifiers.lowerCaseNameAndAliasToArgDictionary[alias:lower()] = item
 	end
 end
 
@@ -438,6 +441,13 @@ end
 
 -- OTHER
 Qualifiers.defaultQualifier = Qualifiers.dictionary["user"]
+
+
+
+-- METHODS
+function Qualifiers.get(name)
+	return Qualifiers.lowerCaseNameAndAliasToArgDictionary[name:lower()]
+end
 
 
 
