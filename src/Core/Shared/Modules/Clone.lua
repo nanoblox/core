@@ -13,7 +13,7 @@ Clone.replicatedStorage = nil
 
 
 -- CONSTRUCTOR
-function Clone.new(characterOrUserId, spawnCFrame)
+function Clone.new(playerOrCharacterOrUserId, spawnCFrame)
 	local self = {}
 	setmetatable(self, Clone)
 	
@@ -32,8 +32,8 @@ function Clone.new(characterOrUserId, spawnCFrame)
     self.humanoid = nil
     self.destroyed = false
     self.destroyedSignal = main.modules.Signal.new()
-
-	self:become(characterOrUserId)
+    
+	self:become(playerOrCharacterOrUserId)
     
 	return self
 end
@@ -42,7 +42,10 @@ end
 
 -- METHODS
 function Clone:become(characterOrUserIdOrUsername)
-	self.character = typeof(characterOrUserIdOrUsername) == "Instance" and characterOrUserIdOrUsername
+    if typeof(characterOrUserIdOrUsername) == "Instance" and characterOrUserIdOrUsername:IsA("Player") then
+        characterOrUserIdOrUsername = characterOrUserIdOrUsername.Character
+    end
+    self.character = typeof(characterOrUserIdOrUsername) == "Instance" and characterOrUserIdOrUsername
 	self.userId = typeof(characterOrUserIdOrUsername) == "number" and characterOrUserIdOrUsername
     self.username = typeof(characterOrUserIdOrUsername) == "string" and characterOrUserIdOrUsername
 
