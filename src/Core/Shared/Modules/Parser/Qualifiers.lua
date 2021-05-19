@@ -100,7 +100,7 @@ Qualifiers.array = {
 	-----------------------------------
 	{
 		name = "others",
-		aliases = {},
+		aliases = {"other"},
 		multi = true,
 		description	= "Every player in a server except you.",
 		getTargets = function(callerUserId)

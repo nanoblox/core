@@ -98,6 +98,7 @@ Args.array = {
 		description	= "",
 		defaultValue = 0,
 		parse = function(self, textToFilter, callerUserId, targetUserId)
+			-- This is asynchronous
 			local _, value = main.modules.ChatUtil.filterText(callerUserId, targetUserId, textToFilter):await()
 			return value
 		end,
@@ -125,7 +126,7 @@ Args.array = {
 		description	= "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
+			return 666
 		end,
 	};
 	
@@ -193,6 +194,7 @@ Args.array = {
 			-- predifined terms like 'blue', 'red', etc
 			-- RGB codes such as '100,110,120'
 			-- hex codes such as #FF5733
+			return Color3.fromRGB(50,100,150)
 		end,
 	};
 	

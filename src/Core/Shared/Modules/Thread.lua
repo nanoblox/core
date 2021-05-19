@@ -33,7 +33,7 @@ local function createThread()
 	end
 	local function checkDead(state)
 		if isDead(state) then
-			error("Cannot call a dead thread!")
+			warn("Cannot call a dead thread!")
 		end
 	end
 	
@@ -62,7 +62,6 @@ local function createThread()
 	thread.Cancel = thread.cancel
 	
 	function thread:disconnect(incomplete)
-		checkDead(thread.state)
 		local originalState = thread.state
 		local newState
 		if isDead(originalState) then

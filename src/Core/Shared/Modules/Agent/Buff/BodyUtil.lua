@@ -39,6 +39,7 @@ local bodyGroups = {
         ClassName = "Accessories"
     },
 }
+BodyUtil.bodyGroups = bodyGroups
 
 local FAKE_GROUP_NAME = "AgentFakeBodyParts"
 

@@ -41,25 +41,6 @@ function Task.new(properties)
 	self.replicationsThisSecond = 0
 	self.buffs = {}
 
-	-- This dynamically creates agents for client commands
-	if main.isServer then
-		local user = main.modules.PlayerStore:getUser(self.targetPlayer)
-		if user then
-			self.agent = user.agent
-		end
-	else
-		local agentDetail = main.clientCommandAgents[self.targetPlayer]
-		if not agentDetail then
-			agentDetail = {
-				agent = main.modules.Agent.new(self.targetPlayer),
-				activeAreas = 0,
-			}
-			main.clientCommandAgents[self.targetPlayer] = agentDetail
-		end
-		agentDetail.activeAreas +=1
-		self.agent = agentDetail.agent
-	end
-
 	local qualifierPresent = false
 	if self.qualifiers then
 		for k,v in pairs(self.qualifiers) do
@@ -112,7 +93,28 @@ function Task.new(properties)
 		end)
 	end
 
-	print("CREATED TASK: ", self)
+	-- This retrieves the agent
+	if main.isServer then
+		-- This determines the tasks agent when the player arg is present as the first arg
+		local user = main.modules.PlayerStore:getUser(self.targetPlayer)
+		print("USER 1", self.targetPlayer)
+		if user then
+			print("USER 2", user.agent)
+			self.agent = user.agent
+		end
+	else
+		-- This dynamically creates agents for client commands
+		local agentDetail = main.clientCommandAgents[self.targetPlayer]
+		if not agentDetail then
+			agentDetail = {
+				agent = main.modules.Agent.new(self.targetPlayer),
+				activeAreas = 0,
+			}
+			main.clientCommandAgents[self.targetPlayer] = agentDetail
+		end
+		agentDetail.activeAreas +=1
+		self.agent = agentDetail.agent
+	end
 
 	return self
 end
@@ -136,9 +138,13 @@ function Task:begin()
 	-- If no modifiers present, simply call execute once then kill the task
 	if totalModifiers == 0 then
 		self:execute()
-			:andThen(function()
+			--[[:andThen(function()
+				print("KILL HERE: ", self.persistence)
 				self:kill()
 			end)
+			:catch(function(warning)
+				warn(warning)
+			end)--]]
 		return
 	end
 	
@@ -176,6 +182,7 @@ function Task:begin()
 		if self.totalExecutionThreads > 0 then
 			self.executionThreadsCompleted:Wait()
 		end
+		print("self.persistence = ", self.persistence)
 		if self.persistence == main.enum.Persistence.None then
 			self:kill()
 		end
@@ -201,7 +208,7 @@ function Task:execute()
 
 	local invokedCommand = false
 	local function invokeCommand(parseArgs, ...)
-		print("invokeCommand = ", parseArgs, ...)
+		print("invokeCommand 1: ", self.commandName)
 		local additional = table.pack(...)
 		invokedCommand = true
 		
@@ -217,14 +224,24 @@ function Task:execute()
 				parsedArgs = {}
 				additional[1] = parsedArgs
 			end
-			for i, argString in pairs(self.args) do
+			local i = (additional[1] ~= nil and 2) or 1
+			for _, argString in pairs(self.args) do
 				local argName = command.args[i]
 				local argItem = main.modules.Parser.Args.get(argName)
-				table.insert(promises, argItem:parse(argString, self.callerUserId, self.targetUserId)
+				if argItem.playerArg then
+					argString = {
+						[argString] = {}
+					}
+				end
+				local promise = main.modules.Promise.new(function(resolve, reject)
+					resolve(argItem:parse(argString, self.callerUserId, self.targetUserId))
+				end)
+				table.insert(promises, promise
 					:andThen(function(parsedArg)
 						table.insert(parsedArgs, parsedArg)
 					end)
 				)
+				i += 1
 			end
 		end
 		main.modules.Promise.all(promises)
@@ -232,8 +249,11 @@ function Task:execute()
 				filteredAllArguments = true
 			end)
 		
+		local finishedInvokingCommand = false
+		self:track(main.modules.Thread.delayUntil(function() return finishedInvokingCommand == true end))
 		self:track(main.modules.Thread.delayUntil(function() return filteredAllArguments == true end, function()
 			command:invoke(self, table.unpack(additional))
+			finishedInvokingCommand = true
 		end))
 	end
 	
@@ -290,7 +310,6 @@ function Task:execute()
 		end
 		self.executionCompleted:Fire()
 		self.executing = false
-		self:clearBuffs()
 		resolve()
 	end)
 end
@@ -315,6 +334,7 @@ function Task:track(thread, countPropertyName, completedSignalName)
 	self[newCountPropertyName] += 1
 	main.modules.Thread.spawnNow(function()
 		thread.Completed:Wait() --thread.completed:Wait()
+		main.RunService.Heartbeat:Wait()
 		self[newCountPropertyName] -= 1
 		if self[newCountPropertyName] == 0 then
 			self[newCompletedSignalName]:Fire()
@@ -340,6 +360,7 @@ function Task:resume()
 end
 
 function Task:kill()
+	print("Kill task: ", self.commandName)
 	if self.isDead then return end
 	if not self.isDead and self.command.revoke then
 		self.command:revoke()
@@ -376,8 +397,12 @@ end
 function Task:buff(effect, value, optionalTweenInfo)
 	local agent = self.agent
 	if agent then
-		local buff = agent:buff(effect):set(value, optionalTweenInfo)
+		local buff = agent:buff(effect)
+		if value then
+			buff:set(value, optionalTweenInfo)
+		end
 		table.insert(self.buffs, buff)
+		return buff
 	end
 end
 

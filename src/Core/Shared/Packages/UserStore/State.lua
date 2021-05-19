@@ -129,7 +129,7 @@ function State:getOrSetup(...)
 	for i, key in pairs(pathwayTable) do
 		local nextValue = value[key]
 		if type(nextValue) ~= "table" then
-			nextValue = value:set(key, {})
+			nextValue = value:set(key, {}, true)
 		end
 		value = nextValue
 	end
@@ -169,12 +169,12 @@ function State:len()
 	return count
 end
 
-function State:set(stat, value)
+function State:set(stat, value, forceConvertTableToState)
 	local oldValue = self[stat]
-	if type(value) == "table" and self._convertDescendantsToTables then--and not value.new then
+	if type(value) == "table" and (self._convertDescendantsToTables or forceConvertTableToState) then--and not value.new then
 		-- Convert tables and descending tables into States unless an object
 		local thisMaid = activeTables[self].maid
-		value = thisMaid:give(State.new(value, true))
+		value = thisMaid:give(State.new(value, self._convertDescendantsToTables))
 	elseif value == nil and type(oldValue) == "table" and oldValue.isState then
 		-- Destroy State and descending States
 		oldValue:destroy()

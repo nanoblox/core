@@ -118,7 +118,7 @@ function CommandService.getCommand(name)
 	end
 	return command
 end
-
+ 
 function CommandService.getCommands()
 	return CommandService:getRecords()
 end
@@ -188,7 +188,6 @@ function CommandService.executeStatement(callerUserId, statement)
 	statement.qualifiers = statement.qualifiers or {}
 	----
 	local tasks = {}
-	print("Execute statement 1")
 	local Modifiers = main.modules.Parser.Modifiers
 	for modifierName, _ in pairs(statement.modifiers) do
 		local modifierItem = Modifiers.get(modifierName)
@@ -197,18 +196,15 @@ function CommandService.executeStatement(callerUserId, statement)
 			return tasks
 		end
 	end
-	print("Execute statement 2")
 	local Args = main.modules.Parser.Args
 	local isPermModifier = statement.modifiers.perm
 	local isGlobalModifier = statement.modifiers.wasGlobal
 	for commandName, arguments in pairs(statement.commands) do
-		print("Executing command... ", commandName)
 		local command = CommandService.getCommand(commandName)
-		print("command = ", command)
 		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(command.args[1])]
 		local TaskService = main.services.TaskService
 		local properties = TaskService.generateRecord()
-		properties.callerUserId = statement.callerUserId or properties.callerUserId
+		properties.callerUserId = callerUserId
 		properties.commandName = commandName
 		properties.args = arguments or properties.args
 		properties.modifiers = statement.modifiers
@@ -232,7 +228,6 @@ function CommandService.executeStatement(callerUserId, statement)
 		else
 			splitIntoUsers = executeForEachPlayerFirstArg
 		end
-		print("Creating tasks...")
 		if not splitIntoUsers then
 			properties.qualifiers = statement.qualifiers or properties.qualifiers
 			table.insert(tasks, main.services.TaskService.createTask(addToPerm, properties))
