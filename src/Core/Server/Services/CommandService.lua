@@ -191,9 +191,11 @@ function CommandService.executeStatement(callerUserId, statement)
 	local Modifiers = main.modules.Parser.Modifiers
 	for modifierName, _ in pairs(statement.modifiers) do
 		local modifierItem = Modifiers.get(modifierName)
-		local continueExecution = modifierItem.preAction(callerUserId, statement)
-		if not continueExecution then
-			return tasks
+		if modifierItem then
+			local continueExecution = modifierItem.preAction(callerUserId, statement)
+			if not continueExecution then
+				return tasks
+			end
 		end
 	end
 	local Args = main.modules.Parser.Args

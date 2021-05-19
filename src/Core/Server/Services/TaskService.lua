@@ -18,6 +18,17 @@ local Signal = main.modules.Signal.new()
 
 -- START
 function TaskService.start()
+	TaskService.callerLeftSender = main.services.GlobalService.createSender("callerLeft")
+	TaskService.callerLeftReceiver = main.services.GlobalService.createReceiver("callerLeft")
+	TaskService.callerLeftReceiver.onGlobalEvent:Connect(function(callerUserId)
+		local tasksNow = TaskService.getTasks()
+		for _, task in pairs(tasksNow) do
+			if task.callerUserId == callerUserId and not task.isDead then
+				task.callerLeft:Fire()
+			end
+		end
+	end)
+
 	TaskService.remotes.replicationRequest.onServerEvent:Connect(function(player, taskUID, targetPool, packedArgs, packedData)
 		local task = TaskService.getTask(taskUID)
 		local clockTime = os.clock()
