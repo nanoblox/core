@@ -69,7 +69,7 @@ function Clone:become(characterOrUserIdOrUsername)
             end
             local success, description = pcall(function() return main.Players:GetHumanoidDescriptionFromUserId(userId) end)
             if success and not self.destroyed then
-                clone.Humanoid:ApplyDescription(description)
+                self:applyHumanoidDescription(description)
             end
         end)
     end
@@ -180,7 +180,7 @@ function Clone:become(characterOrUserIdOrUsername)
             local humanoid = self.character:FindFirstChild("Humanoid")
             local description = humanoid and humanoid:GetAppliedDescription()
             if description then
-                clone.Humanoid:ApplyDescription(description)
+                self:applyHumanoidDescription(description)
                 clone.Humanoid.DisplayName = humanoid.DisplayName
             end
             self.clone.Name = self.character.Name
@@ -498,29 +498,72 @@ function Clone:unwatch()
 	self._maid.watchMaid = nil
 end
 
+local humanoidDescriptionCount = 0
+local humanoidDescription
+local applyingHumanoidDescription = false
+function Clone:modifyHumanoidDescription(propertyName, value)
+	humanoidDescriptionCount += 1
+	local myCount = humanoidDescriptionCount
+	local humanoid = self.humanoid
+	if not humanoidDescription then
+		humanoidDescription = humanoid:GetAppliedDescription()
+	end
+    if propertyName then
+	    humanoidDescription[propertyName] = value
+    end
+    coroutine.wrap(function()
+		main.RunService.Heartbeat:Wait()
+		if humanoidDescriptionCount == myCount and not applyingHumanoidDescription then
+			local iterations = 0
+			applyingHumanoidDescription = true
+			repeat
+				main.RunService.Heartbeat:Wait()
+				pcall(function() humanoid:ApplyDescription(humanoidDescription) end)
+				iterations += 1
+			until propertyName == nil or humanoid:GetAppliedDescription()[propertyName] == humanoidDescription[propertyName] or iterations == 10
+			applyingHumanoidDescription = false
+			humanoidDescription = nil
+		end
+	end)()
+end
+
+function Clone:applyHumanoidDescription(newDesc)
+    humanoidDescription = newDesc
+    self:modifyHumanoidDescription()
+end
+
 function Clone:_setScale(propertyName, value)
     local sMaidName = ("scaleMaid%s"):format(propertyName)
     local sMaid = main.modules.Maid.new()
     self._maid[sMaidName] = sMaid
     
     local function updateScaleValue()
-        local humanoidDesc = self.humanoid:GetAppliedDescription()
-        humanoidDesc[propertyName] = value
-        self.humanoid:ApplyDescription(humanoidDesc)
+        self:modifyHumanoidDescription(propertyName, value)
     end
 
-    local humanoidValueInstance = self.humanoid:FindFirstChild(propertyName) or self.humanoid:FindFirstChild("Body"..propertyName)
-    if humanoidValueInstance then
+    local function trackHumanoidValueInstance(humanoidValueInstance)
         sMaid:give(humanoidValueInstance.Changed:Connect(function()
             main.RunService.Heartbeat:Wait()
-            if self.watchingPlayerOrBasePart then
+            local watchingPart = self.watchingPlayerOrBasePart
+            if watchingPart then
                 self:unwatch()
             end
             updateScaleValue()
             main.RunService.Heartbeat:Wait()
-            self:watch(self.watchingPlayerOrBasePart)
+            if watchingPart then
+                self:watch(watchingPart)
+            end
         end))
     end
+    local humanoidValueInstance = self.humanoid:FindFirstChild(propertyName) or self.humanoid:FindFirstChild("Body"..propertyName)
+    if humanoidValueInstance then
+        trackHumanoidValueInstance(humanoidValueInstance)
+    end
+    sMaid:give(self.humanoid.ChildAdded:Connect(function(child)
+        if child.Name == propertyName or child.Name == "Body"..propertyName then
+            trackHumanoidValueInstance(child)
+        end
+    end))
     
     updateScaleValue()
 end
