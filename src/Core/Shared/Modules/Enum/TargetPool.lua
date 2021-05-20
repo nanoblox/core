@@ -2,7 +2,7 @@ local players = game:GetService("Players")
 local function getArrayOfPlayers(definedPool, criteria)
 	local playersArray = {}
 	local newDefinedPool = definedPool or players:GetPlayers()
-	local isAnArray = definedPool[1]
+	local isAnArray = newDefinedPool[1]
 	local function check(player)
 		if criteria(player) then
 			table.insert(playersArray, player)

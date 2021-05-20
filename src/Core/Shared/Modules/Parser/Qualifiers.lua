@@ -20,8 +20,8 @@ Qualifiers.array = {
 	
 	-----------------------------------
 	{
-		name = "users",
-		aliases = {"user"},
+		name = "user",
+		aliases = {"users"},
 		hidden = true,
 		multi = false,
 		description	= "Default action, returns players with matching shorthand names.",

@@ -26,7 +26,7 @@ function Task.new(properties)
 		self[k] = v
 	end
 	
-	self.command = (main.isServer and main.services.CommandService.getCommand(self.commandName)) or main.modules.ClientCommands[self.commandName]
+	self.command = (main.isServer and main.services.CommandService.getCommand(self.commandName)) or main.modules.ClientCommands.get(self.commandName)
 	self.threads = {}
 	self.isPaused = false
 	self.isDead = false
@@ -274,7 +274,7 @@ function Task:execute()
 		local finishedInvokingCommand = false
 		self:track(main.modules.Thread.delayUntil(function() return finishedInvokingCommand == true end))
 		self:track(main.modules.Thread.delayUntil(function() return filteredAllArguments == true end, function()
-			command:invoke(self, table.unpack(additional))
+			command.invoke(self, table.unpack(additional))
 			finishedInvokingCommand = true
 		end))
 	end
@@ -282,7 +282,7 @@ function Task:execute()
 	main.modules.Thread.spawnNow(function()
 
 		-- If client task, execute with task.clientArgs
-		if self.isClient then
+		if main.isClient then
 			return invokeCommand(false, table.unpack(self.clientArgs))
 		end
 
@@ -382,10 +382,13 @@ function Task:resume()
 end
 
 function Task:kill()
-	print("Kill task: ", self.commandName)
 	if self.isDead then return end
 	if not self.isDead and self.command.revoke then
-		self.command:revoke()
+		if self.revokeArguments then
+			self.command.revoke(self, table.unpack(self.revokeArguments))
+		else
+			self.command.revoke(self)
+		end
 	end
 	self.isDead = true
 	self:clearBuffs()
@@ -425,6 +428,21 @@ function Task:delayUntil(criteria, func, ...)
 	return self:track(main.modules.Thread.delayUntil(criteria, func, ...))
 end
 
+-- An abstraction of ``task:track(main.modules.Thread.delayLoop(intervalTimeOrType, func, ...))``
+function Task:delayLoop(intervalTimeOrType, func, ...)
+	return self:track(main.modules.Thread.delayLoop(intervalTimeOrType, func, ...))
+end
+
+-- An abstraction of ``task:track(main.modules.Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...))``
+function Task:delayLoopUntil(intervalTimeOrType, criteria, func, ...)
+	return self:track(main.modules.Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...))
+end
+
+-- An abstraction of ``task:track(main.modules.Thread.delayLoopFor(intervalTimeOrType, iterations, func, ...))``
+function Task:delayLoopFor(intervalTimeOrType, iterations, func, ...)
+	return self:track(main.modules.Thread.delayLoopFor(intervalTimeOrType, iterations, func, ...))
+end
+
 -- An abstraction of ``task.agent:buff(...)``
 function Task:buff(effect, value, optionalTweenInfo)
 	local agent = self.agent
@@ -457,17 +475,17 @@ function Task:_invoke(playersArray, ...)
 
 	local TIMEOUT_MAX = 90
 	local GROUP_TIMEOUT = 3
-	local GROUP_TIMEOUT_PERCENT = 0.9
+	local GROUP_TIMEOUT_PERCENT = 0.8
 	-- This invokes all targeted players to execute the corresponding client command
 	-- If no persistence, then wait until these clients have completed their client sided execution before ending the server task
 	-- To prevent abuse:
 		-- 1. Cap a timeout of TIMEOUT_MAX seconds. If not heard back after this time, force end invocation
-		-- 2. As soon as GROUP_TIMEOUT_PERCENT of clients (rounded down) have responded, wait GROUP_TIMEOUT then automatically force end all remaining invocations
+		-- 2. As soon as GROUP_TIMEOUT_PERCENT of clients have responded, wait GROUP_TIMEOUT then automatically force end all remaining invocations
 		-- 3. If a player leaves its invocation is automatically ended
 	
 	local promises = {}
 	local killAfterExecution = self.persistence == main.enum.Persistence.None
-	local timeoutValue = (killAfterExecution and 60) or 0
+	local timeoutValue = (killAfterExecution and TIMEOUT_MAX) or 0
 	local totalClients = #playersArray
 	local responses = 0
 	self:track(main.modules.Thread.delayUntil(function() return responses == totalClients end)) -- This keeps the task alive until the client execution has complete or timeout exceeded
@@ -487,19 +505,25 @@ function Task:_invoke(playersArray, ...)
 			:finally(function()
 				responses += 1
 				if killAfterExecution then
+					main.RunService.Heartbeat:Wait()
 					self.trackingClients[player] = nil
 				end
 			end)
 		)
 	end
 	local minimumResponses = math.floor(totalClients * GROUP_TIMEOUT_PERCENT)
+	if minimumResponses < 1 then
+		minimumResponses = 1
+	end
 	main.modules.Promise.some(promises, minimumResponses)
 		:finally(function()
-			main.modules.Thread.delay(GROUP_TIMEOUT, function()
-				for _, promise in pairs(promises) do
-					promise:cancel()
-				end
-			end)
+			if responses ~= totalClients then
+				main.modules.Thread.delay(GROUP_TIMEOUT, function()
+					for _, promise in pairs(promises) do
+						promise:cancel()
+					end
+				end)
+			end
 		end)
 end
 
@@ -518,40 +542,52 @@ function Task:invokeAllClients(...)
 	self:_invoke(playersArray, ...)
 end
 
-function Task:_revoke(playersArray)
+function Task:invokeFutureClients(...)
+	local args = table.pack(...)
+	self.maid:give(main.Players.PlayerAdded:Connect(function(player)
+		self:invokeClient(player, table.unpack(args))
+	end))
+end
+
+function Task:invokeAllAndFutureClients(...)
+	self:invokeAllClients(...)
+	self:invokeFutureClients(...)
+end
+
+function Task:_revoke(playersArray, ...)
 	assert(main.isServer, SERVER_ONLY_WARNING)
 	for _, player in pairs(playersArray) do
-		main.services.TaskService.remotes.revokeClientCommand:fireClient(player, self.UID)
+		main.services.TaskService.remotes.revokeClientCommand:fireClient(player, self.UID, ...)
 		self.trackingClients[player] = nil
 	end
 end
 
-function Task:revokeClient(player)
+function Task:revokeClient(player, ...)
 	local playersArray = {}
 	if self.trackingClients[player] then
 		table.insert(playersArray, player)
 	end
-	self:_revoke(playersArray)
+	self:_revoke(playersArray, ...)
 end
 
-function Task:revokeAllClients()
+function Task:revokeAllClients(...)
 	local playersArray = {}
-	for _, trackingPlayer in pairs(self.trackingClients) do
+	for trackingPlayer, _ in pairs(self.trackingClients) do
 		table.insert(playersArray, trackingPlayer)
 	end
-	self:_revoke(playersArray)
+	self:_revoke(playersArray, ...)
 end
 
 function Task:pauseAllClients()
 	assert(main.isServer, SERVER_ONLY_WARNING)
-	for _, trackingPlayer in pairs(self.trackingClients) do
+	for trackingPlayer, _ in pairs(self.trackingClients) do
 		main.services.TaskService.remotes.callClientTaskMethod:fireClient(trackingPlayer, self.UID, "pause")
 	end
 end
 
 function Task:resumeAllClients()
 	assert(main.isServer, SERVER_ONLY_WARNING)
-	for _, trackingPlayer in pairs(self.trackingClients) do
+	for trackingPlayer, _ in pairs(self.trackingClients) do
 		main.services.TaskService.remotes.callClientTaskMethod:fireClient(trackingPlayer, self.UID, "resume")
 	end
 end
@@ -562,7 +598,7 @@ end
 local CLIENT_ONLY_WARNING = "this method can only be called on the client!"
 function Task:_replicate(targetPool, packedArgs, packedData)
 	assert(main.isClient, CLIENT_ONLY_WARNING)
-	main.services.TaskService.remotes.replicationRequest:fireServer(self.UID, targetPool, packedArgs, packedData)
+	main.controllers.CommandController.replicationRequest:fireServer(self.UID, targetPool, packedArgs, packedData)
 end
 
 function Task:replicateTo(player, ...)

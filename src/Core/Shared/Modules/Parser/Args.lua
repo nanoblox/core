@@ -21,7 +21,7 @@ Args.array = {
 				local qualifierDetail = Qualifiers.get(qualifierName)
 				local targets
 				if not qualifierDetail then
-					qualifierDetail = Qualifiers.get("users")
+					qualifierDetail = Qualifiers.get("user")
 					targets = qualifierDetail.getTargets(callerUserId, qualifierName)
 				else
 					targets = qualifierDetail.getTargets(callerUserId, table.unpack(qualifierArgs))

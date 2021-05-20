@@ -39,7 +39,7 @@ function TaskService.start()
 		elseif task.callerUserId ~= player.UserId then
 			errorMessage = "Replication blocked: Requester's UserId does not match caller's UserId!"
 		elseif not task.command.preReplication then
-			errorMessage = "Replication blocked: ServerCommand:PreReplication(task, targetPool, packedData) must be specified!"
+			errorMessage = "Replication blocked: ServerCommand.preReplication(task, targetPool, packedData) must be specified!"
 		elseif not targetPoolName then
 			errorMessage = "Replication blocked: Invalid argument, 'targetPool' must be a TargetPool enum!"
 		elseif typeof(packedArgs) ~= "table" then
@@ -52,7 +52,7 @@ function TaskService.start()
 				task._nextReplicationsThisSecondRefresh = clockTime + 1
 				task.replicationsThisSecond = 0
 			end
-			local success, blockMessage = task.command:preReplication(task, targetPool, packedData)
+			local success, blockMessage = task.command.preReplication(task, targetPool, packedData)
 			if not success then
 				if not blockMessage then
 					blockMessage = ("Unspecified command rejection for '%s'."):format(task.command.name)
@@ -66,14 +66,14 @@ function TaskService.start()
 				errorMessage = playersArrayOrErrorMessage
 			else
 				for _, plr in pairs(playersArrayOrErrorMessage) do
-					main.replicateClientCommand:fireClient(plr, packedData)
+					TaskService.remotes.replicateClientCommand:fireClient(plr, task.UID, packedData)
 				end
 				task.totalReplications += 1
 				task.replicationsThisSecond += 1
 			end
 		end
 		if errorMessage then
-			--!!!notice here
+			--!!!notice here player or caller??, probably player
 			return
 		end
 	end)

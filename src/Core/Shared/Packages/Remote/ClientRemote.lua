@@ -79,11 +79,11 @@ function Remote:__index(index)
 					table.insert(events, event)
 				end
 				self:_continueWhenRemoteInstanceLoaded(remoteType, function(newRemoteInstance)
-					newRemoteInstance[indexFormatted]:Connect(function(...)
+					self._maid:give(newRemoteInstance[indexFormatted]:Connect(function(...)
 						for _, event in pairs(events) do
 							event(...)
 						end
-					end)
+					end))
 				end)
 			end
 		end
