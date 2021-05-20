@@ -192,17 +192,17 @@ function main.initiate(loader)
 		main._startedSignal:Fire()
 	end
 	
-	-- If server, wait for all system data to load, then call .begin()
+	-- If server, wait for all system data to load, then call .loaded()
 	if location == "server" then
 		local ConfigService = main.services.ConfigService
 		if not ConfigService.setupComplete then
 			ConfigService.setupCompleteSignal:Wait()
 		end
-		callServiceMethod("begin")
+		callServiceMethod("loaded")
 	end
-	main._begun = true
-	if main._begunSignal then
-		main._begunSignal:Fire()
+	main._loaded = true
+	if main._loadedSignal then
+		main._loadedSignal:Fire()
 	end
 	
 end
@@ -229,14 +229,15 @@ function main.waitUntilStarted()
 	setupSignalLoader("_started")
 end
 
-function main.waitUntilBegun()
-	setupSignalLoader("_begun")
+function main.waitUntilLoaded()
+	setupSignalLoader("_loaded")
 end
 
 function main.getFramework()
-	main.waitUntilBegun()
+	main.waitUntilLoaded()
 	return main
 end
+
 
 
 return main

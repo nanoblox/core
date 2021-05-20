@@ -75,7 +75,7 @@ end
 
 
 -- Wait until every other service has initialised and data loaded before beginning
-function PlayerService.begin()
+function PlayerService.loaded()
 	-- Call PlayerAdded when player enters game
 	main.Players.PlayerAdded:Connect(playerAdded)
 	

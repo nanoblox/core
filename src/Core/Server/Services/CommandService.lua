@@ -11,7 +11,7 @@ local defaultCommands = main.modules.Commands
 
 
 -- BEGIN
-function CommandService.begin()
+function CommandService.loaded()
 	--!!
 	local Parser = main.modules.Parser --!!! This is just to test the parser
 	--!!
