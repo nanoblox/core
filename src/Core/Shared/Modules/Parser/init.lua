@@ -132,8 +132,11 @@ function Parser.getPlayersFromString(playerString, optionalPlayer)
 		playerDefinedSearch == playerSearchEnums.DisplayName,
 		playerUndefinedSearch == playerSearchEnums.DisplayName
 	)
-	local isUserNameAndDisplayNameSearch = (playerDefinedSearch == playerSearchEnums.UserNameAndDisplayName)
-		or (playerUndefinedSearch == playerSearchEnums.UserNameAndDisplayName)
+	local isUserNameAndDisplayNameSearch = utilityModule.ternary(
+		hasPlayerIdentifier,
+		playerDefinedSearch == playerSearchEnums.UserNameAndDisplayName,
+		playerUndefinedSearch == playerSearchEnums.UserNameAndDisplayName
+	)
 
 	if isUserNameSearch or isUserNameAndDisplayNameSearch then
 		for _, player in pairs(players) do
@@ -163,7 +166,7 @@ end
 
 
 ]]
-function Parser.parseMessage(message)
+function Parser.parseMessage(message, optionalPlayer)
 	local algorithmModule = MAIN.modules.Parser.Algorithm
 	local parsedDataModule = MAIN.modules.Parser.ParsedData
 
@@ -199,7 +202,7 @@ function Parser.parseMessage(message)
 
     ]]
 
-		parsedDataModule.parseCommandDescriptionAndSetFlags(parsedData)
+		parsedDataModule.parseCommandDescriptionAndSetFlags(parsedData, optionalPlayer)
 		if not parsedData.isValid then
 			table.insert(allParsedDatas, parsedData)
 			continue

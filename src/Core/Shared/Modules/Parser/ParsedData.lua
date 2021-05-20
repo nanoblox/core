@@ -42,7 +42,7 @@ end
 
 
 ]]
-function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData)
+function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalPlayer)
 	local parserModule = MAIN.modules.Parser
 
 	local qualifierRequiredEnum = MAIN.enum.QualifierRequired
@@ -70,23 +70,41 @@ function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData)
 		if (next(parsedData.qualifiersCaptures) ~= nil) then
 			parsedData.requiresQualifier = true
 		else
-			--[[
+			local utilityModule = MAIN.modules.Parser.Utility
+			local settingService = MAIN.services.SettingService
+			local playerSearchEnums = MAIN.enums.PlayerSearch
 
-                (1) The unrecognized qualifier must be prefixed with playerIdentifier
-                (2) Only the player names rather than display names must be searched
-                (3) The unrecognized qualifier must match completely (ignorecase)
-
-            ]]
-
-			local playerNames = {}
-			for _, player in pairs(game:GetService("Players"):GetPlayers()) do
-				table.insert(playerNames, player.Name:lower())
+			local players = game:GetService("Players"):GetPlayers()
+			local userNames = {}
+			for _, player in pairs(players) do
+				table.insert(userNames, player.Name:lower())
 			end
 
+			local playerIdentifier = settingService.getPlayerSetting("playerIdentifier", optionalPlayer)
+			local playerDefinedSearch = settingService.getPlayerSetting("playerDefinedSearch", optionalPlayer)
+			local playerUndefinedSearch = settingService.getPlayerSetting("playerUndefinedSearch", optionalPlayer)
+
 			for _, qualifier in pairs(parsedData.unrecognizedQualifiers) do
-				if (table.find(playerNames, qualifier:lower())) then
-					parsedData.requiresQualifier = true
-					return
+				local qualifierHasPlayerIdentifier = (qualifier:sub(1, 1) == playerIdentifier)
+				local qualifierWithoutIdentifier =
+					utilityModule.ternary(qualifierHasPlayerIdentifier, qualifier:sub(2, #qualifier), qualifier)
+
+				local isUserNameSearch = utilityModule.ternary(
+					qualifierHasPlayerIdentifier,
+					playerDefinedSearch == playerSearchEnums.UserName,
+					playerUndefinedSearch == playerSearchEnums.UserName
+				)
+				local isUserNameAndDisplayNameSearch = utilityModule.ternary(
+					qualifierHasPlayerIdentifier,
+					playerDefinedSearch == playerSearchEnums.UserNameAndDisplayName,
+					playerUndefinedSearch == playerSearchEnums.UserNameAndDisplayName
+				)
+
+				if (isUserNameSearch or isUserNameAndDisplayNameSearch) then
+					if table.find(userNames, qualifierWithoutIdentifier:lower()) then
+						parsedData.requiresQualifier = true
+						return
+					end
 				end
 			end
 
@@ -223,10 +241,10 @@ end
 
 
 ]]
-function ParsedData.parseCommandDescriptionAndSetFlags(parsedData)
+function ParsedData.parseCommandDescriptionAndSetFlags(parsedData, optionalPlayer)
 	ParsedData.parseCommandDescription(parsedData)
 	if parsedData.isValid then
-		ParsedData.parsedDataSetRequiresQualifierFlag(parsedData)
+		ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalPlayer)
 		ParsedData.parsedDataSetHasTextArgumentFlag(parsedData)
 	end
 end
