@@ -46,7 +46,7 @@ local function playerAdded(player)
 	user:setStartData({
 		playerSettings = {},
 	})
-	user.agent = main.modules.Agent.new(player) -- an agent is automatically destroyed on player leave so no need to give to maid
+	user.agent = main.modules.Agent.new(player, true) -- an agent is automatically destroyed on player leave so no need to give to maid
 	user:initAutoSave()
 
 	-- Listen for chat
@@ -75,7 +75,7 @@ end
 
 
 -- Wait until every other service has initialised and data loaded before beginning
-function PlayerService.begin()
+function PlayerService.loaded()
 	-- Call PlayerAdded when player enters game
 	main.Players.PlayerAdded:Connect(playerAdded)
 	

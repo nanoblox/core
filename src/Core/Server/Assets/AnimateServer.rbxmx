@@ -9,7 +9,7 @@
         <null>
         </null>
       </Content>
-      <BinaryString name="ScriptGuid"><![CDATA[e0YxOUQyMzE1LTRGQzMtNDQ3Mi1BNkI4LTcwMEJGNkU1NDg0OX0=]]></BinaryString>
+      <BinaryString name="ScriptGuid"><![CDATA[ezIzQjFFNjJFLTA1MTgtNDlBMC04MDkwLTBEMDg5RjM0NDlDNn0=]]></BinaryString>
       <string name="Source"><![CDATA[-- Im getting PTSD just reading through the character script so for my own mental well being im simply going
 -- to copy and paste this into the clones and hopefully never touch this monstrosity again.
 
@@ -592,9 +592,18 @@ end
 -------------------------------------------------------------------------------------------
 -- STATE CHANGE HANDLERS
 
+local heartbeat = game:GetService("RunService").Heartbeat
+local onRunningId = 0
 function onRunning(speed)
-	local movedDuringEmote =
-		userEmoteToRunThresholdChange and currentlyPlayingEmote and Humanoid.MoveDirection == Vector3.new(0, 0, 0)
+	onRunningId +=1
+	local currentRunningId = onRunningId
+	for i = 1,8 do
+		heartbeat:Wait()
+		if currentRunningId ~= onRunningId then
+			return
+		end
+	end
+	local movedDuringEmote = userEmoteToRunThresholdChange and currentlyPlayingEmote and Humanoid.MoveDirection == Vector3.new(0, 0, 0)
 	local speedThreshold = movedDuringEmote and Humanoid.WalkSpeed or 0.75
 	if speed > speedThreshold then
 		local scale = 16.0

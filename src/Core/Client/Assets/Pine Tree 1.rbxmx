@@ -39,7 +39,7 @@
         <Y>0</Y>
         <Z>0</Z>
       </Vector3>
-      <bool name="NeedsPivotMigration">true</bool>
+      <bool name="NeedsPivotMigration">false</bool>
       <Ref name="PrimaryPart">null</Ref>
       <int64 name="SourceAssetId">-1</int64>
       <BinaryString name="Tags">

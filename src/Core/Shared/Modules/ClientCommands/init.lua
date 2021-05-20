@@ -3,13 +3,17 @@ local main = require(game.Nanoblox)
 
 
 
-if main.isClient then
-    for _, module in pairs(script:GetChildren()) do
-        if module:IsA("ModuleScript") then
-            local reference = require(module)
-            local UID = module.Name
-            ClientCommands[UID] = reference
-        end
+local lowercaseNameToClientModule = {}
+for _, module in pairs(script:GetChildren()) do
+    if module:IsA("ModuleScript") then
+        lowercaseNameToClientModule[module.Name:lower()] = module
+    end
+end
+
+function ClientCommands.get(name)
+    local module = lowercaseNameToClientModule[name:lower()]
+    if module then
+        return require(module)
     end
 end
 

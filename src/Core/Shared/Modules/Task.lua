@@ -26,7 +26,7 @@ function Task.new(properties)
 		self[k] = v
 	end
 	
-	self.command = (main.isServer and main.services.CommandService.getCommand(self.commandName)) or main.modules.ClientCommands[self.commandName]
+	self.command = (main.isServer and main.services.CommandService.getCommand(self.commandName)) or main.modules.ClientCommands.get(self.commandName)
 	self.threads = {}
 	self.isPaused = false
 	self.isDead = false
@@ -35,30 +35,12 @@ function Task.new(properties)
 	self.totalExecutionThreads = 0
 	self.executionThreadsCompleted = maid:give(Signal.new())
 	self.executionCompleted = maid:give(Signal.new())
+	self.callerLeft = maid:give(Signal.new())
 	self.persistence = self.command.persistence
 	self.trackingClients = {}
 	self.totalReplications = 0
 	self.replicationsThisSecond = 0
 	self.buffs = {}
-
-	-- This dynamically creates agents for client commands
-	if main.isServer then
-		local user = main.modules.PlayerStore:getUser(self.targetPlayer)
-		if user then
-			self.agent = user.agent
-		end
-	else
-		local agentDetail = main.clientCommandAgents[self.targetPlayer]
-		if not agentDetail then
-			agentDetail = {
-				agent = main.modules.Agent.new(self.targetPlayer),
-				activeAreas = 0,
-			}
-			main.clientCommandAgents[self.targetPlayer] = agentDetail
-		end
-		agentDetail.activeAreas +=1
-		self.agent = agentDetail.agent
-	end
 
 	local qualifierPresent = false
 	if self.qualifiers then
@@ -73,21 +55,41 @@ function Task.new(properties)
 	-- This handles the killing of tasks depending upon the command.persistence enum
 	local targetPlayer = self.targetUserId and main.Players:GetPlayerByUserId(self.targetUserId)
 	self.targetPlayer = targetPlayer
-	if main.isServer and targetPlayer then
-		if not targetPlayer then
-			self:kill()
-			return self
-		end
-		maid:give(main.Players.PlayerRemoving:Connect(function(plr)
-			if plr == targetPlayer then
+	if main.isServer then
+		local validPlayerLeavingEnums = {
+			[tostring(main.enum.Persistence.UntilPlayerDies)] = true,
+			[tostring(main.enum.Persistence.UntilPlayerRespawns)] = true,
+			[tostring(main.enum.Persistence.UntilPlayerLeaves)] = true,
+			[tostring(main.enum.Persistence.UntilPlayerOrCallerLeave)] = true,
+		}
+		local validCallerLeavingEnums = {
+			[tostring(main.enum.Persistence.UntilCallerLeaves)] = true,
+			[tostring(main.enum.Persistence.UntilPlayerOrCallerLeave)] = true,
+		}
+		local function playerOrCallerRemoving(userId, leftFromThisServer)
+			local persistence = tostring(self.persistence)
+			local playerLeft = (userId == self.targetUserId and validPlayerLeavingEnums[persistence])
+			local callerLeft = (userId == self.callerUserId and validCallerLeavingEnums[persistence])
+			if playerLeft or callerLeft then
+				if callerLeft and leftFromThisServer and self.modifiers.wasGlobal then
+					-- We fire to other servers if the task was global so that the other globa tasks know the caller (based in this server) has left
+					main.services.TaskService.callerLeftSender:fireOtherServers(userId)
+				end
 				self:kill()
 			end
+		end
+		maid:give(main.Players.PlayerRemoving:Connect(function(plr)
+			local userId = plr.UserId
+			playerOrCallerRemoving(userId, true)
+		end))
+		maid:give(self.callerLeft:Connect(function()
+			playerOrCallerRemoving(self.callerUserId)
 		end))
 		local function registerCharacter(char)
 			if char then
 				local humanoid = char:WaitForChild("Humanoid")
 				local function died()
-					if self.persistence == main.enum.Persistence.UntilDeath then
+					if self.persistence == main.enum.Persistence.UntilPlayerDies then
 						self:kill()
 					end
 				end
@@ -100,16 +102,39 @@ function Task.new(properties)
 				end
 			end
 		end
-		maid:give(targetPlayer.CharacterAdded:Connect(function(char)
-			if self.persistence == main.enum.Persistence.UntilRespawn then
-				self:kill()
-				return
-			end
-			registerCharacter(char)
-		end))
-		main.modules.Thread.spawnNow(function()
-			registerCharacter(targetPlayer.Character)
-		end)
+		if targetPlayer then
+			maid:give(targetPlayer.CharacterAdded:Connect(function(char)
+				if self.persistence == main.enum.Persistence.UntilPlayerRespawns then
+					self:kill()
+					return
+				end
+				registerCharacter(char)
+			end))
+			main.modules.Thread.spawnNow(function()
+				registerCharacter(targetPlayer.Character)
+			end)
+		end
+	end
+
+	-- This retrieves the agent
+	if main.isServer then
+		-- This determines the tasks agent when the player arg is present as the first arg
+		local user = main.modules.PlayerStore:getUser(self.targetPlayer)
+		if user then
+			self.agent = user.agent
+		end
+	else
+		-- This dynamically creates agents for client commands
+		local agentDetail = main.clientCommandAgents[self.targetPlayer]
+		if not agentDetail then
+			agentDetail = {
+				agent = main.modules.Agent.new(self.targetPlayer),
+				activeAreas = 0,
+			}
+			main.clientCommandAgents[self.targetPlayer] = agentDetail
+		end
+		agentDetail.activeAreas +=1
+		self.agent = agentDetail.agent
 	end
 
 	return self
@@ -124,22 +149,38 @@ function Task:begin()
 
 	local sortedActionModifiers = {}
 	local totalModifiers = 0
-	for _, actionModifier in pairs(main.modules.Modifiers.sortedOrderArray) do
+	for _, actionModifier in pairs(main.modules.Parser.Modifiers.sortedOrderArray) do
 		if self.modifiers[actionModifier.name] and actionModifier.action then
 			table.insert(sortedActionModifiers, actionModifier)
 			totalModifiers += 1
 		end
 	end
 	
+	-- This ensures all modifiers and all executions have ended before killing the task
+	local function afterExecution()
+		if self.totalStartThreads and self.totalStartThreads > 0 then
+			self.startThreadsCompleted:Wait()
+		end
+		if self.totalExecutionThreads and self.totalExecutionThreads > 0 then
+			self.executionThreadsCompleted:Wait()
+		end
+		if self.persistence == main.enum.Persistence.None then
+			self:kill()
+		end
+	end
+
 	-- If no modifiers present, simply call execute once then kill the task
 	if totalModifiers == 0 then
 		self:execute()
 			:andThen(function()
-				self:kill()
+				afterExecution()
+			end)
+			:catch(function(warning)
+				warn(warning)
 			end)
 		return
 	end
-	
+
 	main.modules.Thread.spawnNow(function()
 		-- This handles the applying of all modifiers, tracks them, then kills the task when all modifiers have completed
 		local function track(thread)
@@ -167,16 +208,7 @@ function Task:begin()
 				previousExecuteAfterThread = actionModifier.executeAfterThrea
 			end
 		end
-		-- This ensures all modifiers and all executions have ended before killing the task
-		if self.totalStartThreads > 0 then
-			self.startThreadsCompleted:Wait()
-		end
-		if self.totalExecutionThreads > 0 then
-			self.executionThreadsCompleted:Wait()
-		end
-		if self.persistence == main.enum.Persistence.None then
-			self:kill()
-		end
+		afterExecution()
 	end)
 end
 
@@ -194,7 +226,7 @@ function Task:execute()
 	local firstArgItem
 	if self.args then
 		firstCommandArg = command.args[1]
-		firstArgItem = main.modules.Args.dictionary[firstCommandArg]
+		firstArgItem = main.modules.Parser.Args.get(firstCommandArg)
 	end
 
 	local invokedCommand = false
@@ -214,14 +246,24 @@ function Task:execute()
 				parsedArgs = {}
 				additional[1] = parsedArgs
 			end
-			for i, argString in pairs(self.args) do
+			local i = #parsedArgs + 1
+			for _, argString in pairs(self.args) do
 				local argName = command.args[i]
-				local argItem = main.modules.Args.dictionary[argName]
-				table.insert(promises, argItem:parse(argString, self.callerUserId, self.targetUserId)
+				local argItem = main.modules.Parser.Args.get(argName)
+				if argItem.playerArg then
+					argString = {
+						[argString] = {}
+					}
+				end
+				local promise = main.modules.Promise.new(function(resolve, reject)
+					resolve(argItem:parse(argString, self.callerUserId, self.targetUserId))
+				end)
+				table.insert(promises, promise
 					:andThen(function(parsedArg)
 						table.insert(parsedArgs, parsedArg)
 					end)
 				)
+				i += 1
 			end
 		end
 		main.modules.Promise.all(promises)
@@ -229,15 +271,18 @@ function Task:execute()
 				filteredAllArguments = true
 			end)
 		
+		local finishedInvokingCommand = false
+		self:track(main.modules.Thread.delayUntil(function() return finishedInvokingCommand == true end))
 		self:track(main.modules.Thread.delayUntil(function() return filteredAllArguments == true end, function()
-			command:invoke(self, table.unpack(additional))
+			command.invoke(self, table.unpack(additional))
+			finishedInvokingCommand = true
 		end))
 	end
 	
 	main.modules.Thread.spawnNow(function()
 
 		-- If client task, execute with task.clientArgs
-		if self.isClient then
+		if main.isClient then
 			return invokeCommand(false, table.unpack(self.clientArgs))
 		end
 
@@ -287,7 +332,6 @@ function Task:execute()
 		end
 		self.executionCompleted:Fire()
 		self.executing = false
-		self:clearBuffs()
 		resolve()
 	end)
 end
@@ -312,8 +356,9 @@ function Task:track(thread, countPropertyName, completedSignalName)
 	self[newCountPropertyName] += 1
 	main.modules.Thread.spawnNow(function()
 		thread.Completed:Wait() --thread.completed:Wait()
+		main.RunService.Heartbeat:Wait()
 		self[newCountPropertyName] -= 1
-		if self[newCountPropertyName] == 0 then
+		if self[newCountPropertyName] == 0 and self[newCompletedSignalName] and not self.isDead then
 			self[newCompletedSignalName]:Fire()
 		end
 	end)
@@ -339,7 +384,11 @@ end
 function Task:kill()
 	if self.isDead then return end
 	if not self.isDead and self.command.revoke then
-		self.command:revoke()
+		if self.revokeArguments then
+			self.command.revoke(self, table.unpack(self.revokeArguments))
+		else
+			self.command.revoke(self)
+		end
 	end
 	self.isDead = true
 	self:clearBuffs()
@@ -369,13 +418,43 @@ function Task:give(...)
 	return self.maid:give(...)
 end
 
+-- An abstraction of ``task:track(main.modules.Thread.delay(waitTime, func, ...))``
+function Task:delay(waitTime, func, ...)
+	return self:track(main.modules.Thread.delay(waitTime, func, ...))
+end
+
+-- An abstraction of ``task:track(main.modules.Thread.delayUntil(criteria, func, ...))``
+function Task:delayUntil(criteria, func, ...)
+	return self:track(main.modules.Thread.delayUntil(criteria, func, ...))
+end
+
+-- An abstraction of ``task:track(main.modules.Thread.delayLoop(intervalTimeOrType, func, ...))``
+function Task:delayLoop(intervalTimeOrType, func, ...)
+	return self:track(main.modules.Thread.delayLoop(intervalTimeOrType, func, ...))
+end
+
+-- An abstraction of ``task:track(main.modules.Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...))``
+function Task:delayLoopUntil(intervalTimeOrType, criteria, func, ...)
+	return self:track(main.modules.Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...))
+end
+
+-- An abstraction of ``task:track(main.modules.Thread.delayLoopFor(intervalTimeOrType, iterations, func, ...))``
+function Task:delayLoopFor(intervalTimeOrType, iterations, func, ...)
+	return self:track(main.modules.Thread.delayLoopFor(intervalTimeOrType, iterations, func, ...))
+end
+
 -- An abstraction of ``task.agent:buff(...)``
 function Task:buff(effect, value, optionalTweenInfo)
 	local agent = self.agent
-	if agent then
-		local buff = agent:buff(effect):set(value, optionalTweenInfo)
-		table.insert(self.buffs, buff)
+	if not agent then
+		error("Cannot create buff as the task has no associated player!")
 	end
+	local buff = agent:buff(effect)
+	if value then
+		buff:set(value, optionalTweenInfo)
+	end
+	table.insert(self.buffs, buff)
+	return buff
 end
 
 function Task:clearBuffs()
@@ -396,17 +475,17 @@ function Task:_invoke(playersArray, ...)
 
 	local TIMEOUT_MAX = 90
 	local GROUP_TIMEOUT = 3
-	local GROUP_TIMEOUT_PERCENT = 0.9
+	local GROUP_TIMEOUT_PERCENT = 0.8
 	-- This invokes all targeted players to execute the corresponding client command
 	-- If no persistence, then wait until these clients have completed their client sided execution before ending the server task
 	-- To prevent abuse:
 		-- 1. Cap a timeout of TIMEOUT_MAX seconds. If not heard back after this time, force end invocation
-		-- 2. As soon as GROUP_TIMEOUT_PERCENT of clients (rounded down) have responded, wait GROUP_TIMEOUT then automatically force end all remaining invocations
+		-- 2. As soon as GROUP_TIMEOUT_PERCENT of clients have responded, wait GROUP_TIMEOUT then automatically force end all remaining invocations
 		-- 3. If a player leaves its invocation is automatically ended
 	
 	local promises = {}
 	local killAfterExecution = self.persistence == main.enum.Persistence.None
-	local timeoutValue = (killAfterExecution and 60) or 0
+	local timeoutValue = (killAfterExecution and TIMEOUT_MAX) or 0
 	local totalClients = #playersArray
 	local responses = 0
 	self:track(main.modules.Thread.delayUntil(function() return responses == totalClients end)) -- This keeps the task alive until the client execution has complete or timeout exceeded
@@ -426,19 +505,25 @@ function Task:_invoke(playersArray, ...)
 			:finally(function()
 				responses += 1
 				if killAfterExecution then
+					main.RunService.Heartbeat:Wait()
 					self.trackingClients[player] = nil
 				end
 			end)
 		)
 	end
 	local minimumResponses = math.floor(totalClients * GROUP_TIMEOUT_PERCENT)
+	if minimumResponses < 1 then
+		minimumResponses = 1
+	end
 	main.modules.Promise.some(promises, minimumResponses)
 		:finally(function()
-			main.modules.Thread.delay(GROUP_TIMEOUT, function()
-				for _, promise in pairs(promises) do
-					promise:cancel()
-				end
-			end)
+			if responses ~= totalClients then
+				main.modules.Thread.delay(GROUP_TIMEOUT, function()
+					for _, promise in pairs(promises) do
+						promise:cancel()
+					end
+				end)
+			end
 		end)
 end
 
@@ -457,40 +542,52 @@ function Task:invokeAllClients(...)
 	self:_invoke(playersArray, ...)
 end
 
-function Task:_revoke(playersArray)
+function Task:invokeFutureClients(...)
+	local args = table.pack(...)
+	self.maid:give(main.Players.PlayerAdded:Connect(function(player)
+		self:invokeClient(player, table.unpack(args))
+	end))
+end
+
+function Task:invokeAllAndFutureClients(...)
+	self:invokeAllClients(...)
+	self:invokeFutureClients(...)
+end
+
+function Task:_revoke(playersArray, ...)
 	assert(main.isServer, SERVER_ONLY_WARNING)
 	for _, player in pairs(playersArray) do
-		main.services.TaskService.remotes.revokeClientCommand:fireClient(player, self.UID)
+		main.services.TaskService.remotes.revokeClientCommand:fireClient(player, self.UID, ...)
 		self.trackingClients[player] = nil
 	end
 end
 
-function Task:revokeClient(player)
+function Task:revokeClient(player, ...)
 	local playersArray = {}
 	if self.trackingClients[player] then
 		table.insert(playersArray, player)
 	end
-	self:_revoke(playersArray)
+	self:_revoke(playersArray, ...)
 end
 
-function Task:revokeAllClients()
+function Task:revokeAllClients(...)
 	local playersArray = {}
-	for _, trackingPlayer in pairs(self.trackingClients) do
+	for trackingPlayer, _ in pairs(self.trackingClients) do
 		table.insert(playersArray, trackingPlayer)
 	end
-	self:_revoke(playersArray)
+	self:_revoke(playersArray, ...)
 end
 
 function Task:pauseAllClients()
 	assert(main.isServer, SERVER_ONLY_WARNING)
-	for _, trackingPlayer in pairs(self.trackingClients) do
+	for trackingPlayer, _ in pairs(self.trackingClients) do
 		main.services.TaskService.remotes.callClientTaskMethod:fireClient(trackingPlayer, self.UID, "pause")
 	end
 end
 
 function Task:resumeAllClients()
 	assert(main.isServer, SERVER_ONLY_WARNING)
-	for _, trackingPlayer in pairs(self.trackingClients) do
+	for trackingPlayer, _ in pairs(self.trackingClients) do
 		main.services.TaskService.remotes.callClientTaskMethod:fireClient(trackingPlayer, self.UID, "resume")
 	end
 end
@@ -501,7 +598,7 @@ end
 local CLIENT_ONLY_WARNING = "this method can only be called on the client!"
 function Task:_replicate(targetPool, packedArgs, packedData)
 	assert(main.isClient, CLIENT_ONLY_WARNING)
-	main.services.TaskService.remotes.replicationRequest:fireServer(self.UID, targetPool, packedArgs, packedData)
+	main.controllers.CommandController.replicationRequest:fireServer(self.UID, targetPool, packedArgs, packedData)
 end
 
 function Task:replicateTo(player, ...)

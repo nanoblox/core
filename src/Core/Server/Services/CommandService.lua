@@ -11,7 +11,7 @@ local defaultCommands = main.modules.Commands
 
 
 -- BEGIN
-function CommandService.begin()
+function CommandService.loaded()
 	--!!
 	local Parser = main.modules.Parser --!!! This is just to test the parser
 	--!!
@@ -109,9 +109,16 @@ function CommandService.createCommand(name, properties)
 end
 
 function CommandService.getCommand(name)
-	return CommandService:getRecord(name)
+	local command = CommandService:getRecord(name)
+	if not command then
+		command = CommandService.getTable("lowerCaseNameAndAliasToCommandDictionary")[name:lower()]
+		if not command then
+			return false
+		end
+	end
+	return command
 end
-
+ 
 function CommandService.getCommands()
 	return CommandService:getRecords()
 end
@@ -181,14 +188,17 @@ function CommandService.executeStatement(callerUserId, statement)
 	statement.qualifiers = statement.qualifiers or {}
 	----
 	local tasks = {}
-	local Modifiers = main.modules.Modifiers
-	for _, item in pairs(Modifiers.sortedOrderArrayWithOnlyPreAction) do
-		local continueExecution = item.preAction(callerUserId, statement)
-		if not continueExecution then
-			return tasks
+	local Modifiers = main.modules.Parser.Modifiers
+	for modifierName, _ in pairs(statement.modifiers) do
+		local modifierItem = Modifiers.get(modifierName)
+		if modifierItem then
+			local continueExecution = modifierItem.preAction(callerUserId, statement)
+			if not continueExecution then
+				return tasks
+			end
 		end
 	end
-	local Args = main.modules.Args
+	local Args = main.modules.Parser.Args
 	local isPermModifier = statement.modifiers.perm
 	local isGlobalModifier = statement.modifiers.wasGlobal
 	for commandName, arguments in pairs(statement.commands) do
@@ -196,7 +206,7 @@ function CommandService.executeStatement(callerUserId, statement)
 		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(command.args[1])]
 		local TaskService = main.services.TaskService
 		local properties = TaskService.generateRecord()
-		properties.callerUserId = statement.callerUserId or properties.callerUserId
+		properties.callerUserId = callerUserId
 		properties.commandName = commandName
 		properties.args = arguments or properties.args
 		properties.modifiers = statement.modifiers
@@ -224,9 +234,9 @@ function CommandService.executeStatement(callerUserId, statement)
 			properties.qualifiers = statement.qualifiers or properties.qualifiers
 			table.insert(tasks, main.services.TaskService.createTask(addToPerm, properties))
 		else
-			local targets = Args.dictionary.player:parse(statement.qualifiers, callerUserId)
+			local targets = Args.get("player"):parse(statement.qualifiers, callerUserId)
 			for _, plr in pairs(targets) do
-				properties.targetUserId = plr.targetUserId
+				properties.targetUserId = plr.UserId
 				table.insert(tasks, main.services.TaskService.createTask(addToPerm, properties))
 			end
 		end

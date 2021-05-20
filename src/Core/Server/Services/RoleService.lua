@@ -58,7 +58,7 @@ end
 
 
 -- BEGIN
-function RoleService.begin()
+function RoleService.loaded()
 	-- Create the hidden creator role
 	-- This role is important as it ensures *the owner*
 	-- of the game always has top priority
