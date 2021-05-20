@@ -10,7 +10,7 @@ function PlayerUtil.getCharacter(playerOrUserId)
 	local playerUserId = tonumber(playerOrUserId)
 	if playerUserId then
 		player = main.Players:GetPlayerByUserId(playerUserId)
-	elseif not player and typeof(Instance) == "Instance" and player:IsA("Player") then
+	elseif typeof(playerOrUserId) == "Instance" and playerOrUserId:IsA("Player") then
 		player = playerOrUserId
 	end
 	local character = player and player.Character
