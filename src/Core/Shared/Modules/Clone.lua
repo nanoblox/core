@@ -603,11 +603,12 @@ function Clone:setProportion(number)
 	self:_setScale("ProportionScale", number)
 end
 
-function Clone:moveTo(targetPosition)
+function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
 	
     local pathMaid = main.modules.Maid.new()
     self._maid.pathMaid = pathMaid
-    
+    studsAwayToStop = studsAwayToStop or 0
+
     local agentHrpSize = self.hrp.Size
     local agentHead = self.clone.Head
     local pathParams = {
@@ -621,6 +622,35 @@ function Clone:moveTo(targetPosition)
     
     local waypoints = {}
     local currentWaypointIndex = 1
+
+    local nextCheck = 0
+    local previousPosition
+    local nextIdleCheck = 0
+    pathMaid:give(main.RunService.Heartbeat:Connect(function()
+        -- This prevents the clone completely walking on top of the target position
+        local timeNow = os.clock()
+        if timeNow >= nextCheck then
+            nextCheck = timeNow + 0.2
+            local trackingPosition = (trackingBasePart and trackingBasePart.Position) or targetPosition
+            local distanceFromClone = self:getDistanceFromClone(trackingPosition)
+            local waypointsAway = #waypoints - currentWaypointIndex
+            if distanceFromClone <= studsAwayToStop and waypointsAway < math.ceil(studsAwayToStop / 3) then
+                self.reachedTarget = true
+                self._maid.pathMaid = nil
+                cloneHumanoid:MoveTo(self.hrp.Position)
+            end
+        end
+        if timeNow >= nextIdleCheck then
+            nextIdleCheck = timeNow + 0.5
+            if previousPosition then
+                local distanceFromPrevious = (self.hrp.Position - previousPosition).Magnitude
+                if distanceFromPrevious < self.humanoid.WalkSpeed/20 then
+                    self.humanoid.Jump = true
+                end
+            end
+            previousPosition = self.hrp.Position
+        end
+    end))
 
     self.reachedTarget = false
 
@@ -696,7 +726,7 @@ function Clone:moveTo(targetPosition)
     pathMaid:give(cloneHumanoid.MoveToFinished:Connect(onWaypointReached))
 end
 
-function Clone:follow(playerOrBasePart)
+function Clone:follow(playerOrBasePart, studsAwayToStop)
     local followMaid = main.modules.Maid.new()
     self._maid.followMaid = followMaid
 
@@ -714,12 +744,6 @@ function Clone:follow(playerOrBasePart)
     end
 
     local targetPosition = basePart.Position
-    local function getDistanceFromClone(positionOfTarget)
-        local clonePosition = self.hrp.Position
-        local normalisedClonePosition = Vector3.new(clonePosition.X, positionOfTarget.Y, clonePosition.Z)
-        local distanceFromClone = (positionOfTarget - normalisedClonePosition).Magnitude
-        return distanceFromClone
-    end
 
     local function stillPresentCheck()
         local stillPresent = basePart:FindFirstAncestorWhichIsA("Workspace") or basePart:FindFirstAncestorWhichIsA("ReplicatedStorage")
@@ -730,17 +754,20 @@ function Clone:follow(playerOrBasePart)
         return true
     end
 
-    local REACTIVATE_DISTANCE = 4
-    local MAXIMUM_DISTANCE_DRIFT = 10
+    local STUDS_AWAY_TO_STOP = 2
+    local REACTIVATE_DISTANCE = 1
+    local MAXIMUM_DISTANCE_DRIFT = 5
+    local finalStudsAwayToStop = studsAwayToStop or STUDS_AWAY_TO_STOP
+    local finalReactiveDistance = finalStudsAwayToStop + REACTIVATE_DISTANCE
     followMaid:give(self.humanoid.MoveToFinished:Connect(function()
         if not stillPresentCheck() then return end
         local newTargetPosition = basePart.Position
         local distanceFromPreviousTarget = (newTargetPosition - targetPosition).Magnitude
-        local distanceFromClone = getDistanceFromClone(newTargetPosition)
+        local distanceFromClone = self:getDistanceFromClone(newTargetPosition)
         targetPosition = newTargetPosition
 
-        if (self.reachedTarget and distanceFromClone > REACTIVATE_DISTANCE) or distanceFromPreviousTarget > MAXIMUM_DISTANCE_DRIFT then
-            self:moveTo(targetPosition)
+        if (self.reachedTarget and distanceFromClone > finalReactiveDistance) or distanceFromPreviousTarget > MAXIMUM_DISTANCE_DRIFT then
+            self:moveTo(targetPosition, finalStudsAwayToStop, basePart)
         elseif self.reachedTarget then
             local nextCheck = 0
             followMaid.positionChangedChecker = main.RunService.Heartbeat:Connect(function()
@@ -750,10 +777,10 @@ function Clone:follow(playerOrBasePart)
                     if not stillPresentCheck() then return end
                     if basePart then
                         newTargetPosition = basePart.Position
-                        distanceFromClone = getDistanceFromClone(newTargetPosition)
-                        if distanceFromClone > REACTIVATE_DISTANCE then
+                        distanceFromClone = self:getDistanceFromClone(newTargetPosition)
+                        if distanceFromClone > finalReactiveDistance then
                             followMaid.positionChangedChecker = nil
-                            self:moveTo(newTargetPosition)
+                            self:moveTo(newTargetPosition, finalStudsAwayToStop, basePart)
                         end
                     end
                 end
@@ -761,6 +788,13 @@ function Clone:follow(playerOrBasePart)
         end
     end))
     self:moveTo(targetPosition)
+end
+
+function Clone:getDistanceFromClone(positionOfTarget)
+    local clonePosition = self.hrp.Position
+    local normalisedClonePosition = Vector3.new(clonePosition.X, positionOfTarget.Y, clonePosition.Z)
+    local distanceFromClone = (positionOfTarget - normalisedClonePosition).Magnitude
+    return distanceFromClone
 end
 
 function Clone:unfollow()
