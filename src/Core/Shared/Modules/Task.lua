@@ -38,8 +38,8 @@ function Task.new(properties)
 	self.callerLeft = maid:give(Signal.new())
 	self.persistence = self.command.persistence
 	self.trackingClients = {}
-	self.totalReplications = 0
-	self.replicationsThisSecond = 0
+	self.totalReplicationRequests = 0
+	self.replicationRequestsThisSecond = 0
 	self.buffs = {}
 
 	local qualifierPresent = false

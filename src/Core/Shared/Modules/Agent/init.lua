@@ -43,6 +43,9 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 	self.silentlyEndBuffs = false
 	self.player = player
 	self.groupedBuffs = {}
+	self.humanoidDescriptionCount = 0
+	self.humanoidDescription = nil
+	self.applyingHumanoidDescription = false
 
 	maid:give(player.CharacterAdded:Connect(function(char)
 		if reapplyBuffsOnRespawn then
@@ -362,31 +365,30 @@ function Agent:reduceAndApplyEffects(specificEffect)
 	end
 end
 
-local humanoidDescriptionCount = 0
-local humanoidDescription
-local applyingHumanoidDescription = false
 function Agent:modifyHumanoidDescription(propertyName, value)
 	-- humanoidDescriptionInstances do this weird thing where they don't always apply, especially when applying as soon as a player respawns
 	-- or right after applying another description. The following code is designed to prevent this.
-	humanoidDescriptionCount += 1
-	local myCount = humanoidDescriptionCount
+	self.humanoidDescriptionCount += 1
+	local myCount = self.humanoidDescriptionCount
 	local humanoid = self.player.Character.Humanoid
-	if not humanoidDescription then
-		humanoidDescription = humanoid:GetAppliedDescription()
+	if not self.humanoidDescription then
+		self.humanoidDescription = humanoid:GetAppliedDescription()
 	end
-	humanoidDescription[propertyName] = value
+	self.humanoidDescription[propertyName] = value
 	coroutine.wrap(function()
 		main.RunService.Heartbeat:Wait()
-		if humanoidDescriptionCount == myCount and not applyingHumanoidDescription then
+		if self.humanoidDescriptionCount == myCount and not self.applyingHumanoidDescription then
 			local iterations = 0
-			applyingHumanoidDescription = true
+			self.applyingHumanoidDescription = true
+			local appliedDesc
 			repeat
 				main.RunService.Heartbeat:Wait()
-				pcall(function() humanoid:ApplyDescription(humanoidDescription) end)
+				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
 				iterations += 1
-			until humanoid:GetAppliedDescription()[propertyName] == humanoidDescription[propertyName] or iterations == 10
-			applyingHumanoidDescription = false
-			humanoidDescription = nil
+				appliedDesc = humanoid and humanoid:GetAppliedDescription()
+			until (appliedDesc and self.humanoidDescription and appliedDesc[propertyName] == self.humanoidDescription[propertyName]) or iterations == 10
+			self.applyingHumanoidDescription = false
+			self.humanoidDescription = nil
 		end
 	end)()
 end

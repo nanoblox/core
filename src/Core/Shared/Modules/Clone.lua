@@ -32,6 +32,9 @@ function Clone.new(playerOrCharacterOrUserId, spawnCFrame)
     self.humanoid = nil
     self.destroyed = false
     self.destroyedSignal = main.modules.Signal.new()
+    self.humanoidDescriptionCount = 0
+    self.humanoidDescription = nil
+    self.applyingHumanoidDescription = false
     
 	self:become(playerOrCharacterOrUserId)
     
@@ -498,37 +501,37 @@ function Clone:unwatch()
 	self._maid.watchMaid = nil
 end
 
-local humanoidDescriptionCount = 0
-local humanoidDescription
-local applyingHumanoidDescription = false
 function Clone:modifyHumanoidDescription(propertyName, value)
-	humanoidDescriptionCount += 1
-	local myCount = humanoidDescriptionCount
+
+    self.humanoidDescriptionCount += 1
+	local myCount = self.humanoidDescriptionCount
 	local humanoid = self.humanoid
-	if not humanoidDescription then
-		humanoidDescription = humanoid:GetAppliedDescription()
+	if not self.humanoidDescription then
+		self.humanoidDescription = humanoid:GetAppliedDescription()
 	end
     if propertyName then
-	    humanoidDescription[propertyName] = value
+	    self.humanoidDescription[propertyName] = value
     end
     coroutine.wrap(function()
 		main.RunService.Heartbeat:Wait()
-		if humanoidDescriptionCount == myCount and not applyingHumanoidDescription then
+		if self.humanoidDescriptionCount == myCount and not self.applyingHumanoidDescription then
 			local iterations = 0
-			applyingHumanoidDescription = true
+			self.applyingHumanoidDescription = true
+            local appliedDesc
 			repeat
 				main.RunService.Heartbeat:Wait()
-				pcall(function() humanoid:ApplyDescription(humanoidDescription) end)
+				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
 				iterations += 1
-			until propertyName == nil or humanoid:GetAppliedDescription()[propertyName] == humanoidDescription[propertyName] or iterations == 10
-			applyingHumanoidDescription = false
-			humanoidDescription = nil
+                appliedDesc = humanoid and humanoid:GetAppliedDescription()
+			until propertyName == nil or (appliedDesc and self.humanoidDescription and appliedDesc[propertyName] == self.humanoidDescription[propertyName]) or iterations == 10
+            self.applyingHumanoidDescription = false
+			self.humanoidDescription = nil
 		end
 	end)()
 end
 
 function Clone:applyHumanoidDescription(newDesc)
-    humanoidDescription = newDesc
+    self.humanoidDescription = newDesc
     self:modifyHumanoidDescription()
 end
 
@@ -743,7 +746,7 @@ function Clone:follow(playerOrBasePart, studsAwayToStop)
         basePart = playerOrBasePart
     end
 
-    local targetPosition = basePart.Position
+    local targetPosition
 
     local function stillPresentCheck()
         local stillPresent = basePart:FindFirstAncestorWhichIsA("Workspace") or basePart:FindFirstAncestorWhichIsA("ReplicatedStorage")
@@ -787,7 +790,11 @@ function Clone:follow(playerOrBasePart, studsAwayToStop)
             end)
         end
     end))
-    self:moveTo(targetPosition)
+
+    followMaid:give(main.modules.Thread.delayUntil(function() return basePart end, function()
+        targetPosition = basePart.Position
+        self:moveTo(targetPosition)
+    end))
 end
 
 function Clone:getDistanceFromClone(positionOfTarget)

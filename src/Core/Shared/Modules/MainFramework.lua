@@ -41,6 +41,7 @@ function main.initiate(loader)
 	main.modules = {}
 	main.services = {}
 	main.enum = require(main.shared.Modules.Enum).getEnums()
+	main.startTime = os.clock()
 	
 	
 	-- LOCATION SPECIFIC DETAILS
