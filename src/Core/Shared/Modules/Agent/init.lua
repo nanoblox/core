@@ -377,7 +377,6 @@ function Agent:modifyHumanoidDescription(propertyName, value)
 	end
 	self.humanoidDescription[propertyName] = value
 	main.modules.Thread.spawn(function()
-		print("Update HD: ", propertyName, value, self.humanoidDescription)
 		if self.humanoidDescriptionCount == myCount and not self.applyingHumanoidDescription then
 			local iterations = 0
 			self.applyingHumanoidDescription = true
