@@ -46,6 +46,7 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 	self.humanoidDescriptionCount = 0
 	self.humanoidDescription = nil
 	self.applyingHumanoidDescription = false
+	self.destroyed = false
 
 	maid:give(player.CharacterAdded:Connect(function(char)
 		if reapplyBuffsOnRespawn then
@@ -68,12 +69,12 @@ end
 
 
 -- METHODS
-function Agent:buff(effect, weight)
-	local buff = Buff.new(effect, weight)
+function Agent:buff(effect, property, weight)
+	local buff = Buff.new(effect, property, weight)
 	local buffId = buff.buffId
 	buff.agent = self
-	buff.updated:Connect(function(specificEffect)
-		self:reduceAndApplyEffects(specificEffect)
+	buff.updated:Connect(function(specificEffect, specificProperty)
+		self:reduceAndApplyEffects(specificEffect, specificProperty)
 	end)
 	self.buffs[buffId] = buff
 	return buff
@@ -149,7 +150,7 @@ function Agent:clearDefaultValues()
 	end
 end
 
-function Agent:reduceAndApplyEffects(specificEffect)
+function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 	self:updateBuffGroups()
 	local humanoidDescription
 	local humanoidDescriptionInstance
@@ -160,7 +161,10 @@ function Agent:reduceAndApplyEffects(specificEffect)
 		end
 		
 		for additionalString, buffs in pairs(additionalTable) do
-			
+			if not(specificProperty == nil or additionalString == specificProperty) then
+				continue
+			end
+
 			-- This retrieves a nonincremental buff with the greatest weight. If only incremental buffs exist, the one with the highest weight is chosen.
 			-- The boss then determines how other buffs will be applied (if at all)
 			local bossBuff
@@ -186,6 +190,7 @@ function Agent:reduceAndApplyEffects(specificEffect)
 			local tweenReference = tostring(effect)..additionalString
 			local reduceTweenMaid = self.reduceMaids[tweenReference]
 			local forcedBaseValue
+			print(effect, additionalString)
 			if reduceTweenMaid then
 				reduceTweenMaid:clean()
 				local validUntilTime = reduceTweenMaid.forcedBaseValueValidUntilTime
@@ -315,7 +320,7 @@ function Agent:reduceAndApplyEffects(specificEffect)
 				end
 
 				-- This applies the final value
-				if (propertyValue ~= finalValue or isAHumanoidDescription) and not self.silentlyEndBuffs then
+				if (propertyValue ~= finalValue or forcedBaseValue or isAHumanoidDescription) and not self.silentlyEndBuffs then
 					local function updateActiveAppliedTables()
 						local difference = finalValue - instance[propertyName]
 						for _, appliedTable in pairs(activeAppliedTables) do
@@ -347,14 +352,16 @@ function Agent:reduceAndApplyEffects(specificEffect)
 						end
 						tween:Play()
 						reduceTweenMaid:give(function()
-							if tween.PlaybackState ~= Enum.PlaybackState.Completed then
-								tween:Pause()
-								if type(finalValue) == "number" then
-									rawset(reduceTweenMaid, "forcedBaseValueValidUntilTime", completeTime)
-									rawset(reduceTweenMaid, "forcedBaseValue", finalValue)
+							if not self.destroyed then
+								if tween.PlaybackState ~= Enum.PlaybackState.Completed then
+									tween:Pause()
+									if type(finalValue) == "number" then
+										rawset(reduceTweenMaid, "forcedBaseValueValidUntilTime", completeTime)
+										rawset(reduceTweenMaid, "forcedBaseValue", finalValue)
+									end
 								end
+								tween:Destroy()
 							end
-							tween:Destroy()
 						end)
 					end
 				end
@@ -414,6 +421,7 @@ function Agent:clearBuffsWithEffect(effect)
 end
 
 function Agent:destroy()
+	self.destroyed = true
 	self:clearBuffs()
 	self._maid:clean()
 end

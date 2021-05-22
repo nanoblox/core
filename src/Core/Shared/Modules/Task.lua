@@ -128,7 +128,7 @@ function Task.new(properties)
 		local agentDetail = main.clientCommandAgents[self.targetPlayer]
 		if not agentDetail then
 			agentDetail = {
-				agent = main.modules.Agent.new(self.targetPlayer),
+				agent = main.modules.Agent.new(self.targetPlayer, true),
 				activeAreas = 0,
 			}
 			main.clientCommandAgents[self.targetPlayer] = agentDetail
@@ -444,15 +444,12 @@ function Task:delayLoopFor(intervalTimeOrType, iterations, func, ...)
 end
 
 -- An abstraction of ``task.agent:buff(...)``
-function Task:buff(effect, value, optionalTweenInfo)
+function Task:buff(effect, property, weight)
 	local agent = self.agent
 	if not agent then
 		error("Cannot create buff as the task has no associated player!")
 	end
-	local buff = agent:buff(effect)
-	if value then
-		buff:set(value, optionalTweenInfo)
-	end
+	local buff = agent:buff(effect, property, weight)
 	table.insert(self.buffs, buff)
 	return buff
 end

@@ -1,15 +1,4 @@
-<roblox version="4">
-  <Item class="ModuleScript" referent="0">
-    <Properties>
-      <string name="Name">Directory</string>
-      <BinaryString name="AttributesSerialize">
-      </BinaryString>
-      <Content name="LinkedSource">
-        <null>
-        </null>
-      </Content>
-      <BinaryString name="ScriptGuid"><![CDATA[ezU1NDI4RTk3LTk4RTgtNDFDNi04MEQxLTkwRjYxODg5NjJGMH0=]]></BinaryString>
-      <string name="Source">local Directory = {}
+local Directory = {}
 
 
 
@@ -18,6 +7,7 @@ local players = game:GetService("Players")
 local starterGui = game:GetService("StarterGui")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local runService = game:GetService("RunService")
+local EARLY_JOINER_GUI_NAME = "NanobloxEarlyJoiner"
 
 
 
@@ -31,7 +21,12 @@ local function createFolder(folderName, folderParent)
 		end
 	end
 	if not folder then
-		folder = Instance.new("Folder")
+        if folderName == EARLY_JOINER_GUI_NAME then
+		    folder = Instance.new("ScreenGui")
+            folder.ResetOnSpawn = false
+        else
+            folder = Instance.new("Folder")
+        end
 		folder.Name = folderName
 		folder.Parent = folderParent
 	end
@@ -72,8 +67,8 @@ function Directory.getLocationDetails(location)
 		},
 		["StarterPlayerScripts"] = {
 			realLocation = game:GetService("StarterPlayer").StarterPlayerScripts,
-			playerPathway = "PlayerGui.Nanoblox", -- For early joiners, we add it to "PlayerGui.Nanoblox" instead of "PlayerScripts" as this is the only client location to replicated from server to client
-		},
+			playerPathway = "PlayerGui."..EARLY_JOINER_GUI_NAME, -- For early joiners, we add it to "PlayerGui.NanobloxEarlyJoiner" instead of "PlayerScripts" as this is the only client location to replicated from server to client
+        },
 		["StarterCharacterScripts"] = {
 			realLocation = game:GetService("StarterPlayer").StarterCharacterScripts,
 			playerPathway = "Character",
@@ -192,10 +187,4 @@ end
 
 
 
-return Directory</string>
-      <int64 name="SourceAssetId">-1</int64>
-      <BinaryString name="Tags">
-      </BinaryString>
-    </Properties>
-  </Item>
-</roblox>
+return Directory

@@ -61,7 +61,7 @@ function main.initiate(loader)
 	
 	-- MODULE LOADER
 	local Thread
-	local Directory = require(main.shared.Assets.Directory)
+	local Directory = require(main.shared.Modules.Directory)
 	local function loadModule(module, modulePathway, doNotYield)
 		
 		-- Check is a module

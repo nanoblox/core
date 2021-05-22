@@ -373,10 +373,10 @@ function Clone:face(playerOrBasePart, power, dampening)
 
     local basePart
     if playerOrBasePart:IsA("Player") then
-        coroutine.wrap(function()
+        main.modules.Thread.spawn(function()
             local currentChar = playerOrBasePart.Character or playerOrBasePart.CharacterAdded:Wait()
             basePart = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:WaitForChild("HumanoidRootPart", 3)
-        end)()
+        end)
         faceMaid:give(playerOrBasePart.CharacterAdded:Connect(function(newChar)
             basePart = newChar:WaitForChild("HumanoidRootPart", 3)
         end))
@@ -428,10 +428,10 @@ function Clone:watch(playerOrBasePart)
 
     local basePart
     if playerOrBasePart:IsA("Player") then
-        coroutine.wrap(function()
+        main.modules.Thread.spawn(function()
             local currentChar = playerOrBasePart.Character or playerOrBasePart.CharacterAdded:Wait()
             basePart = currentChar:FindFirstChild("Head") or currentChar:WaitForChild("Head", 3)
-        end)()
+        end)
         watchMaid:give(playerOrBasePart.CharacterAdded:Connect(function(newChar)
             basePart = newChar:WaitForChild("Head", 3)
         end))
@@ -512,8 +512,7 @@ function Clone:modifyHumanoidDescription(propertyName, value)
     if propertyName then
 	    self.humanoidDescription[propertyName] = value
     end
-    coroutine.wrap(function()
-		main.RunService.Heartbeat:Wait()
+    main.modules.Thread.spawn(function()
 		if self.humanoidDescriptionCount == myCount and not self.applyingHumanoidDescription then
 			local iterations = 0
 			self.applyingHumanoidDescription = true
@@ -527,7 +526,7 @@ function Clone:modifyHumanoidDescription(propertyName, value)
             self.applyingHumanoidDescription = false
 			self.humanoidDescription = nil
 		end
-	end)()
+	end)
 end
 
 function Clone:applyHumanoidDescription(newDesc)
@@ -735,10 +734,10 @@ function Clone:follow(playerOrBasePart, studsAwayToStop)
 
 	local basePart
     if playerOrBasePart:IsA("Player") then
-        coroutine.wrap(function()
+        main.modules.Thread.spawn(function()
             local currentChar = playerOrBasePart.Character or playerOrBasePart.CharacterAdded:Wait()
             basePart = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:WaitForChild("HumanoidRootPart", 3)
-        end)()
+        end)
         followMaid:give(playerOrBasePart.CharacterAdded:Connect(function(newChar)
             basePart = newChar:WaitForChild("HumanoidRootPart", 3)
         end))
@@ -750,6 +749,7 @@ function Clone:follow(playerOrBasePart, studsAwayToStop)
 
     local function stillPresentCheck()
         local stillPresent = basePart:FindFirstAncestorWhichIsA("Workspace") or basePart:FindFirstAncestorWhichIsA("ReplicatedStorage")
+        --print("stillPresent = ", stillPresent)
         if not stillPresent then
             self._maid.followMaid = nil
             return false

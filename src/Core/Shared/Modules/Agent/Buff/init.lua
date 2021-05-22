@@ -8,27 +8,8 @@ Buff.__index = Buff
 
 
 -- CONSTRUCTOR
-function Buff.new(effect, weight)
-    --[[
-        Effect can be a string, or a table containing a string and additional value
-        For instance:
-
-        agent:buff("WalkSpeed", 5):set(0)
-        vs
-        agent:buff({"BodyGroupTransparency", "LeftArm"}, 5):set(0)
-
-        The table is necessary for effects where additional needs to be defined (such as 'BodyGroupTransparency')
-
-    --]]
-    local realEffect = effect
-    local realAdditional
-    if type(effect) == "table" then
-        realEffect = effect[1]
-        realAdditional = effect[2]
-    end
-        
-
-	local self = {}
+function Buff.new(effect, property, weight)
+    local self = {}
 	setmetatable(self, Buff)
 	
     local buffId = httpService:GenerateGUID(true)
@@ -37,8 +18,8 @@ function Buff.new(effect, weight)
     local maid = Maid.new()
     self._maid = maid
     self.isDestroyed = false
-    self.effect = realEffect
-    self.additional = realAdditional
+    self.effect = effect
+    self.additional = property
     self.weight = weight or 1
     self.updated = maid:give(Signal.new())
     self.agent = nil
@@ -58,7 +39,7 @@ function Buff:set(value, optionalTweenInfo)
     self.tweenInfo = optionalTweenInfo
     self.value = value
     self.timeUpdated = os.clock()
-    self.updated:Fire(self.effect)
+    self.updated:Fire(self.effect, self.additional)
     return self
 end
 
@@ -69,12 +50,19 @@ function Buff:increment(value, optionalTweenInfo)
     self.tweenInfo = optionalTweenInfo
     self.value = value
     self.timeUpdated = os.clock()
-    self.updated:Fire(self.effect)
+    self.updated:Fire(self.effect, self.additional)
     return self
 end
 
 function Buff:decrement(value, optionalTweenInfo)
     self:increment(-value, optionalTweenInfo)
+    return self
+end
+
+function Buff:setWeight(weight)
+    self.weight = weight or 1
+    self.timeUpdated = os.clock()
+    self.updated:Fire()
     return self
 end
 
