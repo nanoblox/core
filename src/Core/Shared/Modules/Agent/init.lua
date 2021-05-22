@@ -190,7 +190,6 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 			local tweenReference = tostring(effect)..additionalString
 			local reduceTweenMaid = self.reduceMaids[tweenReference]
 			local forcedBaseValue
-			print(effect, additionalString)
 			if reduceTweenMaid then
 				reduceTweenMaid:clean()
 				local validUntilTime = reduceTweenMaid.forcedBaseValueValidUntilTime
@@ -206,28 +205,23 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 				self.reduceMaids[tweenReference] = reduceTweenMaid
 			end
 			
+			-- We do this as HumanoidDescription properties arent responsive (they are read-only and cant be tweened)
+			if effect == "HumanoidDescription" then
+				isNumerical = false
+				isIncremental = false
+			end
+
 			-- This retrieves the associated instances then calculates and applies a final value
 			-- The default value should only be for only remembering non-numerical values (such as colors, materials, etc)
 			-- This is due to numerical based properties having a greater tendency to change on their own (such as Health regeneration)
 			-- For numerical values we instead records its 'difference' to deterine the previous value when a buff is removed
 			local instancesAndProperties
-			local effectData = effects[effect]
+			local effectModule = effects[effect]
+			local effectData = (effectModule and require(effectModule))
 			if effectData then
 				instancesAndProperties = effectData(self.player, additionalString)
-			else
-				-- If an effect is not found, instead reference the player's HumanoidDescription
-				-- It's important HumanoidDescription values are classed as non-numerical since
-				-- the H.D. is only applied once.
-				if not humanoidDescriptionInstance then
-					local humanoid = self.player.Character and self.player.Character:FindFirstChildOfClass("Humanoid")
-					humanoidDescriptionInstance = humanoid and humanoid:FindFirstChildOfClass("HumanoidDescription")
-				end
-				instancesAndProperties = {}
-				if humanoidDescriptionInstance then
-					table.insert(instancesAndProperties, {humanoidDescriptionInstance, effect})
-				end
-				isNumerical = false
 			end
+			
 			for _, group in pairs(instancesAndProperties) do
 				
 				local instance = group[1]
@@ -382,8 +376,8 @@ function Agent:modifyHumanoidDescription(propertyName, value)
 		self.humanoidDescription = humanoid:GetAppliedDescription()
 	end
 	self.humanoidDescription[propertyName] = value
-	coroutine.wrap(function()
-		main.RunService.Heartbeat:Wait()
+	main.modules.Thread.spawn(function()
+		print("Update HD: ", propertyName, value, self.humanoidDescription)
 		if self.humanoidDescriptionCount == myCount and not self.applyingHumanoidDescription then
 			local iterations = 0
 			self.applyingHumanoidDescription = true
@@ -397,7 +391,7 @@ function Agent:modifyHumanoidDescription(propertyName, value)
 			self.applyingHumanoidDescription = false
 			self.humanoidDescription = nil
 		end
-	end)()
+	end)
 end
 
 function Agent:clearBuffs()
