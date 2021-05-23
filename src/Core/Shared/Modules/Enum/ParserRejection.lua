@@ -1,6 +1,6 @@
 -- enumName, enumValue, additionalProperty
 return {
-	{"MISSING_COMMAND_DESCRIPTION", 1}, -- parsedData was missing a commandDescription
-	{"MISSING_COMMANDS", 2}, -- parsedData was missing commands
-	{"MALFORMED_COMMAND_DESCRIPTION", 3}, -- parsedData had a malformed command description
+	{ "MissingCommandDescription", 1 }, -- parsedData was missing a commandDescription
+	{ "MissingCommands", 2 }, -- parsedData was missing commands
+	{ "MalformedCommandDescription", 3 }, -- parsedData had a malformed command description
 }

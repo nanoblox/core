@@ -51,23 +51,23 @@ function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalPlaye
 	for _, capture in pairs(parsedData.commandCaptures) do
 		for commandName, _ in pairs(capture) do
 			local commandRequiresQualifier = parserModule.requiresQualifier(commandName)
-			if (commandRequiresQualifier == qualifierRequiredEnum.Always) then
+			if commandRequiresQualifier == qualifierRequiredEnum.Always then
 				parsedDataRequiresQualifier = qualifierRequiredEnum.Always
 				break
-			elseif (commandRequiresQualifier == qualifierRequiredEnum.Never) then
+			elseif commandRequiresQualifier == qualifierRequiredEnum.Never then
 				parsedDataRequiresQualifier = qualifierRequiredEnum.Never
 			end
 		end
 	end
 
-	if (parsedDataRequiresQualifier ~= qualifierRequiredEnum.Sometimes) then
+	if parsedDataRequiresQualifier ~= qualifierRequiredEnum.Sometimes then
 		parsedData.requiresQualifier = (parsedDataRequiresQualifier == qualifierRequiredEnum.Always)
 	else
 		parsedData.requiresQualifier = true
 		ParsedData.parseQualifierDescription(parsedData)
 		parsedData.prematureQualifierParsing = true
 
-		if (next(parsedData.qualifiersCaptures) ~= nil) then
+		if next(parsedData.qualifiersCaptures) ~= nil then
 			parsedData.requiresQualifier = true
 		else
 			local utilityModule = MAIN.modules.Parser.Utility
@@ -86,8 +86,11 @@ function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalPlaye
 
 			for _, qualifier in pairs(parsedData.unrecognizedQualifiers) do
 				local qualifierHasPlayerIdentifier = (qualifier:sub(1, 1) == playerIdentifier)
-				local qualifierWithoutIdentifier =
-					utilityModule.ternary(qualifierHasPlayerIdentifier, qualifier:sub(2, #qualifier), qualifier)
+				local qualifierWithoutIdentifier = utilityModule.ternary(
+					qualifierHasPlayerIdentifier,
+					qualifier:sub(2, #qualifier),
+					qualifier
+				)
 
 				local isUserNameSearch = utilityModule.ternary(
 					qualifierHasPlayerIdentifier,
@@ -100,7 +103,7 @@ function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalPlaye
 					playerUndefinedSearch == playerSearchEnums.UserNameAndDisplayName
 				)
 
-				if (isUserNameSearch or isUserNameAndDisplayNameSearch) then
+				if isUserNameSearch or isUserNameAndDisplayNameSearch then
 					if table.find(userNames, qualifierWithoutIdentifier:lower()) then
 						parsedData.requiresQualifier = true
 						return
@@ -123,7 +126,7 @@ function ParsedData.parsedDataSetHasTextArgumentFlag(parsedData)
 
 	for _, capture in pairs(parsedData.commandCaptures) do
 		for commandName, _ in pairs(capture) do
-			if (parserModule.hasTextArgument(commandName)) then
+			if parserModule.hasTextArgument(commandName) then
 				parsedData.hasTextArgument = true
 				return
 			end
@@ -140,16 +143,16 @@ end
 function ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejection)
 	local parserRejectionEnum = MAIN.enum.ParserRejection
 
-	if (parserRejection == parserRejectionEnum.MISSING_COMMAND_DESCRIPTION) then
-		if (parsedData.commandDescription == "") then
+	if parserRejection == parserRejectionEnum.MissingCommandDescription then
+		if parsedData.commandDescription == "" then
 			parsedData.isValid = false
 		end
-	elseif (parserRejection == parserRejectionEnum.MISSING_COMMANDS) then
-		if (#parsedData.commandCaptures == 0) then
+	elseif parserRejection == parserRejectionEnum.MissingCommands then
+		if #parsedData.commandCaptures == 0 then
 			parsedData.isValid = false
 		end
-	elseif (parserRejection == parserRejectionEnum.MALFORMED_COMMAND_DESCRIPTION) then
-		if (parsedData.commandDescriptionResidue ~= "") then
+	elseif parserRejection == parserRejectionEnum.MalformedCommandDescription then
+		if parsedData.commandDescriptionResidue ~= "" then
 			parsedData.isValid = false
 		end
 	end
@@ -296,12 +299,10 @@ function ParsedData.parseExtraArgumentDescription(parsedData, allParsedDatas, or
 			foundIndex = select(2, string.find(originalMessage, ";", foundIndex + 1))
 		end
 
-		foundIndex = select(2, string.find(originalMessage, parsedData.commandDescription, foundIndex + 1, true))
-			+ 2
+		foundIndex = select(2, string.find(originalMessage, parsedData.commandDescription, foundIndex + 1, true)) + 2
 
 		if parsedData.requiresQualifier then
-			foundIndex = select(2, string.find(originalMessage, parsedData.qualifierDescription, foundIndex, true))
-				+ 2
+			foundIndex = select(2, string.find(originalMessage, parsedData.qualifierDescription, foundIndex, true)) + 2
 		end
 
 		local extraArgument = string.sub(originalMessage, foundIndex)
