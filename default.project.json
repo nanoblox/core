@@ -12,6 +12,12 @@
       "$className": "ServerScriptService",
       "NanobloxCore": {
         "$path": "src/Core"
+      },
+      "TestEZ": {
+        "$path": "src/TestEZ"
+      },
+      "UnitTests": {
+        "$path": "src/UnitTests"
       }
     }
   }

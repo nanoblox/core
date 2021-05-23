@@ -1,16 +1,14 @@
 local main = require(game.Nanoblox)
 local Args = {}
 
-
-
 -- ARRAY
 Args.array = {
-	
+
 	-----------------------------------
 	{
 		name = "player",
 		aliases = {},
-		description	= "",
+		description = "",
 		defaultValue = 0,
 		playerArg = true,
 		executeForEachPlayer = true,
@@ -36,30 +34,26 @@ Args.array = {
 			end
 			return players
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "players",
 		aliases = {},
-		description	= "",
+		description = "",
 		defaultValue = 0,
 		playerArg = true,
 		executeForEachPlayer = false,
 		parse = function(self, qualifiers, callerUserId)
 			return main.modules.Parser.Args.get("player"):parse(qualifiers, callerUserId)
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "optionalplayer",
 		aliases = {},
-		description	= "Hides the players argument for general use and only displays it within the preview menu.",
+		description = "Hides the players argument for general use and only displays it within the preview menu.",
 		defaultValue = 0,
 		playerArg = true,
 		hidden = true,
@@ -71,15 +65,13 @@ Args.array = {
 			end
 			return main.modules.Parser.Args.get("player"):parse(qualifiers, callerUserId)
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "optionalplayers",
 		aliases = {},
-		description	= "Hides the players argument for general use and only displays it within the preview menu.",
+		description = "Hides the players argument for general use and only displays it within the preview menu.",
 		defaultValue = 0,
 		playerArg = true,
 		hidden = true,
@@ -87,281 +79,220 @@ Args.array = {
 		parse = function(self, qualifiers, callerUserId)
 			return main.modules.Parser.Args.get("optionalplayer"):parse(qualifiers, callerUserId)
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "text",
-		aliases = {"string", "reason", "question", "teamname"},
-		description	= "",
+		aliases = { "string", "reason", "question", "teamname" },
+		description = "",
 		defaultValue = 0,
 		parse = function(self, textToFilter, callerUserId, targetUserId)
 			-- This is asynchronous
 			local _, value = main.modules.ChatUtil.filterText(callerUserId, targetUserId, textToFilter):await()
 			return value
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "code",
-		aliases = {"lua"},
-		description	= "",
+		aliases = { "lua" },
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
 			return stringToParse
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "number",
-		aliases = {"integer", "studs", "speed", "intensity"},
-		description	= "",
+		aliases = { "integer", "studs", "speed", "intensity" },
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
 			return 666
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "soundid", -- consider blocking soundids and a setting to achieve this
-		aliases = {"musicid"},
-		description	= "",
+		aliases = { "musicid" },
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "duration", -- returns the time string (such as 5s7d8h) in seconds
-		aliases = {"time", "durationtime", "timelength"},
-		description	= "",
+		aliases = { "time", "durationtime", "timelength" },
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "degrees",
 		aliases = {},
-		description	= "",
+		description = "",
 		defaultValue = 180,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "role",
 		aliases = {},
-		description	= "",
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "color", -- have a predefined list of colors such as 'red', 'blue', etc which the user can reference. also consider rgb capsules
-		aliases = {"colour", "color3", "uigradient", "colorgradient", "gradient"},
-		description	= "",
+		aliases = { "colour", "color3", "uigradient", "colorgradient", "gradient" },
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
 			-- predifined terms like 'blue', 'red', etc
 			-- RGB codes such as '100,110,120'
 			-- hex codes such as #FF5733
-			return Color3.fromRGB(50,100,150)
+			return Color3.fromRGB(50, 100, 150)
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "optionalcolor",
-		aliases = {"optionalcolour", "optionalcolor3"},
-		description	= "",
+		aliases = { "optionalcolour", "optionalcolor3" },
+		description = "",
 		defaultValue = 0,
 		hidden = true,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "bool",
-		aliases = {"boolean", "trueOrFalse", "yesOrNo"},
-		description	= "",
+		aliases = { "boolean", "trueOrFalse", "yesOrNo" },
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "stat", -- Consider making a setting to update this or set its pathway
-		aliases = {"statName"},
-		description	= "",
+		aliases = { "statName" },
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "scale", -- Consider scale limits
 		aliases = {},
-		description	= "",
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "gearId", -- Consider gear limits
 		aliases = {},
-		description	= "",
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "user",
-		aliases = {"username", "userid", "playerid", "playername"},
-		description	= "",
+		aliases = { "username", "userid", "playerid", "playername" },
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "playeroruser", -- returns a string instead of a player instance - it fist looks for a player in the server otherwise defaults to the given string
 		aliases = {},
-		description	= "",
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "team",
 		aliases = {},
-		description	= "",
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "teamcolor",
 		aliases = {},
-		description	= "",
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "material",
 		aliases = {},
-		description	= "",
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "tool",
-		aliases = {"gear", "item"},
-		description	= "",
+		aliases = { "gear", "item" },
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "morph",
 		aliases = {},
-		description	= "",
+		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
-	
-};
-
-
+}
 
 -- DICTIONARY
 -- This means instead of scanning through the array to find a name match
@@ -377,23 +308,17 @@ for _, item in pairs(Args.array) do
 	end
 end
 
-
-
 -- SORTED ARRAY(S)
 Args.executeForEachPlayerArgsDictionary = {}
 for _, item in pairs(Args.array) do
 	if item.playerArg and item.executeForEachPlayer then
-		Args.executeForEachPlayerArgsDictionary[item.name] = true
+		Args.executeForEachPlayerArgsDictionary[item.name:lower()] = true
 	end
 end
-
-
 
 -- METHODS
 function Args.get(name)
 	return Args.lowerCaseNameAndAliasToArgDictionary[name:lower()]
 end
-
-
 
 return Args
