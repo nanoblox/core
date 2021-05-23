@@ -76,6 +76,7 @@ local function getDataSize(data)
 end
 
 local function finishRecord(record)
+	record.isFinished = true
 	record.finished:Fire()
 	record.finished:Destroy()
 	record = nil
@@ -148,8 +149,10 @@ function GlobalService.addRecord(record)
 			end
 			active = false
 		end
-		Thread.spawnNow(function()
-			record.finished:Wait()
+		Thread.spawn(function()
+			if not record.isFinished then
+				record.finished:Wait()
+			end
 			Thread.delay(invocationTimeout, function()
 				if not response then
 					informSender()

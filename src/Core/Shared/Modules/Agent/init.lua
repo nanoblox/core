@@ -43,6 +43,10 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 	self.silentlyEndBuffs = false
 	self.player = player
 	self.groupedBuffs = {}
+	self.humanoidDescriptionCount = 0
+	self.humanoidDescription = nil
+	self.applyingHumanoidDescription = false
+	self.destroyed = false
 
 	maid:give(player.CharacterAdded:Connect(function(char)
 		if reapplyBuffsOnRespawn then
@@ -65,12 +69,12 @@ end
 
 
 -- METHODS
-function Agent:buff(effect, weight)
-	local buff = Buff.new(effect, weight)
+function Agent:buff(effect, property, weight)
+	local buff = Buff.new(effect, property, weight)
 	local buffId = buff.buffId
 	buff.agent = self
-	buff.updated:Connect(function(specificEffect)
-		self:reduceAndApplyEffects(specificEffect)
+	buff.updated:Connect(function(specificEffect, specificProperty)
+		self:reduceAndApplyEffects(specificEffect, specificProperty)
 	end)
 	self.buffs[buffId] = buff
 	return buff
@@ -146,7 +150,7 @@ function Agent:clearDefaultValues()
 	end
 end
 
-function Agent:reduceAndApplyEffects(specificEffect)
+function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 	self:updateBuffGroups()
 	local humanoidDescription
 	local humanoidDescriptionInstance
@@ -157,7 +161,10 @@ function Agent:reduceAndApplyEffects(specificEffect)
 		end
 		
 		for additionalString, buffs in pairs(additionalTable) do
-			
+			if not(specificProperty == nil or additionalString == specificProperty) then
+				continue
+			end
+
 			-- This retrieves a nonincremental buff with the greatest weight. If only incremental buffs exist, the one with the highest weight is chosen.
 			-- The boss then determines how other buffs will be applied (if at all)
 			local bossBuff
@@ -198,28 +205,23 @@ function Agent:reduceAndApplyEffects(specificEffect)
 				self.reduceMaids[tweenReference] = reduceTweenMaid
 			end
 			
+			-- We do this as HumanoidDescription properties arent responsive (they are read-only and cant be tweened)
+			if effect == "HumanoidDescription" then
+				isNumerical = false
+				isIncremental = false
+			end
+
 			-- This retrieves the associated instances then calculates and applies a final value
 			-- The default value should only be for only remembering non-numerical values (such as colors, materials, etc)
 			-- This is due to numerical based properties having a greater tendency to change on their own (such as Health regeneration)
 			-- For numerical values we instead records its 'difference' to deterine the previous value when a buff is removed
 			local instancesAndProperties
-			local effectData = effects[effect]
+			local effectModule = effects[effect]
+			local effectData = (effectModule and require(effectModule))
 			if effectData then
 				instancesAndProperties = effectData(self.player, additionalString)
-			else
-				-- If an effect is not found, instead reference the player's HumanoidDescription
-				-- It's important HumanoidDescription values are classed as non-numerical since
-				-- the H.D. is only applied once.
-				if not humanoidDescriptionInstance then
-					local humanoid = self.player.Character and self.player.Character:FindFirstChildOfClass("Humanoid")
-					humanoidDescriptionInstance = humanoid and humanoid:FindFirstChildOfClass("HumanoidDescription")
-				end
-				instancesAndProperties = {}
-				if humanoidDescriptionInstance then
-					table.insert(instancesAndProperties, {humanoidDescriptionInstance, effect})
-				end
-				isNumerical = false
 			end
+			
 			for _, group in pairs(instancesAndProperties) do
 				
 				local instance = group[1]
@@ -312,7 +314,7 @@ function Agent:reduceAndApplyEffects(specificEffect)
 				end
 
 				-- This applies the final value
-				if (propertyValue ~= finalValue or isAHumanoidDescription) and not self.silentlyEndBuffs then
+				if (propertyValue ~= finalValue or forcedBaseValue or isAHumanoidDescription) and not self.silentlyEndBuffs then
 					local function updateActiveAppliedTables()
 						local difference = finalValue - instance[propertyName]
 						for _, appliedTable in pairs(activeAppliedTables) do
@@ -344,14 +346,16 @@ function Agent:reduceAndApplyEffects(specificEffect)
 						end
 						tween:Play()
 						reduceTweenMaid:give(function()
-							if tween.PlaybackState ~= Enum.PlaybackState.Completed then
-								tween:Pause()
-								if type(finalValue) == "number" then
-									rawset(reduceTweenMaid, "forcedBaseValueValidUntilTime", completeTime)
-									rawset(reduceTweenMaid, "forcedBaseValue", finalValue)
+							if not self.destroyed then
+								if tween.PlaybackState ~= Enum.PlaybackState.Completed then
+									tween:Pause()
+									if type(finalValue) == "number" then
+										rawset(reduceTweenMaid, "forcedBaseValueValidUntilTime", completeTime)
+										rawset(reduceTweenMaid, "forcedBaseValue", finalValue)
+									end
 								end
+								tween:Destroy()
 							end
-							tween:Destroy()
 						end)
 					end
 				end
@@ -362,33 +366,31 @@ function Agent:reduceAndApplyEffects(specificEffect)
 	end
 end
 
-local humanoidDescriptionCount = 0
-local humanoidDescription
-local applyingHumanoidDescription = false
 function Agent:modifyHumanoidDescription(propertyName, value)
 	-- humanoidDescriptionInstances do this weird thing where they don't always apply, especially when applying as soon as a player respawns
 	-- or right after applying another description. The following code is designed to prevent this.
-	humanoidDescriptionCount += 1
-	local myCount = humanoidDescriptionCount
+	self.humanoidDescriptionCount += 1
+	local myCount = self.humanoidDescriptionCount
 	local humanoid = self.player.Character.Humanoid
-	if not humanoidDescription then
-		humanoidDescription = humanoid:GetAppliedDescription()
+	if not self.humanoidDescription then
+		self.humanoidDescription = humanoid:GetAppliedDescription()
 	end
-	humanoidDescription[propertyName] = value
-	coroutine.wrap(function()
-		main.RunService.Heartbeat:Wait()
-		if humanoidDescriptionCount == myCount and not applyingHumanoidDescription then
+	self.humanoidDescription[propertyName] = value
+	main.modules.Thread.spawn(function()
+		if self.humanoidDescriptionCount == myCount and not self.applyingHumanoidDescription then
 			local iterations = 0
-			applyingHumanoidDescription = true
+			self.applyingHumanoidDescription = true
+			local appliedDesc
 			repeat
 				main.RunService.Heartbeat:Wait()
-				pcall(function() humanoid:ApplyDescription(humanoidDescription) end)
+				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
 				iterations += 1
-			until humanoid:GetAppliedDescription()[propertyName] == humanoidDescription[propertyName] or iterations == 10
-			applyingHumanoidDescription = false
-			humanoidDescription = nil
+				appliedDesc = humanoid and humanoid:GetAppliedDescription()
+			until (appliedDesc and self.humanoidDescription and appliedDesc[propertyName] == self.humanoidDescription[propertyName]) or iterations == 10
+			self.applyingHumanoidDescription = false
+			self.humanoidDescription = nil
 		end
-	end)()
+	end)
 end
 
 function Agent:clearBuffs()
@@ -412,6 +414,7 @@ function Agent:clearBuffsWithEffect(effect)
 end
 
 function Agent:destroy()
+	self.destroyed = true
 	self:clearBuffs()
 	self._maid:clean()
 end

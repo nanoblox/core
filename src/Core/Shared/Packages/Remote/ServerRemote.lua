@@ -14,19 +14,26 @@ local Promise = require(script.Parent.Promise)
 local Remote = {}
 local players = game:GetService("Players")
 local httpService = game:GetService("HttpService")
+local runService = game:GetService("RunService")
 local requestDetails = {}
 local remotes = {}
 
 
 
 -- BEHAVIOUR
-players.PlayerAdded:Connect(function(player)
+local function playerAdded(player)
 	local detail = {
 		requests = 0,
 		nextRefresh = 0,
 	}
 	requestDetails[player] = detail
+end
+players.PlayerAdded:Connect(function(player)
+	playerAdded(player)
 end)
+for _, player in pairs(players:GetPlayers()) do
+	playerAdded(player)
+end
 players.PlayerRemoving:Connect(function(player)
 	requestDetails[player] = nil
 end)
