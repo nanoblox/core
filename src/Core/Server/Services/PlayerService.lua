@@ -34,6 +34,7 @@ local function playerAdded(player)
 	
 	-- Call .playerAdded for all services
 	local cancelThread = callEventMethod("playerAdded", player)
+	PlayerService.playerAdded:Fire(player)
 	if cancelThread then
 		return
 	end
@@ -67,9 +68,11 @@ local function playerAdded(player)
 	
 	-- Call .userLoaded for all services
 	callEventMethod("userLoaded", user)
+	PlayerService.userLoaded:Fire(player)
 	
 	-- Call .playerLoaded for all services
 	callEventMethod("playerLoaded", player, user)
+	PlayerService.playerLoaded:Fire()
 	
 end
 

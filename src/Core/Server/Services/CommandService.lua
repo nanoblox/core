@@ -58,6 +58,8 @@ function CommandService.loaded()
 		table.sort(array, function(a, b) return #a > #b end)
 		return array
 	end)
+
+	print("CommandService LOADED!")
 end
 
 

@@ -50,7 +50,7 @@ function TaskService.start()
 		if not errorMessage then
 			if clockTime >= (task._nextReplicationsThisSecondRefresh or 0) then
 				task._nextReplicationsThisSecondRefresh = clockTime + 1
-				task.replicationsThisSecond = 0
+				task.replicationRequestsThisSecond = 1
 			end
 			local success, blockMessage = task.command.preReplication(task, targetPool, packedData)
 			if not success then
@@ -68,11 +68,12 @@ function TaskService.start()
 				for _, plr in pairs(playersArrayOrErrorMessage) do
 					TaskService.remotes.replicateClientCommand:fireClient(plr, task.UID, packedData)
 				end
-				task.totalReplications += 1
-				task.replicationsThisSecond += 1
+				task.totalReplicationRequests += 1
+				task.replicationRequestsThisSecond += 1
 			end
 		end
 		if errorMessage then
+			warn(errorMessage)
 			--!!!notice here player or caller??, probably player
 			return
 		end

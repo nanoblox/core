@@ -38,8 +38,8 @@ function Task.new(properties)
 	self.callerLeft = maid:give(Signal.new())
 	self.persistence = self.command.persistence
 	self.trackingClients = {}
-	self.totalReplications = 0
-	self.replicationsThisSecond = 0
+	self.totalReplicationRequests = 0
+	self.replicationRequestsThisSecond = 0
 	self.buffs = {}
 
 	local qualifierPresent = false
@@ -87,7 +87,7 @@ function Task.new(properties)
 		end))
 		local function registerCharacter(char)
 			if char then
-				local humanoid = char:WaitForChild("Humanoid")
+				local humanoid = char:FindFirstChild("Humanoid") or char:WaitForChild("Humanoid")
 				local function died()
 					if self.persistence == main.enum.Persistence.UntilPlayerDies then
 						self:kill()
@@ -110,7 +110,7 @@ function Task.new(properties)
 				end
 				registerCharacter(char)
 			end))
-			main.modules.Thread.spawnNow(function()
+			main.modules.Thread.spawn(function()
 				registerCharacter(targetPlayer.Character)
 			end)
 		end
@@ -128,7 +128,7 @@ function Task.new(properties)
 		local agentDetail = main.clientCommandAgents[self.targetPlayer]
 		if not agentDetail then
 			agentDetail = {
-				agent = main.modules.Agent.new(self.targetPlayer),
+				agent = main.modules.Agent.new(self.targetPlayer, true),
 				activeAreas = 0,
 			}
 			main.clientCommandAgents[self.targetPlayer] = agentDetail
@@ -181,7 +181,7 @@ function Task:begin()
 		return
 	end
 
-	main.modules.Thread.spawnNow(function()
+	main.modules.Thread.spawn(function()
 		-- This handles the applying of all modifiers, tracks them, then kills the task when all modifiers have completed
 		local function track(thread)
 			self:track(thread, "totalStartThreads", "startThreadsCompleted")
@@ -197,9 +197,13 @@ function Task:begin()
 				end
 				if actionModifier.executeAfterThread then
 					local afterThreadConnection
+					local executedOnce = false
 					afterThreadConnection = thread.completed:Connect(function()
 						afterThreadConnection:Disconnect()
-						self:execute()
+						if not executedOnce then
+							executedOnce = true
+							self:execute()
+						end
 					end)
 				end
 				if actionModifier.yieldUntilThreadComplete then
@@ -279,7 +283,7 @@ function Task:execute()
 		end))
 	end
 	
-	main.modules.Thread.spawnNow(function()
+	main.modules.Thread.spawn(function()
 
 		-- If client task, execute with task.clientArgs
 		if main.isClient then
@@ -336,7 +340,7 @@ function Task:execute()
 	end)
 end
 
-function Task:track(thread, countPropertyName, completedSignalName)
+function Task:track(threadOrTween, countPropertyName, completedSignalName)
 	local newCountPropertyName = countPropertyName or "totalExecutionThreads"
 	local newCompletedSignalName = completedSignalName or "executionThreadsCompleted"
 	if not self[newCountPropertyName] then
@@ -346,30 +350,34 @@ function Task:track(thread, countPropertyName, completedSignalName)
 		self[newCompletedSignalName] = self.maid:give(Signal.new())
 	end
 	if self.isDead then
-		thread:Destroy() --thread:disconnect()
-		return thread
+		threadOrTween:Destroy() --thread:disconnect()
+		return threadOrTween
 	elseif self.isPaused then
-		thread:Pause() --thread:pause()
+		threadOrTween:Pause() --thread:pause()
 	end
-	self.maid:give(thread)
-	self.threads[thread] = true
+	self.maid:give(threadOrTween)
+	self.threads[threadOrTween] = true
 	self[newCountPropertyName] += 1
-	main.modules.Thread.spawnNow(function()
-		thread.Completed:Wait() --thread.completed:Wait()
+	main.modules.Thread.spawn(function()
+		if threadOrTween.PlaybackState == main.enum.ThreadState.Completed or threadOrTween.PlaybackState == main.enum.ThreadState.Cancelled then
+			threadOrTween.Completed:Wait()
+		end
 		main.RunService.Heartbeat:Wait()
 		self[newCountPropertyName] -= 1
 		if self[newCountPropertyName] == 0 and self[newCompletedSignalName] and not self.isDead then
 			self[newCompletedSignalName]:Fire()
 		end
 	end)
-	return thread
+	return threadOrTween
 end
 
 function Task:pause()
 	for thread, _ in pairs(self.threads) do
 		thread:Pause() --thread:pause()
 	end
-	self:pauseAllClients()
+	if main.isServer then
+		self:pauseAllClients()
+	end
 	self.isPaused = true
 end
 
@@ -377,7 +385,9 @@ function Task:resume()
 	for thread, _ in pairs(self.threads) do
 		thread:Play() --thread:resume()
 	end
-	self:resumeAllClients()
+	if main.isServer then
+		self:resumeAllClients()
+	end
 	self.isPaused = false
 end
 
@@ -418,6 +428,11 @@ function Task:give(...)
 	return self.maid:give(...)
 end
 
+-- An abstraction of ``task:track(main.modules.Thread.spawn(func, ...))``
+function Task:spawn(func, ...)
+	return self:track(main.modules.Thread.spawn(func, ...))
+end
+
 -- An abstraction of ``task:track(main.modules.Thread.delay(waitTime, func, ...))``
 function Task:delay(waitTime, func, ...)
 	return self:track(main.modules.Thread.delay(waitTime, func, ...))
@@ -443,16 +458,18 @@ function Task:delayLoopFor(intervalTimeOrType, iterations, func, ...)
 	return self:track(main.modules.Thread.delayLoopFor(intervalTimeOrType, iterations, func, ...))
 end
 
+-- An abstraction of ``task:track(main.TweenService:Create(instance, tweenInfo, propertyTable))``
+function Task:tween(instance, tweenInfo, propertyTable)
+	return self:track(main.TweenService:Create(instance, tweenInfo, propertyTable))
+end
+
 -- An abstraction of ``task.agent:buff(...)``
-function Task:buff(effect, value, optionalTweenInfo)
+function Task:buff(effect, property, weight)
 	local agent = self.agent
 	if not agent then
 		error("Cannot create buff as the task has no associated player!")
 	end
-	local buff = agent:buff(effect)
-	if value then
-		buff:set(value, optionalTweenInfo)
-	end
+	local buff = agent:buff(effect, property, weight)
 	table.insert(self.buffs, buff)
 	return buff
 end

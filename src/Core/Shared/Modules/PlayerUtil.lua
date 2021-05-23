@@ -12,6 +12,8 @@ function PlayerUtil.getCharacter(playerOrUserId)
 		player = main.Players:GetPlayerByUserId(playerUserId)
 	elseif typeof(playerOrUserId) == "Instance" and playerOrUserId:IsA("Player") then
 		player = playerOrUserId
+	elseif main.isClient and playerOrUserId == nil then
+		player = main.localPlayer
 	end
 	local character = player and player.Character
 	return character
