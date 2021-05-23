@@ -5,6 +5,7 @@ local main = {
 
 -- INITIATE
 function main.initiate(loader)
+	
 	if main.called then
 		return false
 	end
@@ -107,7 +108,7 @@ function main.initiate(loader)
 				-- Call init
 				if rawget(moduleData, "init") then
 					if doNotYield then
-						Thread.spawnNow(function() moduleData.init() end)
+						Thread.spawn(function() moduleData.init() end)
 					else
 						moduleData.init()
 					end
@@ -161,13 +162,17 @@ function main.initiate(loader)
 	
 	-- Define order to call service methods based upon any present '_order' values
 	table.sort(orderedServices, function(a, b) return serviceGroup[a]._order < serviceGroup[b]._order end)
+	local serviceMethodsToCall = 0
+	local serviceMethodsCalled = 0
 	local function callServiceMethod(methodName)
 		for i, moduleName in pairs(orderedServices) do
 			local moduleData = serviceGroup[moduleName]
 			local method = type(moduleData) == "table" and moduleData[methodName]
 			if method then
-				Thread.spawnNow(function()
+				serviceMethodsToCall += 1
+				Thread.spawn(function()
 					method(moduleData)
+					serviceMethodsCalled += 1
 				end)
 			end
 		end
@@ -201,10 +206,14 @@ function main.initiate(loader)
 		end
 		callServiceMethod("loaded")
 	end
-	main._loaded = true
-	if main._loadedSignal then
-		main._loadedSignal:Fire()
-	end
+	
+	-- It's important all service methods have been called before defining as loaded
+	Thread.delayUntil(function() return serviceMethodsToCall == serviceMethodsCalled end, function()
+		main._loaded = true
+		if main._loadedSignal then
+			main._loadedSignal:Fire()
+		end
+	end)
 	
 end
 
@@ -236,6 +245,7 @@ end
 
 function main.getFramework()
 	main.waitUntilLoaded()
+	print("RETURN FRAMEWORK")
 	return main
 end
 

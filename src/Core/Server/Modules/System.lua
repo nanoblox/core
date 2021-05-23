@@ -68,7 +68,7 @@ function System.new(name, ignoreTempChanges)
 	user.onlySaveDataWhenChanged = false
 	user.ignoreSaveOnBindToClose = true
 	--user.transformLoadDataTo = nil
-	Thread.spawnNow(function()
+	Thread.spawn(function()
 		user:waitUntilLoaded()
 		--user.transformLoadDataTo = user.temp
 		--user.transformLoadDataTo = user.perm
@@ -144,7 +144,7 @@ function System.new(name, ignoreTempChanges)
 	local nextAvailableSaveTick = tick()
 	local requestsList = {}
 	local saveCooldown = 7
-	Thread.spawnNow(function()
+	Thread.spawn(function()
 		main.waitUntilStarted()
 		self.senderSave = main.services.GlobalService.createSender(name.."Save")
 		self.receiverSave = main.services.GlobalService.createReceiver(name.."Save")
@@ -175,7 +175,7 @@ function System.new(name, ignoreTempChanges)
 				isAlsoSender:Destroy()
 				myUIDs[requestUID] = nil
 			else
-				Thread.spawnNow(function() user:loadAsync() end)
+				Thread.spawn(function() user:loadAsync() end)
 			end
 			Thread.delay(saveCooldown, function()
 				table.remove(requestsList, 1)

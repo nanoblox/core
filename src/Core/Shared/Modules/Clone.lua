@@ -63,7 +63,7 @@ function Clone:become(characterOrUserIdOrUsername)
     ]]
     local clone = self.clone
     local function getAndApplyDescription()
-        main.modules.Thread.spawnNow(function()
+        main.modules.Thread.spawn(function()
             local userId = self.userId
             if not userId then
                 local success, newUserId = main.modules.PlayerUtil.getUserIdFromName(self.username):await()
@@ -113,7 +113,7 @@ function Clone:become(characterOrUserIdOrUsername)
                 clone.Name = self.username
                 self.userId = inServerPlayer.UserId
             else
-                main.modules.Thread.spawnNow(function()
+                main.modules.Thread.spawn(function()
                     local username = self.username
                     if not username then
                         local success, newUsername = main.modules.PlayerUtil.getNameFromUserId(self.userId):await()
@@ -209,7 +209,7 @@ function Clone:become(characterOrUserIdOrUsername)
 
         elseif self.userId or self.username then
             getAndApplyDescription()
-            main.modules.Thread.spawnNow(function()
+            main.modules.Thread.spawn(function()
                 local username = self.username
                 if not username then
                     local success, newUsername = main.modules.PlayerUtil.getNameFromUserId(self.userId):await()
@@ -722,7 +722,7 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
         end
     end
 
-    main.modules.Thread.spawnNow(computeWaypoints)
+    main.modules.Thread.spawn(computeWaypoints)
 
     pathMaid:give(path.Blocked:Connect(onPathBlocked))
     pathMaid:give(cloneHumanoid.MoveToFinished:Connect(onWaypointReached))
