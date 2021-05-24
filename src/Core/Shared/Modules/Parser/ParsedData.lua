@@ -67,7 +67,7 @@ function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalPlaye
 		ParsedData.parseQualifierDescription(parsedData)
 		parsedData.prematureQualifierParsing = true
 
-		if next(parsedData.qualifiersCaptures) ~= nil then
+		if next(parsedData.qualifierCaptures) ~= nil then
 			parsedData.requiresQualifier = true
 		else
 			local utilityModule = MAIN.modules.Parser.Utility
@@ -141,6 +141,9 @@ end
 
 ]]
 function ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejection)
+	if not parsedData.isValid then
+		return
+	end
 	local parserRejectionEnum = MAIN.enum.ParserRejection
 
 	if parserRejection == parserRejectionEnum.MissingCommandDescription then
@@ -197,6 +200,11 @@ function ParsedData.generateOrganizedParsedData(allParsedData)
 				modifiers = modifiers,
 				qualifiers = qualifiers,
 			})
+		else
+			table.insert(organizedData, {
+				isValid = false,
+				parserRejection = parsedData.parserRejection,
+			})
 		end
 	end
 	return organizedData
@@ -217,7 +225,7 @@ function ParsedData.parseCommandStatement(parsedData)
 	parsedData.qualifierDescription = descriptions[2]
 	parsedData.extraArgumentDescription = descriptions[3]
 
-	ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejectionEnum.MISSING_COMMAND_DESCRIPTION)
+	ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejectionEnum.MissingCommandDescription)
 end
 
 --[[
@@ -235,8 +243,8 @@ function ParsedData.parseCommandDescription(parsedData)
 	parsedData.modifierCaptures = capturesAndResidue[2]
 	parsedData.commandDescriptionResidue = capturesAndResidue[3]
 
-	ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejectionEnum.MISSING_COMMANDS)
-	ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejectionEnum.MALFORMED_COMMAND_DESCRIPTION)
+	ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejectionEnum.MissingCommands)
+	ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejectionEnum.MalformedCommandDescription)
 end
 
 --[[
