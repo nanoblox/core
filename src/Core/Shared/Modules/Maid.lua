@@ -87,7 +87,7 @@ function Maid:giveTask(task)
 	local taskId = #self._tasks+1
 	self[taskId] = task
 
-	if type(task) == "table" and (not (task.Destroy or task.destroy)) then
+	if type(task) == "table" and (not (task.Destroy or task.destroy or task.getStatus)) then
 		warn("[Maid.GiveTask] - Gave table task without .Destroy\n\n" .. debug.traceback())
 	end
 
@@ -111,9 +111,10 @@ function Maid:givePromise(promise)
 end
 
 function Maid:give(taskOrPromise)
-	local taskId
+	local taskId, newPromise
 	if type(taskOrPromise) == "table" and taskOrPromise.getStatus then
-		_, taskId = self:givePromise(taskOrPromise)
+		newPromise, taskId = self:givePromise(taskOrPromise)
+		taskOrPromise = newPromise
 	else
 		taskId = self:giveTask(taskOrPromise)
 	end
@@ -145,6 +146,14 @@ function Maid:doCleaning()
 			task:Destroy()
 		elseif task.destroy then
 			task:destroy()
+		elseif task.cancel then
+			task:cancel()
+		elseif task.Cancel then
+			task:Cancel()
+		elseif task.disconnect then
+			task:disconnect()
+		elseif task.Disconnect then
+			task:Disconnect()
 		end
 		index, task = next(tasks)
 	end

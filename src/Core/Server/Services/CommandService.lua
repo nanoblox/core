@@ -2,20 +2,91 @@
 local main = require(game.Nanoblox)
 local System = main.modules.System
 local CommandService = System.new("Commands")
-CommandService.remotes = {
-	previewCommand = main.modules.Remote.new("previewCommand"),
-}
+CommandService.remotes = {}
 local systemUser = CommandService.user
-local defaultCommands = main.modules.Commands
+
+
+
+-- START
+function CommandService.start()
+
+    local previewCommand = main.modules.Remote.new("previewCommand")
+    CommandService.remotes.previewCommand = previewCommand
+    
+end
+
+
+
+-- PLAYER LOADED
+function CommandService.playerLoadedMethod(player)
+	
+	-- This dynamically updates the players 'parsePatterns' when the users settings change instead of having to parse them every chat message
+	----------
+	local PARSE_SETTINGS = {
+		commandStatementsFromBatch = {
+			settingName = "prefixes",
+			parse = function(settingValue)
+				return string.format(
+					"%s([^%s]+)",
+					";", --ClientSettings.prefix,
+					";" --ClientSettings.prefix
+				)
+			end,
+		},
+        descriptionsFromCommandStatement = {
+			settingName = "descriptorSeparator",
+			parse = function(settingValue)
+				return string.format(
+					"%s?([^%s]+)",
+					" ", --ClientSettings.descriptorSeparator,
+					" " --ClientSettings.descriptorSeparator
+				)
+			end,
+		},
+        argumentsFromCollection = {
+			settingName = "collective",
+			parse = function(settingValue)
+				return string.format(
+					"([^%s]+)%s?",
+					",", --ClientSettings.collective,
+					"," --ClientSettings.collective
+				)
+			end,
+		},
+        capsuleFromKeyword = {
+			settingName = "argCapsule",
+			parse = function(settingValue)
+				return string.format(
+					"%%(%s%%)", --Capsule
+					string.format("(%s)", ".-")
+				)
+			end
+		},
+	}
+
+	local validSettingNames = {}
+	local user = main.modules.PlayerStore:getLoadedUser(player)
+	user.perm.playerSettings.changed:Connect(function(settingName, value)
+		if validSettingNames[settingName] then
+			user.temp.parsePatterns:set(settingName, value)
+		end
+	end)
+	user.temp:set("parsePatterns", {})
+	for _, detail in pairs(PARSE_SETTINGS) do
+		local settingName = detail.settingName
+		local settingValue = main.services.SettingService.getPlayerSetting(settingName, player)
+		validSettingNames[settingName] = true
+		user.temp.parsePatterns:set(settingName, settingValue)
+	end
+	----------
+
+end
 
 
 
 -- BEGIN
 function CommandService.loaded()
-	--!!
-	local Parser = main.modules.Parser --!!! This is just to test the parser
-	--!!
-
+	
 	-- Setup globals
 	CommandService.executeStatementGloballySender = main.services.GlobalService.createSender("executeStatementGlobally")
 	CommandService.executeStatementGloballyReceiver = main.services.GlobalService.createReceiver("executeStatementGlobally")
@@ -24,6 +95,7 @@ function CommandService.loaded()
 	end)
 
 	-- Grab default commands
+	local defaultCommands = main.modules.Commands
 	for name, details in pairs(defaultCommands) do
 		CommandService.createCommand(name, details)
 	end
@@ -59,7 +131,6 @@ function CommandService.loaded()
 		return array
 	end)
 
-	print("CommandService LOADED!")
 end
 
 
@@ -81,6 +152,7 @@ end)
 
 -- METHODS
 function CommandService.generateRecord(key)
+	local defaultCommands = main.modules.Commands
 	return defaultCommands[key] or {
 		name = "", -- This will be locked, command names cannot change and must always be the same
 		description = "",
@@ -140,9 +212,9 @@ function CommandService.getTable(name)
 end 
 
 function CommandService.chatCommand(caller, message)
-	print(caller.Name, "chatted: ", message)
 	local callerUserId = caller.UserId
 	local batch = main.modules.Parser.parseMessage(message)
+	print(caller.Name, "chatted: ", message, batch)
 	if type(batch) == "table" then
 		for i, statement in pairs(batch) do
 			local approved, noticeDetails = CommandService.verifyStatement(callerUserId, statement)

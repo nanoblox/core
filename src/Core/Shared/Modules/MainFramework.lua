@@ -38,6 +38,7 @@ function main.initiate(loader)
 	main.isClient = isClient
 	main.isStudio = isStudio
 	main.shared = main.ReplicatedStorage.Nanoblox.Shared
+	main.client = main.ReplicatedStorage.Nanoblox.Client
 	main.location = location
 	main.modules = {}
 	main.services = {}
@@ -51,8 +52,8 @@ function main.initiate(loader)
 		main.locationGroup = main.server
 		main.loader = loader
 		main.config = require(loader.Config)
+		main.assetStorage = nil -- This is created within AssetService
 	elseif isClient then
-		main.client = main.ReplicatedStorage.Nanoblox.Client
 		main.locationGroup = main.client
 		main.controllers = {}
 		main.localPlayer = main.Players.LocalPlayer
@@ -245,7 +246,6 @@ end
 
 function main.getFramework()
 	main.waitUntilLoaded()
-	print("RETURN FRAMEWORK")
 	return main
 end
 

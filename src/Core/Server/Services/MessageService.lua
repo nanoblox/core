@@ -1,13 +1,27 @@
 -- LOCAL
 local main = require(game.Nanoblox)
 local MessageService = {
-	remotes = {
-		message = main.modules.Remote.new("message"),
-		hint = main.modules.Remote.new("hint"),
-		notice = main.modules.Remote.new("notice"),
-		popup = main.modules.Remote.new("popup"),
-	},
+	remotes = {}
 }
+
+
+
+-- START
+function MessageService.start()
+
+    local message = main.modules.Remote.new("message")
+    MessageService.remotes.message = message
+
+	local hint = main.modules.Remote.new("hint")
+    MessageService.remotes.hint = hint
+
+	local notice = main.modules.Remote.new("notice")
+    MessageService.remotes.notice = notice
+
+	local popup = main.modules.Remote.new("popup")
+    MessageService.remotes.popup = popup
+    
+end
 
 
 
