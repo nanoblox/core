@@ -58,7 +58,7 @@ function MessageService.message(player, messageDetails)
 end
 
 function MessageService.messagePool(targetPoolName, packedPoolArgs, messageDetails)
-	local playersArray = main.enum.TargetPool.getProperty(targetPoolName)(table.unpack(packedPoolArgs))
+	local playersArray = main.enum.TargetPool.getProperty(targetPoolName)(unpack(packedPoolArgs))
 	for _, player in pairs(playersArray) do
 		MessageService.message(player, messageDetails)
 	end
@@ -94,7 +94,7 @@ function MessageService.hint(player, hintDetails)
 end
 
 function MessageService.hintPool(targetPoolName, packedPoolArgs, hintPool)
-	local playersArray = main.enum.TargetPool.getProperty(targetPoolName)(table.unpack(packedPoolArgs))
+	local playersArray = main.enum.TargetPool.getProperty(targetPoolName)(unpack(packedPoolArgs))
 	for _, player in pairs(playersArray) do
 		MessageService.hint(player, hintPool)
 	end
@@ -131,7 +131,7 @@ function MessageService.notice(player, noticeDetails)
 end
 
 function MessageService.noticePool(targetPoolName, packedPoolArgs, noticeDetails)
-	local playersArray = main.enum.TargetPool.getProperty(targetPoolName)(table.unpack(packedPoolArgs))
+	local playersArray = main.enum.TargetPool.getProperty(targetPoolName)(unpack(packedPoolArgs))
 	for _, player in pairs(playersArray) do
 		MessageService.notice(player, noticeDetails)
 	end
@@ -164,7 +164,7 @@ function MessageService.snackbar(player, snackbarDetails)
 end
 
 function MessageService.snackbarPool(targetPoolName, packedPoolArgs, snackbarDetails)
-	local playersArray = main.enum.TargetPool.getProperty(targetPoolName)(table.unpack(packedPoolArgs))
+	local playersArray = main.enum.TargetPool.getProperty(targetPoolName)(unpack(packedPoolArgs))
 	for _, player in pairs(playersArray) do
 		MessageService.snackbar(player, snackbarDetails)
 	end
@@ -199,7 +199,7 @@ function MessageService.popup(player, popupDetails)
 end
 
 function MessageService.popupPool(targetPoolName, packedPoolArgs, popupDetails)
-	local playersArray = main.enum.TargetPool.getProperty(targetPoolName)(table.unpack(packedPoolArgs))
+	local playersArray = main.enum.TargetPool.getProperty(targetPoolName)(unpack(packedPoolArgs))
 	for _, player in pairs(playersArray) do
 		MessageService.popup(player, popupDetails)
 	end

@@ -6,7 +6,7 @@ local Commands = {}
 local function setupCommands(group, tags)
 	local groupClass = group.ClassName
 	local thisTag = (groupClass == "Folder" or groupClass == "Configuration") and group.Name:lower()
-	local newTags = tags and {table.unpack(tags)} or {}
+	local newTags = tags and {unpack(tags)} or {}
 	if thisTag then
 		table.insert(newTags, thisTag)
 	end

@@ -38,7 +38,7 @@ end
 
 function Sender:invokeServer(jobId, ...)
 	local dataFromServers = self.addRequest:Invoke("IS", jobId, ...)
-	local dataFromServer = table.unpack(dataFromServers)
+	local dataFromServer = unpack(dataFromServers)
 	return dataFromServer
 end
 

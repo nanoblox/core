@@ -278,7 +278,7 @@ function Task:execute()
 		local finishedInvokingCommand = false
 		self:track(main.modules.Thread.delayUntil(function() return finishedInvokingCommand == true end))
 		self:track(main.modules.Thread.delayUntil(function() return filteredAllArguments == true end, function()
-			command.invoke(self, table.unpack(additional))
+			command.invoke(self, unpack(additional))
 			finishedInvokingCommand = true
 		end))
 	end
@@ -287,7 +287,7 @@ function Task:execute()
 
 		-- If client task, execute with task.clientArgs
 		if main.isClient then
-			return invokeCommand(false, table.unpack(self.clientArgs))
+			return invokeCommand(false, unpack(self.clientArgs))
 		end
 
 		-- If the task is player-specific (such as in ;kill foreverhd, ;kill all) find the associated player and execute the command on them
@@ -399,7 +399,7 @@ function Task:kill()
 	if self.isDead then return end
 	if not self.isDead and self.command.revoke then
 		if self.revokeArguments then
-			self.command.revoke(self, table.unpack(self.revokeArguments))
+			self.command.revoke(self, unpack(self.revokeArguments))
 		else
 			self.command.revoke(self)
 		end
@@ -597,7 +597,7 @@ end
 function Task:invokeFutureClients(...)
 	local args = table.pack(...)
 	self.maid:give(main.Players.PlayerAdded:Connect(function(player)
-		self:invokeClient(player, table.unpack(args))
+		self:invokeClient(player, unpack(args))
 	end))
 end
 

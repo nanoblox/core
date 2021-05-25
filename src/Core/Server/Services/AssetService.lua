@@ -257,6 +257,10 @@ end
 
 function AssetService.getAssets(assetNamesArray)
     -- Returns an array of server-permitted assets
+    local assets = {}
+    for _, assetName in pairs(assetNamesArray) do
+        --table.insert(assets, )
+    end
 end
 
 function AssetService.getCommandAsset(assetName)

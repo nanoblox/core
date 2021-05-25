@@ -22,7 +22,7 @@ Args.array = {
 					qualifierDetail = Qualifiers.get("user")
 					targets = qualifierDetail.getTargets(callerUserId, qualifierName)
 				else
-					targets = qualifierDetail.getTargets(callerUserId, table.unpack(qualifierArgs))
+					targets = qualifierDetail.getTargets(callerUserId, unpack(qualifierArgs))
 				end
 				for _, plr in pairs(targets) do
 					targetsDict[plr] = true

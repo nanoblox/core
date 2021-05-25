@@ -157,7 +157,7 @@ function State:find(...)
 	max = max - 1
 	local tab = self
 	if max > 0 then
-		tab = self:get(table.unpack(pathwayTable))
+		tab = self:get(unpack(pathwayTable))
 	end
 	if type(tab) == "table" then
 		if #tab == 0 then return tab[value] end

@@ -110,7 +110,7 @@ function Remote:__newindex(index, value)
 			return false, errorMessage
 		end
 		local returnedValues = table.pack(customFunction(...))
-		return true, table.unpack(returnedValues)
+		return true, unpack(returnedValues)
 	end
 end
 		
@@ -185,12 +185,12 @@ function Remote:invokeClient(player, ...)
 	local remoteInstance = self:_getRemoteInstance("RemoteFunction")
 	local args = table.pack(...)
 	return Promise.defer(function(resolve, reject)
-		local results = table.pack(pcall(remoteInstance.InvokeClient, remoteInstance, player, table.unpack(args)))
+		local results = table.pack(pcall(remoteInstance.InvokeClient, remoteInstance, player, unpack(args)))
 		local success = table.remove(results, 1)
 		if success then
-			resolve(table.unpack(results))
+			resolve(unpack(results))
 		else
-			reject(table.unpack(results))
+			reject(unpack(results))
 		end
 	end)
 end

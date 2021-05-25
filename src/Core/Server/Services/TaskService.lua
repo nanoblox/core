@@ -56,7 +56,7 @@ function TaskService.start()
 			end
 		end
 		if not errorMessage then
-			local success, playersArrayOrErrorMessage = pcall(function() return main.enum.TargetPool.getProperty(targetPoolName)(table.unpack(packedArgs)) end)
+			local success, playersArrayOrErrorMessage = pcall(function() return main.enum.TargetPool.getProperty(targetPoolName)(unpack(packedArgs)) end)
 			if not success then
 				errorMessage = playersArrayOrErrorMessage
 			else
