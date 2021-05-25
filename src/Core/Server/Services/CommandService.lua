@@ -19,67 +19,10 @@ end
 
 -- PLAYER LOADED
 function CommandService.playerLoadedMethod(player)
-	
-	----------
-	-- This dynamically updates the players 'parsePatterns' when the users settings change instead of having to parse them every chat message
-	local PARSE_SETTINGS = {
-		commandStatementsFromBatch = {
-			settingName = "prefixes",
-			parse = function(settingValue)
-				return string.format(
-					"%s([^%s]+)",
-					";", --ClientSettings.prefix,
-					";" --ClientSettings.prefix
-				)
-			end,
-		},
-        descriptionsFromCommandStatement = {
-			settingName = "descriptorSeparator",
-			parse = function(settingValue)
-				return string.format(
-					"%s?([^%s]+)",
-					" ", --ClientSettings.descriptorSeparator,
-					" " --ClientSettings.descriptorSeparator
-				)
-			end,
-		},
-        argumentsFromCollection = {
-			settingName = "collective",
-			parse = function(settingValue)
-				return string.format(
-					"([^%s]+)%s?",
-					",", --ClientSettings.collective,
-					"," --ClientSettings.collective
-				)
-			end,
-		},
-        capsuleFromKeyword = {
-			settingName = "argCapsule",
-			parse = function(settingValue)
-				return string.format(
-					"%%(%s%%)", --Capsule
-					string.format("(%s)", ".-")
-				)
-			end
-		},
-	}
-
-	local validSettingNames = {}
 	local user = main.modules.PlayerStore:getLoadedUser(player)
-	user.perm.playerSettings.changed:Connect(function(settingName, value)
-		if validSettingNames[settingName] then
-			user.temp.parsePatterns:set(settingName, value)
-		end
-	end)
-	user.temp:set("parsePatterns", {})
-	for _, detail in pairs(PARSE_SETTINGS) do
-		local settingName = detail.settingName
-		local settingValue = main.services.SettingService.getPlayerSetting(settingName, player)
-		validSettingNames[settingName] = true
-		user.temp.parsePatterns:set(settingName, settingValue)
+	if user then
+		CommandService.setupParsePatterns(user)
 	end
-	----------
-
 end
 
 
@@ -211,25 +154,106 @@ function CommandService.getTable(name)
 	return CommandService.records:getTable(name)
 end 
 
-function CommandService.chatCommand(caller, message)
-	local callerUserId = caller.UserId
-	local batch = main.modules.Parser.parseMessage(message)
-	print(caller.Name, "chatted: ", message, batch)
+function CommandService.setupParsePatterns(user)
+	-- This dynamically updates the players 'parsePatterns' when the users settings change instead of having to parse them every chat message
+	local PARSE_SETTINGS = {
+		commandStatementsFromBatch = {
+			settingName = "prefixes",
+			parse = function(settingValue)
+				return string.format(
+					"%s([^%s]+)",
+					";", --ClientSettings.prefix,
+					";" --ClientSettings.prefix
+				)
+			end,
+		},
+        descriptionsFromCommandStatement = {
+			settingName = "descriptorSeparator",
+			parse = function(settingValue)
+				return string.format(
+					"%s?([^%s]+)",
+					" ", --ClientSettings.descriptorSeparator,
+					" " --ClientSettings.descriptorSeparator
+				)
+			end,
+		},
+        argumentsFromCollection = {
+			settingName = "collective",
+			parse = function(settingValue)
+				return string.format(
+					"([^%s]+)%s?",
+					",", --ClientSettings.collective,
+					"," --ClientSettings.collective
+				)
+			end,
+		},
+        capsuleFromKeyword = {
+			settingName = "argCapsule",
+			parse = function(settingValue)
+				return string.format(
+					"%%(%s%%)", --Capsule
+					string.format("(%s)", ".-")
+				)
+			end
+		},
+	}
+	local validSettingNames = {}
+	user.perm.playerSettings.changed:Connect(function(settingName, value)
+		if validSettingNames[settingName] then
+			user.temp.parsePatterns:set(settingName, value)
+		end
+	end)
+	user.temp:set("parsePatterns", {})
+	for _, detail in pairs(PARSE_SETTINGS) do
+		local settingName = detail.settingName
+		local settingValue = main.services.SettingService.getPlayerSetting(settingName, user)
+		validSettingNames[settingName] = true
+		user.temp.parsePatterns:set(settingName, settingValue)
+	end
+end
+
+function CommandService.createFakeUser()
+	local user = {}
+	user.userId = 1
+	user.name = "Server"
+	user.displayName = "Server"
+	user.perm = main.modules.State.new({
+		playerSettings = {
+			playerIdentifier = "@",
+			playerUndefinedSearch = main.enum.PlayerSearch.UserName,
+			playerDefinedSearch = main.enum.PlayerSearch.DisplayName,
+		}
+	}, true)
+	user.temp = main.modules.State.new(nil, true)
+	user.roles = {}
+	CommandService.setupParsePatterns(user)
+	main.services.RoleService.getCreatorRole():give(user, main.enum.RoleType.Server)
+	return user
+end
+
+function CommandService.chatCommand(callerUser, message)
+	local callerUserId = callerUser.userId
+	local callerPlayer = callerUser.player
+	local batch = main.modules.Parser.parseMessage(message, callerUser)
+	print(callerUser.name, "chatted: ", message, batch)
 	if type(batch) == "table" then
 		for i, statement in pairs(batch) do
 			local approved, noticeDetails = CommandService.verifyStatement(callerUserId, statement)
 			if approved then
 				CommandService.executeStatement(callerUserId, statement)
 			end
-			for _, detail in pairs(noticeDetails) do
-				local method = main.services.MessageService[detail[1]]
-				method(caller, detail[2])
+			if callerPlayer then
+				for _, detail in pairs(noticeDetails) do
+					local method = main.services.MessageService[detail[1]]
+					method(callerPlayer, detail[2])
+				end
 			end
 		end
 	end
 end
 
 function CommandService.verifyStatement(callerUserId, statement)
+	--[[
 	local approved = true
 	local details = {}
 
@@ -251,8 +275,9 @@ function CommandService.verifyStatement(callerUserId, statement)
 		text = "You do not have permission to do that!",
 		error = true,
 	}})
-
 	return approved, details
+	--]]
+	return true, {}
 end
 
 function CommandService.executeStatement(callerUserId, statement)

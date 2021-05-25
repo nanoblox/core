@@ -42,7 +42,7 @@ end
 
 
 ]]
-function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalPlayer)
+function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalUser)
 	local parserModule = MAIN.modules.Parser
 
 	local qualifierRequiredEnum = MAIN.enum.QualifierRequired
@@ -80,9 +80,9 @@ function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalPlaye
 				table.insert(userNames, player.Name:lower())
 			end
 
-			local playerIdentifier = settingService.getPlayerSetting("playerIdentifier", optionalPlayer)
-			local playerDefinedSearch = settingService.getPlayerSetting("playerDefinedSearch", optionalPlayer)
-			local playerUndefinedSearch = settingService.getPlayerSetting("playerUndefinedSearch", optionalPlayer)
+			local playerIdentifier = settingService.getPlayerSetting("playerIdentifier", optionalUser)
+			local playerDefinedSearch = settingService.getPlayerSetting("playerDefinedSearch", optionalUser)
+			local playerUndefinedSearch = settingService.getPlayerSetting("playerUndefinedSearch", optionalUser)
 
 			for _, qualifier in pairs(parsedData.unrecognizedQualifiers) do
 				local qualifierHasPlayerIdentifier = (qualifier:sub(1, 1) == playerIdentifier)
@@ -252,10 +252,10 @@ end
 
 
 ]]
-function ParsedData.parseCommandDescriptionAndSetFlags(parsedData, optionalPlayer)
+function ParsedData.parseCommandDescriptionAndSetFlags(parsedData, optionalUser)
 	ParsedData.parseCommandDescription(parsedData)
 	if parsedData.isValid then
-		ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalPlayer)
+		ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalUser)
 		ParsedData.parsedDataSetHasTextArgumentFlag(parsedData)
 	end
 end
