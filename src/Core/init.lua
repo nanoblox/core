@@ -37,7 +37,7 @@ function Core.init(loader)
                 end
             end
         end
-    end--]]
+    end
 
     -- This splits up the core into its key areas
     Directory.createDirectory("ServerStorage.Nanoblox", {server})
