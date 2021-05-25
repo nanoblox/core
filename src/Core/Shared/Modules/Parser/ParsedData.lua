@@ -66,16 +66,18 @@ function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalPlaye
 		parsedData.requiresQualifier = true
 		ParsedData.parseQualifierDescription(parsedData)
 		parsedData.prematureQualifierParsing = true
+		local areAllQualifiersRecognized = #parsedData.qualifierCaptures ~= #parsedData.unrecognizedQualifiers
 
-		if next(parsedData.qualifierCaptures) ~= nil then
+		if areAllQualifiersRecognized then
 			parsedData.requiresQualifier = true
 		else
 			local utilityModule = MAIN.modules.Parser.Utility
 			local settingService = MAIN.services.SettingService
-			local playerSearchEnums = MAIN.enums.PlayerSearch
+			local playerSearchEnums = MAIN.enum.PlayerSearch
 
 			local players = game:GetService("Players"):GetPlayers()
 			local userNames = {}
+
 			for _, player in pairs(players) do
 				table.insert(userNames, player.Name:lower())
 			end
@@ -112,6 +114,7 @@ function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalPlaye
 			end
 
 			parsedData.requiresQualifier = false
+			parsedData.qualifierCaptures = {}
 		end
 	end
 end
@@ -277,6 +280,7 @@ function ParsedData.parseQualifierDescription(parsedData)
 
 	local qualifierCapturesAndUnrecognizedQualifiers =
 		algorithmModule.parseQualifierDescription(parsedData.qualifierDescription)
+
 	parsedData.qualifierCaptures = qualifierCapturesAndUnrecognizedQualifiers[1]
 	parsedData.unrecognizedQualifiers = qualifierCapturesAndUnrecognizedQualifiers[2]
 end

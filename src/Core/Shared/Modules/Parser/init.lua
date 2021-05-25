@@ -64,16 +64,16 @@ function Parser.requiresQualifier(commandName)
 
 	local commandArgs =
 		MAIN.services.CommandService.getTable("lowerCaseNameAndAliasToCommandDictionary")[commandName].args
-	if (#commandArgs == 0) then
+	if #commandArgs == 0 then
 		return qualifierRequiredEnum.Never
 	end
 	local firstArgName = commandArgs[1]:lower()
 	local firstArg = MAIN.modules.Parser.Args.dictionary[firstArgName]
 
-	if (firstArg.playerArg ~= true) then
+	if firstArg.playerArg ~= true then
 		return qualifierRequiredEnum.Never
 	else
-		if (firstArg.hidden ~= true) then
+		if firstArg.hidden ~= true then
 			return qualifierRequiredEnum.Always
 		else
 			return qualifierRequiredEnum.Sometimes
@@ -90,12 +90,12 @@ function Parser.hasTextArgument(commandName)
 	local argsDictionary = MAIN.modules.Parser.Args.dictionary
 	local commandArgs =
 		MAIN.services.CommandService.getTable("lowerCaseNameAndAliasToCommandDictionary")[commandName].args
-	if (#commandArgs == 0) then
+	if #commandArgs == 0 then
 		return false
 	end
 	local lastArgName = commandArgs[#commandArgs]:lower()
 
-	if (argsDictionary[lastArgName] == argsDictionary["text"]) then
+	if argsDictionary[lastArgName] == argsDictionary["text"] then
 		return true
 	end
 
@@ -119,8 +119,11 @@ function Parser.getPlayersFromString(playerString, optionalPlayer)
 	local playerUndefinedSearch = settingService.getPlayerSetting("playerUndefinedSearch", optionalPlayer)
 
 	local hasPlayerIdentifier = (playerString:sub(1, 1) == playerIdentifier)
-	local playerStringWithoutIdentifier =
-		utilityModule.ternary(hasPlayerIdentifier, playerString:sub(2, #playerString), playerString)
+	local playerStringWithoutIdentifier = utilityModule.ternary(
+		hasPlayerIdentifier,
+		playerString:sub(2, #playerString),
+		playerString
+	)
 
 	local isUserNameSearch = utilityModule.ternary(
 		hasPlayerIdentifier,
@@ -140,8 +143,8 @@ function Parser.getPlayersFromString(playerString, optionalPlayer)
 
 	if isUserNameSearch or isUserNameAndDisplayNameSearch then
 		for _, player in pairs(players) do
-			if (string.find(player.Name, playerStringWithoutIdentifier) == 1) then
-				if (table.find(selectedPlayers, player) == nil) then
+			if string.find(player.Name, playerStringWithoutIdentifier) == 1 then
+				if table.find(selectedPlayers, player) == nil then
 					table.insert(selectedPlayers, player)
 				end
 			end
@@ -150,8 +153,8 @@ function Parser.getPlayersFromString(playerString, optionalPlayer)
 
 	if isDisplayNameSearch or isUserNameAndDisplayNameSearch then
 		for _, player in pairs(players) do
-			if (string.find(player.DisplayName, playerStringWithoutIdentifier) == 1) then
-				if (table.find(selectedPlayers, player) == nil) then
+			if string.find(player.DisplayName, playerStringWithoutIdentifier) == 1 then
+				if table.find(selectedPlayers, player) == nil then
 					table.insert(selectedPlayers, player)
 				end
 			end
