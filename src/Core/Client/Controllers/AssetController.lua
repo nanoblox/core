@@ -17,8 +17,8 @@ function AssetController.start()
     local getCommandClientAssets = main.modules.Remote.new("getCommandClientAssets")
     AssetController.remotes.getCommandClientAssets = getCommandClientAssets
 
-    local getClientCommandAssetOrClientPermittedAssets = main.modules.Remote.new("getClientCommandAssetOrClientPermittedAssets")
-    AssetController.remotes.getClientCommandAssetOrClientPermittedAssets = getClientCommandAssetOrClientPermittedAssets
+    local getClientCommandAssetsOrClientPermittedAssets = main.modules.Remote.new("getClientCommandAssetsOrClientPermittedAssets")
+    AssetController.remotes.getClientCommandAssetsOrClientPermittedAssets = getClientCommandAssetsOrClientPermittedAssets
     
 end
 
@@ -134,15 +134,15 @@ end
 
 function AssetController.getClientCommandAssetOrClientPermittedAsset(commandName, assetName)
     -- First checks if assetName is a client command asset. If successful, Returns a promise which returns, else checks and Returns a promise which returns if is a client-permitted asset.
-    return AssetController.getClientCommandAssetOrClientPermittedAssets(commandName, assetName)
+    return AssetController.getClientCommandAssetsOrClientPermittedAssets(commandName, assetName)
         :andThen(function(assets)
             return assets[1]
         end)
 end
 
-function AssetController.getClientCommandAssetOrClientPermittedAssets(commandName, ...)
+function AssetController.getClientCommandAssetsOrClientPermittedAssets(commandName, ...)
     -- Same as above but for multiple assets
-    return AssetController._getAssets(AssetController.remotes.getClientCommandAssetOrClientPermittedAssets, commandName, ...)
+    return AssetController._getAssets(AssetController.remotes.getClientCommandAssetsOrClientPermittedAssets, commandName, ...)
 end
 
 

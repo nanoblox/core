@@ -478,22 +478,42 @@ function Task:_trackAsset(asset)
 	end
 end
 
--- An abstraction of ``self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))``
+-- An abstraction of ``self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))`` (or the server equivalent)
 function Task:getAsset(assetName)
+	if main.isServer then
+		local asset = main.services.AssetService.getCommandAssetOrServerPermittedAsset(self.commandName, assetName)
+		if asset then
+			self:give(asset)
+		end
+		-- THE SERVER IS SYNCHRONOUS THEREFORE RETURNS ASSETS IMMEDIATELY
+		return asset
+	end
 	return self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))
 		:andThen(function(asset)
 			self:_trackAsset(asset)
+			-- THE CLIENT IS ASSYNCHRONOUS THEREFORE RETURNS A PROMISE
 			return asset
 		end)
 end
 
--- An abstraction of ``self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))``
+-- An abstraction of ``self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))`` (or the server equivalent)
 function Task:getAssets(...)
-	return self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAssets(self.commandName, ...))
+	if main.isServer then
+		local assets = main.services.AssetService.getCommandAssetsOrServerPermittedAssets(self.commandName, ...)
+		if assets then
+			for _, asset in pairs(assets) do
+				self:give(asset)
+			end
+		end
+		-- THE SERVER IS SYNCHRONOUS THEREFORE RETURNS ASSETS IMMEDIATELY
+		return assets
+	end
+	return self:track(main.controllers.AssetController.getClientCommandAssetsOrClientPermittedAssets(self.commandName, ...))
 		:andThen(function(assets)
 			for _, asset in pairs(assets) do
 				self:_trackAsset(asset)
 			end
+			-- THE CLIENT IS ASSYNCHRONOUS THEREFORE RETURNS A PROMISE
 			return assets
 		end)
 end

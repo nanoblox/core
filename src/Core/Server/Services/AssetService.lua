@@ -2,6 +2,9 @@
 -- of storing everything within ReplicatedStorage to reduce memory consumption and improve join-times.
 
 local DUPLICATE_ASSET_WARNING = "Nanoblox: '%s' is a duplicate asset name! Rename to something unique otherwise assets may be retrieved incorrectly."
+local INVALID_SERVER_ASSET = "Nanoblox: '%s' is not a valid server or shared asset!"
+local INVALID_COMMAND_ASSET = "Nanoblox: '%s' is not a valid %s asset of command '%s'!"
+local INVALID_ANY_SERVER_ASSET = "Nanoblox: '%s' is not a valid command asset (of command '%s'), server asset ot shared asset!"
 local INVALID_CLIENT_ASSET = "Nanoblox: '%s' is not a valid client or shared asset!"
 local INVALID_CLIENT_COMMAND_ASSET = "Nanoblox: '%s' is not a valid client asset of command '%s'!"
 local INVALID_CLIENT_ASSET_OR_CLIENT_COMMAND_ASSET = "Nanoblox: '%s' is not a valid client command asset (of command '%s'), client asset ot shared asset!"
@@ -53,6 +56,22 @@ function AssetService.init()
         "client",
         "shared"
     }
+    local function recordGroup(container, location, newContainer)
+        for _, child in pairs(container:GetChildren()) do
+            if child.Name == "__forceReplicate" then
+                for _, forcedItem in pairs(child:GetChildren()) do
+                    recordAssetName(location, forcedItem)
+                    forcedItem.Parent = container
+                end
+                child:Destroy()
+            else
+                recordAssetName(location, child)
+                if newContainer then
+                    child.Parent = newContainer
+                end
+            end
+        end
+    end
     local assetStorage = Instance.new("Folder")
     assetStorage.Name = "ClientAssetStorage"
     main.assetStorage = assetStorage
@@ -61,24 +80,11 @@ function AssetService.init()
         local newAssetFolder = Instance.new("Folder")
         newAssetFolder.Name = clientLocation:sub(1,1):upper()..clientLocation:sub(2)
         newAssetFolder.Parent = assetStorage
-        for _, child in pairs(assetFolder:GetChildren()) do
-            if child.Name == "__forceReplicate" then
-                for _, blockedItem in pairs(child:GetChildren()) do
-                    recordAssetName(clientLocation, blockedItem)
-                    blockedItem.Parent = assetFolder
-                end
-                child:Destroy()
-            else
-                recordAssetName(clientLocation, child)
-                child.Parent = newAssetFolder
-            end
-         end
+        recordGroup(assetFolder, clientLocation, newAssetFolder)
     end
 
     -- Ensure assets do not have duplicate names between locations
-    for _, serverAsset in pairs(main.server.Assets:GetChildren()) do
-        recordAssetName("server", serverAsset)
-    end
+    recordGroup(main.server.Assets, "server")
     for assetName, _ in pairs(assetLocationsAndNames.shared) do
         if assetLocationsAndNames.client[assetName] or assetLocationsAndNames.server[assetName] then
             warn(DUPLICATE_ASSET_WARNING:format(assetName))
@@ -218,9 +224,9 @@ function AssetService.start()
         return success, assets, locations
     end
 
-    local getClientCommandAssetOrClientPermittedAssets = main.modules.Remote.new("getClientCommandAssetOrClientPermittedAssets")
-    AssetService.remotes.getClientCommandAssetOrClientPermittedAssets = getClientCommandAssetOrClientPermittedAssets
-    getClientCommandAssetOrClientPermittedAssets.onServerInvoke = function(player, commandName, assetNamesArray)
+    local getClientCommandAssetsOrClientPermittedAssets = main.modules.Remote.new("getClientCommandAssetsOrClientPermittedAssets")
+    AssetService.remotes.getClientCommandAssetsOrClientPermittedAssets = getClientCommandAssetsOrClientPermittedAssets
+    getClientCommandAssetsOrClientPermittedAssets.onServerInvoke = function(player, commandName, assetNamesArray)
         if typeof(assetNamesArray) ~= "table" then
             return false, INCORRECT_ARRAY
         end
@@ -250,33 +256,107 @@ end
 
 
 -- METHODS
-function AssetService.getAsset(assetName)
-    -- Returns a server-permitted asset
-    return serverPermittedAssets[assetName]
+local ignoreWarnings = false
+function AssetService._getAssets(func, ...)
+    local assetNamesArray = table.pack(...)
+    local firstIndex = assetNamesArray[1]
+    if typeof(firstIndex) == "table" then
+        assetNamesArray = firstIndex
+    end
+    local assets = {}
+    for i, assetName in pairs(assetNamesArray) do
+        if typeof(i) == "number" then
+            local asset = func(assetName)
+            if not asset then
+                for _, pendingAsset in pairs(assets) do
+                    pendingAsset:Destroy()
+                end
+                return nil
+            end
+            table.insert(assets, asset)
+        end
+    end
+    return assets
 end
 
-function AssetService.getAssets(assetNamesArray)
-    -- Returns an array of server-permitted assets
-    local assets = {}
-    for _, assetName in pairs(assetNamesArray) do
-        --table.insert(assets, )
+function AssetService.getAsset(assetName)
+    -- Returns a server-permitted asset
+    local asset = serverPermittedAssets[assetName]
+    if asset then
+        return serverPermittedAssets[assetName]:Clone()
+    end
+    if not ignoreWarnings then
+        warn((INVALID_SERVER_ASSET):format(assetName))
     end
 end
 
-function AssetService.getCommandAsset(assetName)
+function AssetService.getAssets(...)
+    -- Returns an array of server-permitted assets
+    return AssetService._getAssets(function(assetName)
+        return AssetService.getAsset(assetName)
+    end, ...)
+end
+
+function AssetService._getSpecificCommandAsset(commandName, location, assetName)
+    local commandNameLower = tostring(commandName):lower()
+    local commandAssetTable = commandAssets[commandNameLower]
+    local asset = commandAssetTable and commandAssetTable[location][assetName]
+    if asset then
+        return asset:Clone()
+    end
+    if not ignoreWarnings then
+        warn((INVALID_COMMAND_ASSET):format(assetName, location:lower(), commandName))
+    end
+end
+
+function AssetService._getSpecificCommandAssets(commandName, location, ...)
+    return AssetService._getAssets(function(assetName)
+        return AssetService._getSpecificCommandAsset(commandName, location, assetName)
+    end, ...)
+end
+
+function AssetService.getCommandAsset(commandName, assetName)
     -- Returns a command server asset
+    return AssetService._getSpecificCommandAsset(commandName, "Server", assetName)
 end
 
-function AssetService.getCommandAssets(assetNamesArray)
+function AssetService.getCommandAssets(commandName, ...)
     -- Returns an array of command server assets
+    return AssetService._getSpecificCommandAssets(commandName, "Server", ...)
 end
 
-function AssetService.getClientCommandAsset(assetName)
+function AssetService.getClientCommandAsset(commandName, assetName)
     -- Returns a command client asset
+    return AssetService._getSpecificCommandAsset(commandName, "Client", assetName)
 end
 
-function AssetService.getClientCommandAssets(assetNamesArray)
+function AssetService.getClientCommandAssets(commandName, ...)
     -- Returns an array of command client assets
+    return AssetService._getSpecificCommandAssets(commandName, "Client", ...)
+end
+
+function AssetService.getCommandAssetOrServerPermittedAsset(commandName, assetName)
+    -- Attempts to retrieve the asset by checking the following (in order): server command assets, client command assets, server-permitted assets
+    ignoreWarnings = true
+    local asset = AssetService.getCommandAsset(commandName, assetName)
+    if not asset then
+        asset = AssetService.getClientCommandAsset(commandName, assetName)
+    end
+    if not asset then
+        asset = AssetService.getAsset(assetName)
+    end
+    ignoreWarnings = false
+    if not asset then
+        warn((INVALID_ANY_SERVER_ASSET):format(tostring(assetName), tostring(commandName)))
+    end
+    return asset
+end
+
+function AssetService.getCommandAssetsOrServerPermittedAssets(commandName, ...)
+    -- Same as above but for multiple assets
+    return AssetService._getAssets(function(assetName)
+        return AssetService.getCommandAssetOrServerPermittedAsset(commandName, assetName)
+    end, ...)
 end
 
 
