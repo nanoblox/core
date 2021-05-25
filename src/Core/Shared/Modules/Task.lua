@@ -341,6 +341,10 @@ function Task:execute()
 end
 
 function Task:track(threadOrTween, countPropertyName, completedSignalName)
+	if typeof(threadOrTween) == "table" and threadOrTween.getStatus then
+		--!!! IS A PROMISE
+		return threadOrTween
+	end
 	local newCountPropertyName = countPropertyName or "totalExecutionThreads"
 	local newCompletedSignalName = completedSignalName or "executionThreadsCompleted"
 	if not self[newCountPropertyName] then
@@ -461,6 +465,37 @@ end
 -- An abstraction of ``task:track(main.TweenService:Create(instance, tweenInfo, propertyTable))``
 function Task:tween(instance, tweenInfo, propertyTable)
 	return self:track(main.TweenService:Create(instance, tweenInfo, propertyTable))
+end
+
+-- This tracks assets for the methods below
+function Task:_trackAsset(asset)
+	if self.isDead then
+		main.modules.Thread.spawn(function()
+			pcall(function() asset:Destroy() end)
+		end)
+	else
+		self:give(asset)
+	end
+end
+
+-- An abstraction of ``self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))``
+function Task:getAsset(assetName)
+	return self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))
+		:andThen(function(asset)
+			self:_trackAsset(asset)
+			return asset
+		end)
+end
+
+-- An abstraction of ``self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))``
+function Task:getAssets(...)
+	return self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAssets(self.commandName, ...))
+		:andThen(function(assets)
+			for _, asset in pairs(assets) do
+				self:_trackAsset(asset)
+			end
+			return assets
+		end)
 end
 
 -- An abstraction of ``task.agent:buff(...)``

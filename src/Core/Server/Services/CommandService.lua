@@ -20,8 +20,8 @@ end
 -- PLAYER LOADED
 function CommandService.playerLoadedMethod(player)
 	
-	-- This dynamically updates the players 'parsePatterns' when the users settings change instead of having to parse them every chat message
 	----------
+	-- This dynamically updates the players 'parsePatterns' when the users settings change instead of having to parse them every chat message
 	local PARSE_SETTINGS = {
 		commandStatementsFromBatch = {
 			settingName = "prefixes",

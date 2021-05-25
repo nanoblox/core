@@ -1,4 +1,13 @@
+-- This service is responsible for retrieving assets and replicating them dynamically to clients when requested via the PlayerGui instead
+-- of storing everything within ReplicatedStorage to reduce memory consumption and improve join-times.
+
 local DUPLICATE_ASSET_WARNING = "Nanoblox: '%s' is a duplicate asset name! Rename to something unique otherwise assets may be retrieved incorrectly."
+local INVALID_CLIENT_ASSET = "Nanoblox: '%s' is not a valid client or shared asset!"
+local INVALID_CLIENT_COMMAND_ASSET = "Nanoblox: '%s' is not a valid client asset of command '%s'!"
+local INVALID_CLIENT_ASSET_OR_CLIENT_COMMAND_ASSET = "Nanoblox: '%s' is not a valid client command asset (of command '%s'), client asset ot shared asset!"
+local INCORRECT_ARRAY = "Nanoblox: 'assetNamesArray' must be an array of string!"
+local INVALID_COMMAND = "Nanoblox: '%s' is not a valid command!"
+
 local main = require(game.Nanoblox)
 local AssetService = {
     remotes = {}
@@ -82,7 +91,8 @@ function AssetService.init()
     commandsFolder.Parent = assetStorage
 
     local commandNameToParentFolder = {}
-    local function transferCommandAsset(commandNameLower, location, asset)
+    local function transferCommandAsset(commandName, location, asset)
+        local commandNameLower = commandName:lower()
         local parentFolder = commandNameToParentFolder[commandNameLower]
         local commandAssetTable = commandAssets[commandNameLower]
         if not parentFolder then
@@ -93,6 +103,7 @@ function AssetService.init()
             commandAssetTable = {
                 Client = {},
                 Server = {},
+                CommandName = commandName,
             }
             commandAssets[commandNameLower] = commandAssetTable
         end
@@ -109,7 +120,7 @@ function AssetService.init()
     local function setupCommandAssetStorage(commandModule)
         for _, instance in pairs(commandModule:GetChildren()) do
             if instance:IsA("ModuleScript") then
-                local commandName = instance.Name:lower()
+                local commandName = instance.Name
                 for _, serverAsset in pairs(instance:GetChildren()) do
                     if serverAsset.Name == "Client" and serverAsset:IsA("ModuleScript") then
                         for _, clientAsset in pairs(serverAsset:GetChildren()) do
@@ -136,23 +147,103 @@ end
 -- START
 function AssetService.start()
 
-    local getClientAsset = main.modules.Remote.new("getClientAsset")
-    AssetService.remotes.getClientAsset = getClientAsset
-    getClientAsset.onServerInvoke = function(player, assetName)
-        print("requesting: ", assetName, clientPermittedAssets[assetName], clientPermittedAssets)
-        local asset = clientPermittedAssets[assetName]
-        if asset then
+    local function getClientPermittedAssets(player, assetNamesArray)
+        if typeof(assetNamesArray) ~= "table" then
+            return false, INCORRECT_ARRAY
+        end
+        for _, assetName in pairs(assetNamesArray) do
+            local asset = clientPermittedAssets[assetName]
+            if not asset then
+                return false, (INVALID_CLIENT_ASSET):format(tostring(assetName))
+            end
+        end
+        local clonedAssets = {}
+        local locations = {}
+        for _, assetName in pairs(assetNamesArray) do
+            local asset = clientPermittedAssets[assetName]
             local clonedAsset = asset:Clone()
             clonedAsset.Parent = player.PlayerGui
             main.modules.Thread.spawn(function()
                 clonedAsset:Destroy()
             end)
             local location = assetNameToLocation[assetName]
-            return true, clonedAsset, location
+            table.insert(clonedAssets, clonedAsset)
+            table.insert(locations, location)
         end
-        return false, ("'%s' is not a valid Client or Shared Asset!"):format(tostring(assetName))
+        return true, clonedAssets, locations
     end
-    
+
+    local getClientAssets = main.modules.Remote.new("getClientAssets")
+    AssetService.remotes.getClientAssets = getClientAssets
+    getClientAssets.onServerInvoke = function(player, assetNamesArray)
+        local success, assets, locations = getClientPermittedAssets(player, assetNamesArray)
+        return success, assets, locations
+    end
+
+    local function getCommandClientPermittedAssets(player, commandName, assetNamesArray)
+        if typeof(assetNamesArray) ~= "table" then
+            return false, INCORRECT_ARRAY
+        end
+        local tostringCommandName = tostring(commandName)
+        local commandAssetTable = commandAssets[tostringCommandName:lower()]
+        if not commandAssetTable then
+            return false, INVALID_COMMAND:format(tostringCommandName)
+        end
+        for _, assetName in pairs(assetNamesArray) do
+            local asset = commandAssetTable.Client[assetName]
+            if not asset then
+                return false, (INVALID_CLIENT_COMMAND_ASSET):format(tostring(assetName), tostringCommandName)
+            end
+        end
+        local clonedAssets = {}
+        local locations = {}
+        for _, assetName in pairs(assetNamesArray) do
+            local asset = commandAssetTable.Client[assetName]
+            local clonedAsset = asset:Clone()
+            clonedAsset.Parent = player.PlayerGui
+            main.modules.Thread.spawn(function()
+                clonedAsset:Destroy()
+            end)
+            local location = commandAssetTable.CommandName
+            table.insert(clonedAssets, clonedAsset)
+            table.insert(locations, location)
+        end
+        return true, clonedAssets, locations
+    end
+
+    local getCommandClientAssets = main.modules.Remote.new("getCommandClientAssets")
+    AssetService.remotes.getCommandClientAssets = getCommandClientAssets
+    getCommandClientAssets.onServerInvoke = function(player, commandName, assetNamesArray)
+        local success, assets, locations = getCommandClientPermittedAssets(player, commandName, assetNamesArray)
+        return success, assets, locations
+    end
+
+    local getClientCommandAssetOrClientPermittedAssets = main.modules.Remote.new("getClientCommandAssetOrClientPermittedAssets")
+    AssetService.remotes.getClientCommandAssetOrClientPermittedAssets = getClientCommandAssetOrClientPermittedAssets
+    getClientCommandAssetOrClientPermittedAssets.onServerInvoke = function(player, commandName, assetNamesArray)
+        if typeof(assetNamesArray) ~= "table" then
+            return false, INCORRECT_ARRAY
+        end
+        local tostringCommandName = tostring(commandName)
+        local commandAssetTable = commandAssets[tostring(commandName):lower()]
+        if not commandAssetTable then
+            return false, INVALID_COMMAND:format(tostringCommandName)
+        end
+         local finalAssets = {}
+        local finalLocations = {}
+        for _, assetName in pairs(assetNamesArray) do
+            local success, assets, locations = getCommandClientPermittedAssets(player, commandName, {assetName})
+            if not success then
+                success, assets, locations = getClientPermittedAssets(player, {assetName})
+            end
+            if not success then
+                return false, (INVALID_CLIENT_ASSET_OR_CLIENT_COMMAND_ASSET):format(tostring(assetName), tostringCommandName)
+            end
+            table.insert(finalAssets, assets[1])
+            table.insert(finalLocations, locations[1])
+        end
+        return true, finalAssets, finalLocations
+    end
     
 end
 
@@ -161,10 +252,11 @@ end
 -- METHODS
 function AssetService.getAsset(assetName)
     -- Returns a server-permitted asset
+    return serverPermittedAssets[assetName]
 end
 
 function AssetService.getAssets(assetNamesArray)
-    -- Returns an (assetName = asset) dictionary of server-permitted assets
+    -- Returns an array of server-permitted assets
 end
 
 function AssetService.getCommandAsset(assetName)
@@ -172,7 +264,7 @@ function AssetService.getCommandAsset(assetName)
 end
 
 function AssetService.getCommandAssets(assetNamesArray)
-    -- Returns an (assetName = asset) dictionary of command server assets
+    -- Returns an array of command server assets
 end
 
 function AssetService.getClientCommandAsset(assetName)
@@ -180,7 +272,7 @@ function AssetService.getClientCommandAsset(assetName)
 end
 
 function AssetService.getClientCommandAssets(assetNamesArray)
-    -- Returns an (assetName = asset) dictionary of command client assets
+    -- Returns an array of command client assets
 end
 
 

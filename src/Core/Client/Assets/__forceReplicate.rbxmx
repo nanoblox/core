@@ -1,0 +1,12 @@
+<roblox version="4">
+  <Item class="Folder" referent="0">
+    <Properties>
+      <string name="Name">__forceReplicate</string>
+      <BinaryString name="AttributesSerialize">
+      </BinaryString>
+      <int64 name="SourceAssetId">-1</int64>
+      <BinaryString name="Tags">
+      </BinaryString>
+    </Properties>
+  </Item>
+</roblox>
