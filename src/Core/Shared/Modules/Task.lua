@@ -322,6 +322,7 @@ function Task:execute()
 	end)
 	
 	return Promise.defer(function(resolve)
+		main.RunService.Heartbeat:Wait()
 		if invokedCommand then
 			self.executionThreadsCompleted:Wait()
 			local humanoid = main.modules.PlayerUtil.getHumanoid(self.targetPlayer)
@@ -341,10 +342,6 @@ function Task:execute()
 end
 
 function Task:track(threadOrTween, countPropertyName, completedSignalName)
-	if typeof(threadOrTween) == "table" and threadOrTween.getStatus then
-		--!!! IS A PROMISE
-		return threadOrTween
-	end
 	local newCountPropertyName = countPropertyName or "totalExecutionThreads"
 	local newCompletedSignalName = completedSignalName or "executionThreadsCompleted"
 	if not self[newCountPropertyName] then
@@ -353,25 +350,48 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 	if not self[newCompletedSignalName] then
 		self[newCompletedSignalName] = self.maid:give(Signal.new())
 	end
-	if self.isDead then
-		threadOrTween:Destroy() --thread:disconnect()
-		return threadOrTween
-	elseif self.isPaused then
-		threadOrTween:Pause() --thread:pause()
+	local isAPromise = typeof(threadOrTween) == "table" and threadOrTween.getStatus
+	local promiseIsStarting = isAPromise and threadOrTween:getStatus() == main.modules.Promise.Status.Started
+	if isAPromise then
+		if self.isDead and promiseIsStarting then
+			threadOrTween:cancel()
+		end
+	else
+		if self.isDead then
+			threadOrTween:Destroy() --thread:disconnect()
+			return threadOrTween
+		elseif self.isPaused then
+			threadOrTween:Pause() --thread:pause()
+		end
 	end
-	self.maid:give(threadOrTween)
-	self.threads[threadOrTween] = true
+	threadOrTween = self.maid:give(threadOrTween)
 	self[newCountPropertyName] += 1
-	main.modules.Thread.spawn(function()
-		if threadOrTween.PlaybackState == main.enum.ThreadState.Completed or threadOrTween.PlaybackState == main.enum.ThreadState.Cancelled then
-			threadOrTween.Completed:Wait()
+	local function declareDead()
+		main.modules.Thread.spawn(function()
+			self[newCountPropertyName] -= 1
+			if self[newCountPropertyName] == 0 and self[newCompletedSignalName] and not self.isDead then
+				self[newCompletedSignalName]:Fire()
+			end
+			self.threads[threadOrTween] = nil
+		end)
+	end
+	if isAPromise then
+		if promiseIsStarting then
+			threadOrTween:finally(function()
+				declareDead()
+			end)
+		else
+			declareDead()
 		end
-		main.RunService.Heartbeat:Wait()
-		self[newCountPropertyName] -= 1
-		if self[newCountPropertyName] == 0 and self[newCompletedSignalName] and not self.isDead then
-			self[newCompletedSignalName]:Fire()
-		end
-	end)
+	else
+		self.threads[threadOrTween] = true
+		main.modules.Thread.spawn(function()
+			if not(threadOrTween.PlaybackState == main.enum.ThreadState.Completed or threadOrTween.PlaybackState == main.enum.ThreadState.Cancelled) then
+				threadOrTween.Completed:Wait()
+			end
+			declareDead()
+		end)
+	end
 	return threadOrTween
 end
 
