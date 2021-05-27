@@ -107,16 +107,16 @@ end
 
 
 ]]
-function Parser.getPlayersFromString(playerString, optionalPlayer)
+function Parser.getPlayersFromString(playerString, optionalUser)
 	local selectedPlayers = {}
 	local utilityModule = MAIN.modules.Parser.Utility
 	local settingService = MAIN.services.SettingService
 	local playerSearchEnums = MAIN.enums.PlayerSearch
 	local players = game:GetService("Players"):GetPlayers()
 
-	local playerIdentifier = settingService.getPlayerSetting("playerIdentifier", optionalPlayer)
-	local playerDefinedSearch = settingService.getPlayerSetting("playerDefinedSearch", optionalPlayer)
-	local playerUndefinedSearch = settingService.getPlayerSetting("playerUndefinedSearch", optionalPlayer)
+	local playerIdentifier = settingService.getPlayerSetting("playerIdentifier", optionalUser)
+	local playerDefinedSearch = settingService.getPlayerSetting("playerDefinedSearch", optionalUser)
+	local playerUndefinedSearch = settingService.getPlayerSetting("playerUndefinedSearch", optionalUser)
 
 	local hasPlayerIdentifier = (playerString:sub(1, 1) == playerIdentifier)
 	local playerStringWithoutIdentifier = utilityModule.ternary(
@@ -169,7 +169,7 @@ end
 
 
 ]]
-function Parser.parseMessage(message, optionalPlayer)
+function Parser.parseMessage(message, optionalUser)
 	local algorithmModule = MAIN.modules.Parser.Algorithm
 	local parsedDataModule = MAIN.modules.Parser.ParsedData
 
@@ -205,7 +205,7 @@ function Parser.parseMessage(message, optionalPlayer)
 
     ]]
 
-		parsedDataModule.parseCommandDescriptionAndSetFlags(parsedData, optionalPlayer)
+		parsedDataModule.parseCommandDescriptionAndSetFlags(parsedData, optionalUser)
 		if not parsedData.isValid then
 			table.insert(allParsedDatas, parsedData)
 			continue

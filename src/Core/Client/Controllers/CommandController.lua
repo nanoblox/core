@@ -46,7 +46,7 @@ function CommandController.start()
 		local clientCommand = task and task.command
 		local replicationFunction = clientCommand and clientCommand.replication
 		if replicationFunction then
-			replicationFunction(task, table.unpack(packedData))
+			replicationFunction(task, unpack(packedData))
 		end
 	end)
 

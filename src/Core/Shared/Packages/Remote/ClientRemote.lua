@@ -208,18 +208,18 @@ function Remote:invokeServer(...)
 			remoteInstance = waitForRemoteInstance:Wait()
 			waitForRemoteInstance:Destroy()
 		end
-		local results = table.pack(pcall(remoteInstance.InvokeServer, remoteInstance, table.unpack(args)))
+		local results = table.pack(pcall(remoteInstance.InvokeServer, remoteInstance, unpack(args)))
 		local pcallSuccess = table.remove(results, 1)
 		if pcallSuccess then
 			local approved = table.remove(results, 1)
 			if approved then
-				resolve(table.unpack(results))
+				resolve(unpack(results))
 				return
 			elseif Remote.requestBlocked then
-				Remote:requestBlocked(table.unpack(results))
+				Remote:requestBlocked(unpack(results))
 			end
 		end
-		reject(table.unpack(results))
+		reject(unpack(results))
 	end)
 end
 

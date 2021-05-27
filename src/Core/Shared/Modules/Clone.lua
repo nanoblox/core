@@ -33,8 +33,9 @@ function Clone.new(playerOrCharacterOrUserId, spawnCFrame)
     self.destroyed = false
     self.destroyedSignal = main.modules.Signal.new()
     self.humanoidDescriptionCount = 0
-    self.humanoidDescription = nil
+    self.humanoidDescriptionToApply = nil
     self.applyingHumanoidDescription = false
+    self.humanoidDescriptionQueue = {}
     
 	self:become(playerOrCharacterOrUserId)
     
@@ -44,14 +45,23 @@ end
 
 
 -- METHODS
-function Clone:become(characterOrUserIdOrUsername)
-    if typeof(characterOrUserIdOrUsername) == "Instance" and characterOrUserIdOrUsername:IsA("Player") then
-        characterOrUserIdOrUsername = characterOrUserIdOrUsername.Character
+function Clone:become(item)
+    --[[ Valid things to become:
+        character
+        userId
+        username
+        player
+        humanoidDescription
+    --]]
+    local IsAHumanoidDesc = typeof(item) == "Instance" and item:IsA("HumanoidDescription")
+    if typeof(item) == "Instance" and item:IsA("Player") then
+        item = item.Character
     end
-    self.character = typeof(characterOrUserIdOrUsername) == "Instance" and characterOrUserIdOrUsername
-	self.userId = typeof(characterOrUserIdOrUsername) == "number" and characterOrUserIdOrUsername
-    self.username = typeof(characterOrUserIdOrUsername) == "string" and characterOrUserIdOrUsername
-
+    self.character = typeof(item) == "Instance" and not IsAHumanoidDesc and item
+	self.userId = typeof(item) == "number" and item
+    self.username = typeof(item) == "string" and item
+    self.humanoidDescription = typeof(item) == "Instance" and IsAHumanoidDesc and item
+    
     --[[
         if not clone present
             if character then copy character, make archivable, set parent
@@ -64,6 +74,9 @@ function Clone:become(characterOrUserIdOrUsername)
     local clone = self.clone
     local function getAndApplyDescription()
         main.modules.Thread.spawn(function()
+            if self.humanoidDescription then
+                return self:applyHumanoidDescription(self.humanoidDescription)
+            end
             local userId = self.userId
             if not userId then
                 local success, newUserId = main.modules.PlayerUtil.getUserIdFromName(self.username):await()
@@ -88,9 +101,9 @@ function Clone:become(characterOrUserIdOrUsername)
             clone.HumanoidRootPart.CFrame = self.spawnCFrame or (hrp and hrp.CFrame * SPAWN_OFFSET) or CFrame.new()
             clone.Name = self.character.Name
             local charHumanoid = self.character:FindFirstChild("Humanoid")
-            clone.Humanoid.DisplayName = (charHumanoid and charHumanoid.DisplayName) or self.character.Name
+            clone.Humanoid.DisplayName = self.displayName or (charHumanoid and charHumanoid.DisplayName) or self.character.Name
             
-        elseif self.userId or self.username then
+        else
             local randomPlayer = main.Players:GetPlayers()[1]
             local rigType
             if randomPlayer then
@@ -105,35 +118,37 @@ function Clone:become(characterOrUserIdOrUsername)
             end
             clone = self._maid:give(main.shared.Assets.Rigs[rigType]:Clone())
             clone.HumanoidRootPart.CFrame = self.spawnCFrame or CFrame.new()
-            local inServerPlayer = (self.userId and main.Players:GetPlayerByUserId(self.userId)) or main.Players:FindFirstChild(self.username)
-            if inServerPlayer then
-                clone.Name = inServerPlayer.Name.."'s Clone"
-                clone.Humanoid.DisplayName = inServerPlayer.DisplayName
-                self.username = inServerPlayer.Name
-                clone.Name = self.username
-                self.userId = inServerPlayer.UserId
-            else
-                main.modules.Thread.spawn(function()
-                    local username = self.username
-                    if not username then
-                        local success, newUsername = main.modules.PlayerUtil.getNameFromUserId(self.userId):await()
-                        username = (success and newUsername) or "####"
-                    end
-                    local userId = self.userId
-                    if not userId then
-                        local success, newUserId = main.modules.PlayerUtil.getUserIdFromName(username):await()
-                        userId = (success and newUserId) or 0
-                    end
-                    if not self.destroyed then
-                        clone.Humanoid.DisplayName = username
-                        clone.Name = username
-                    end
-                    self.username = username
-                    self.userId = userId
-                end)
+            if item then
+                local inServerPlayer = (self.userId and main.Players:GetPlayerByUserId(self.userId)) or main.Players:FindFirstChild(self.username)
+                if inServerPlayer then
+                    clone.Name = inServerPlayer.Name.."'s Clone"
+                    clone.Humanoid.DisplayName = self.displayName or inServerPlayer.DisplayName
+                    self.username = inServerPlayer.Name
+                    clone.Name = self.username
+                    self.userId = inServerPlayer.UserId
+                else
+                    main.modules.Thread.spawn(function()
+                        local username = self.username
+                        if not username and self.userId then
+                            local success, newUsername = main.modules.PlayerUtil.getNameFromUserId(self.userId):await()
+                            username = (success and newUsername) or "####"
+                        end
+                        local userId = self.userId
+                        if not userId and self.username then
+                            local success, newUserId = main.modules.PlayerUtil.getUserIdFromName(username):await()
+                            userId = (success and newUserId) or 0
+                        end
+                        if not self.destroyed and username then
+                            clone.Humanoid.DisplayName = self.displayName or username
+                            clone.Name = username
+                        end
+                        self.username = username
+                        self.userId = userId
+                    end)
+                end
+                clone.Parent = Clone.replicatedStorage
+                getAndApplyDescription()
             end
-            clone.Parent = Clone.replicatedStorage
-            getAndApplyDescription()
 
         end 
 
@@ -184,7 +199,7 @@ function Clone:become(characterOrUserIdOrUsername)
             local description = humanoid and humanoid:GetAppliedDescription()
             if description then
                 self:applyHumanoidDescription(description)
-                clone.Humanoid.DisplayName = humanoid.DisplayName
+                clone.Humanoid.DisplayName = self.displayName or humanoid.DisplayName
             end
             self.clone.Name = self.character.Name
             for _, charChild in pairs(self.character:GetChildren()) do
@@ -207,23 +222,30 @@ function Clone:become(characterOrUserIdOrUsername)
                 end
             end
 
-        elseif self.userId or self.username then
+        elseif self.userId or self.username or self.humanoidDescription then
             getAndApplyDescription()
             main.modules.Thread.spawn(function()
                 local username = self.username
-                if not username then
+                if not username and self.userId then
                     local success, newUsername = main.modules.PlayerUtil.getNameFromUserId(self.userId):await()
                     username = (success and newUsername) or "####"
                     self.username = username
                 end
-                if not self.destroyed then
+                if not self.destroyed and username then
                     clone.Name = username
-                    clone.Humanoid.DisplayName = username
+                    clone.Humanoid.DisplayName = self.displayName or username
                 end
             end)
         end
     end
 
+end
+
+function Clone:setName(name)
+    local stringName = tostring(name)
+    self.humanoid.DisplayName = stringName
+    self.displayName = name
+    self.clone.Name = stringName
 end
 
 function Clone:show()
@@ -506,32 +528,50 @@ function Clone:modifyHumanoidDescription(propertyName, value)
     self.humanoidDescriptionCount += 1
 	local myCount = self.humanoidDescriptionCount
 	local humanoid = self.humanoid
-	if not self.humanoidDescription then
-		self.humanoidDescription = humanoid:GetAppliedDescription()
+	if not self.humanoidDescriptionToApply then
+		self.humanoidDescriptionToApply = humanoid:GetAppliedDescription()
 	end
     if propertyName then
-	    self.humanoidDescription[propertyName] = value
+	    self.humanoidDescriptionToApply[propertyName] = value
     end
-    main.modules.Thread.spawn(function()
-		if self.humanoidDescriptionCount == myCount and not self.applyingHumanoidDescription then
+	if self.humanoidDescriptionCount == myCount and not self.applyingHumanoidDescription then
+        self.applyingHumanoidDescription = true
+        main.modules.Thread.spawn(function()
 			local iterations = 0
-			self.applyingHumanoidDescription = true
             local appliedDesc
-			repeat
+            local watchingPart = self.watchingPlayerOrBasePart
+            if watchingPart then
+                self:unwatch()
+            end
+            repeat
 				main.RunService.Heartbeat:Wait()
-				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
+				pcall(function() humanoid:ApplyDescription(self.humanoidDescriptionToApply) end)
 				iterations += 1
                 appliedDesc = humanoid and humanoid:GetAppliedDescription()
-			until propertyName == nil or (appliedDesc and self.humanoidDescription and appliedDesc[propertyName] == self.humanoidDescription[propertyName]) or iterations == 10
+			until propertyName == nil or (appliedDesc and self.humanoidDescriptionToApply and appliedDesc[propertyName] == self.humanoidDescriptionToApply[propertyName]) or iterations == 10
+            self.humanoidDescriptionToApply:Destroy()
+			self.humanoidDescriptionToApply = nil
             self.applyingHumanoidDescription = false
-			self.humanoidDescription = nil
-		end
-	end)
+            if watchingPart then
+                self:watch(watchingPart)
+            end
+            if #self.humanoidDescriptionQueue > 0 then
+                local newDesc = table.remove(self.humanoidDescriptionQueue, 1)
+                self.humanoidDescriptionToApply = newDesc
+                self:modifyHumanoidDescription()
+            end
+		end)
+	end
 end
 
 function Clone:applyHumanoidDescription(newDesc)
-    self.humanoidDescription = newDesc
-    self:modifyHumanoidDescription()
+    local cloneDesc = newDesc:Clone()
+    if self.applyingHumanoidDescription then
+        table.insert(self.humanoidDescriptionQueue, cloneDesc)
+    else
+        self.humanoidDescriptionToApply = cloneDesc
+        self:modifyHumanoidDescription()
+    end
 end
 
 function Clone:_setScale(propertyName, value)
@@ -546,15 +586,7 @@ function Clone:_setScale(propertyName, value)
     local function trackHumanoidValueInstance(humanoidValueInstance)
         sMaid:give(humanoidValueInstance.Changed:Connect(function()
             main.RunService.Heartbeat:Wait()
-            local watchingPart = self.watchingPlayerOrBasePart
-            if watchingPart then
-                self:unwatch()
-            end
             updateScaleValue()
-            main.RunService.Heartbeat:Wait()
-            if watchingPart then
-                self:watch(watchingPart)
-            end
         end))
     end
     local humanoidValueInstance = self.humanoid:FindFirstChild(propertyName) or self.humanoid:FindFirstChild("Body"..propertyName)
@@ -749,7 +781,6 @@ function Clone:follow(playerOrBasePart, studsAwayToStop)
 
     local function stillPresentCheck()
         local stillPresent = basePart:FindFirstAncestorWhichIsA("Workspace") or basePart:FindFirstAncestorWhichIsA("ReplicatedStorage")
-        --print("stillPresent = ", stillPresent)
         if not stillPresent then
             self._maid.followMaid = nil
             return false

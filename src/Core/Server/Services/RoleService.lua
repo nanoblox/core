@@ -57,12 +57,13 @@ end
 
 
 
--- BEGIN
+-- LOADED
 function RoleService.loaded()
 	-- Create the hidden creator role
 	-- This role is important as it ensures *the owner*
 	-- of the game always has top priority
 	local creatorRoleUID = DataUtil.generateUID(10)
+	RoleService.creatorRoleUID = creatorRoleUID
 	RoleService.createRole(false, {
 		UID = creatorRoleUID,
 		name = "Creator_"..creatorRoleUID,
@@ -202,6 +203,10 @@ function RoleService.getRole(nameOrUID)
 		role = RoleService.getRoleByName(nameOrUID)
 	end
 	return role
+end
+
+function RoleService.getCreatorRole(nameOrUID)
+	return RoleService.getRole(RoleService.creatorRoleUID)
 end
 
 function RoleService.getRoleByUID(roleUID)

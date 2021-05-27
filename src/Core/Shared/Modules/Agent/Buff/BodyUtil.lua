@@ -230,6 +230,48 @@ function BodyUtil.clearFakeBodyParts(player, effect, additionalString)
     end
 end
 
+function BodyUtil.getHumanoidDescriptionProperties()
+    return {
+        "BackAccessory",
+        "FaceAccessory",
+        "FrontAccessory",
+        "HairAccessory",
+        "HatAccessory",
+        "NeckAccessory",
+        "ShouldersAccessory",
+        "WaistAccessory",
+        "BodyTypeScale",
+        "DepthScale",
+        "HeadScale",
+        "HeightScale",
+        "ProportionScale",
+        "WidthScale",
+        "ClimbAnimation",
+        "FallAnimation",
+        "IdleAnimation",
+        "JumpAnimation",
+        "RunAnimation",
+        "SwimAnimation",
+        "WalkAnimation",
+        "Face",
+        "Head",
+        "LeftArm",
+        "LeftLeg",
+        "RightArm",
+        "RightLeg",
+        "Torso",
+        "GraphicTShirt",
+        "Pants",
+        "Shirt",
+        "HeadColor",
+        "LeftArmColor",
+        "LeftLegColor",
+        "RightArmColor",
+        "RightLegColor",
+        "TorsoColor",
+    }
+end
+
 
 
 return BodyUtil

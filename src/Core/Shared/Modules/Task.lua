@@ -278,7 +278,7 @@ function Task:execute()
 		local finishedInvokingCommand = false
 		self:track(main.modules.Thread.delayUntil(function() return finishedInvokingCommand == true end))
 		self:track(main.modules.Thread.delayUntil(function() return filteredAllArguments == true end, function()
-			command.invoke(self, table.unpack(additional))
+			command.invoke(self, unpack(additional))
 			finishedInvokingCommand = true
 		end))
 	end
@@ -287,7 +287,7 @@ function Task:execute()
 
 		-- If client task, execute with task.clientArgs
 		if main.isClient then
-			return invokeCommand(false, table.unpack(self.clientArgs))
+			return invokeCommand(false, unpack(self.clientArgs))
 		end
 
 		-- If the task is player-specific (such as in ;kill foreverhd, ;kill all) find the associated player and execute the command on them
@@ -322,6 +322,7 @@ function Task:execute()
 	end)
 	
 	return Promise.defer(function(resolve)
+		main.RunService.Heartbeat:Wait()
 		if invokedCommand then
 			self.executionThreadsCompleted:Wait()
 			local humanoid = main.modules.PlayerUtil.getHumanoid(self.targetPlayer)
@@ -349,25 +350,72 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 	if not self[newCompletedSignalName] then
 		self[newCompletedSignalName] = self.maid:give(Signal.new())
 	end
-	if self.isDead then
-		threadOrTween:Destroy() --thread:disconnect()
-		return threadOrTween
-	elseif self.isPaused then
-		threadOrTween:Pause() --thread:pause()
+	local isAPromise = typeof(threadOrTween) == "table" and threadOrTween.getStatus
+	local promiseIsStarting = isAPromise and threadOrTween:getStatus() == main.modules.Promise.Status.Started
+	if isAPromise then
+		if self.isDead and promiseIsStarting then
+			threadOrTween:cancel()
+		end
+	else
+		if self.isDead then
+			threadOrTween:Destroy() --thread:disconnect()
+			return threadOrTween
+		elseif self.isPaused then
+			threadOrTween:Pause() --thread:pause()
+		end
+		threadOrTween = self.maid:give(threadOrTween)
 	end
-	self.maid:give(threadOrTween)
-	self.threads[threadOrTween] = true
 	self[newCountPropertyName] += 1
-	main.modules.Thread.spawn(function()
-		if threadOrTween.PlaybackState == main.enum.ThreadState.Completed or threadOrTween.PlaybackState == main.enum.ThreadState.Cancelled then
-			threadOrTween.Completed:Wait()
+	local function declareDead()
+		main.modules.Thread.spawn(function()
+			self[newCountPropertyName] -= 1
+			if self[newCountPropertyName] == 0 and self[newCompletedSignalName] and not self.isDead then
+				self[newCompletedSignalName]:Fire()
+			end
+			self.threads[threadOrTween] = nil
+		end)
+	end
+	if isAPromise then
+		if promiseIsStarting then
+			local task = self
+			local newPromise = threadOrTween:andThen(function(...)
+				-- This ensures all objects within the promise are given to the task maid
+				local items = {...}
+				local function maybeAddItemToMaid(potentialItem)
+					if typeof(potentialItem) == "table" then
+						for potentialItemA, potentialItemB in pairs(potentialItem) do
+							maybeAddItemToMaid(potentialItemA)
+							maybeAddItemToMaid(potentialItemB)
+						end
+					end
+					if main.modules.Maid.isValidType(potentialItem) then
+						self.maid:give(potentialItem)
+					end
+				end
+				maybeAddItemToMaid(items)
+				if task.isDead then
+					self.maid:clean()
+					threadOrTween:cancel()
+					return
+				end
+				return ...
+			end)
+			newPromise:finally(function()
+				declareDead()
+			end)
+			threadOrTween = newPromise
+		else
+			declareDead()
 		end
-		main.RunService.Heartbeat:Wait()
-		self[newCountPropertyName] -= 1
-		if self[newCountPropertyName] == 0 and self[newCompletedSignalName] and not self.isDead then
-			self[newCompletedSignalName]:Fire()
-		end
-	end)
+	else
+		self.threads[threadOrTween] = true
+		main.modules.Thread.spawn(function()
+			if not(threadOrTween.PlaybackState == main.enum.ThreadState.Completed or threadOrTween.PlaybackState == main.enum.ThreadState.Cancelled) then
+				threadOrTween.Completed:Wait()
+			end
+			declareDead()
+		end)
+	end
 	return threadOrTween
 end
 
@@ -395,7 +443,7 @@ function Task:kill()
 	if self.isDead then return end
 	if not self.isDead and self.command.revoke then
 		if self.revokeArguments then
-			self.command.revoke(self, table.unpack(self.revokeArguments))
+			self.command.revoke(self, unpack(self.revokeArguments))
 		else
 			self.command.revoke(self)
 		end
@@ -424,8 +472,13 @@ Task.destroy = Task.kill
 Task.Destroy = Task.kill
 
 -- An abstraction of ``task.maid:give(...)``
-function Task:give(...)
-	return self.maid:give(...)
+function Task:give(item)
+	if self.isDead then
+		main.modules.Thread.spawn(function()
+			self.maid:clear()
+		end)
+	end
+	return self.maid:give(item)
 end
 
 -- An abstraction of ``task:track(main.modules.Thread.spawn(func, ...))``
@@ -461,6 +514,36 @@ end
 -- An abstraction of ``task:track(main.TweenService:Create(instance, tweenInfo, propertyTable))``
 function Task:tween(instance, tweenInfo, propertyTable)
 	return self:track(main.TweenService:Create(instance, tweenInfo, propertyTable))
+end
+
+-- An abstraction of ``self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))`` (or the server equivalent)
+function Task:getAsset(assetName)
+	if main.isServer then
+		local asset = main.services.AssetService.getCommandAssetOrServerPermittedAsset(self.commandName, assetName)
+		if asset then
+			self:give(asset)
+		end
+		-- THE SERVER IS SYNCHRONOUS THEREFORE RETURNS ASSETS IMMEDIATELY
+		return asset
+	end
+	-- THE CLIENT IS ASSYNCHRONOUS THEREFORE RETURNS A PROMISE
+	return self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))
+end
+
+-- An abstraction of ``self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))`` (or the server equivalent)
+function Task:getAssets(...)
+	if main.isServer then
+		local assets = main.services.AssetService.getCommandAssetsOrServerPermittedAssets(self.commandName, ...)
+		if assets then
+			for _, asset in pairs(assets) do
+				self:give(asset)
+			end
+		end
+		-- THE SERVER IS SYNCHRONOUS THEREFORE RETURNS ASSETS IMMEDIATELY
+		return assets
+	end
+	-- THE CLIENT IS ASSYNCHRONOUS THEREFORE RETURNS A PROMISE
+	return self:track(main.controllers.AssetController.getClientCommandAssetsOrClientPermittedAssets(self.commandName, ...))
 end
 
 -- An abstraction of ``task.agent:buff(...)``
@@ -562,7 +645,7 @@ end
 function Task:invokeFutureClients(...)
 	local args = table.pack(...)
 	self.maid:give(main.Players.PlayerAdded:Connect(function(player)
-		self:invokeClient(player, table.unpack(args))
+		self:invokeClient(player, unpack(args))
 	end))
 end
 

@@ -392,7 +392,7 @@ function GlobalService.start()
 			return "Receiver not found"
 		end
 		if action == "F" then
-			receiver.onGlobalEvent:Fire(table.unpack(record.args))
+			receiver.onGlobalEvent:Fire(unpack(record.args))
 		elseif action == "I" then
 			local func = receiver.onGlobalInvoke
 			if not func then
@@ -408,7 +408,7 @@ function GlobalService.start()
 					
 				end)
 			-- Invoke function and return desired info
-			local info = table.pack(func(table.unpack(record.args)))
+			local info = table.pack(func(unpack(record.args)))
 			dataToSend.info = info
 			publish(invocationTopic, dataToSend)
 				:catch(function(warning)

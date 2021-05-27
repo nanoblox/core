@@ -2,20 +2,34 @@
 local main = require(game.Nanoblox)
 local System = main.modules.System
 local CommandService = System.new("Commands")
-CommandService.remotes = {
-	previewCommand = main.modules.Remote.new("previewCommand"),
-}
+CommandService.remotes = {}
 local systemUser = CommandService.user
-local defaultCommands = main.modules.Commands
+
+
+
+-- START
+function CommandService.start()
+
+    local previewCommand = main.modules.Remote.new("previewCommand")
+    CommandService.remotes.previewCommand = previewCommand
+    
+end
+
+
+
+-- PLAYER LOADED
+function CommandService.playerLoadedMethod(player)
+	local user = main.modules.PlayerStore:getLoadedUser(player)
+	if user then
+		CommandService.setupParsePatterns(user)
+	end
+end
 
 
 
 -- BEGIN
 function CommandService.loaded()
-	--!!
-	local Parser = main.modules.Parser --!!! This is just to test the parser
-	--!!
-
+	
 	-- Setup globals
 	CommandService.executeStatementGloballySender = main.services.GlobalService.createSender("executeStatementGlobally")
 	CommandService.executeStatementGloballyReceiver = main.services.GlobalService.createReceiver("executeStatementGlobally")
@@ -24,6 +38,7 @@ function CommandService.loaded()
 	end)
 
 	-- Grab default commands
+	local defaultCommands = main.modules.Commands
 	for name, details in pairs(defaultCommands) do
 		CommandService.createCommand(name, details)
 	end
@@ -59,7 +74,6 @@ function CommandService.loaded()
 		return array
 	end)
 
-	print("CommandService LOADED!")
 end
 
 
@@ -81,6 +95,7 @@ end)
 
 -- METHODS
 function CommandService.generateRecord(key)
+	local defaultCommands = main.modules.Commands
 	return defaultCommands[key] or {
 		name = "", -- This will be locked, command names cannot change and must always be the same
 		description = "",
@@ -139,25 +154,109 @@ function CommandService.getTable(name)
 	return CommandService.records:getTable(name)
 end 
 
-function CommandService.chatCommand(caller, message)
-	print(caller.Name, "chatted: ", message)
-	local callerUserId = caller.UserId
-	local batch = main.modules.Parser.parseMessage(message)
+function CommandService.setupParsePatterns(user)
+	-- This dynamically updates the players 'parsePatterns' when the users settings change instead of having to parse them every chat message
+	local PARSE_SETTINGS = {
+		commandStatementsFromBatch = {
+			settingName = "prefixes",
+			parse = function(settingValue)
+				return string.format(
+					"%s([^%s]+)",
+					";", --ClientSettings.prefix,
+					";" --ClientSettings.prefix
+				)
+			end,
+		},
+        descriptionsFromCommandStatement = {
+			settingName = "descriptorSeparator",
+			parse = function(settingValue)
+				return string.format(
+					"%s?([^%s]+)",
+					" ", --ClientSettings.descriptorSeparator,
+					" " --ClientSettings.descriptorSeparator
+				)
+			end,
+		},
+        argumentsFromCollection = {
+			settingName = "collective",
+			parse = function(settingValue)
+				return string.format(
+					"([^%s]+)%s?",
+					",", --ClientSettings.collective,
+					"," --ClientSettings.collective
+				)
+			end,
+		},
+        capsuleFromKeyword = {
+			settingName = "argCapsule",
+			parse = function(settingValue)
+				return string.format(
+					"%%(%s%%)", --Capsule
+					string.format("(%s)", ".-")
+				)
+			end
+		},
+	}
+	local validSettingNames = {}
+	user.perm.playerSettings.changed:Connect(function(settingName, value)
+		if validSettingNames[settingName] then
+			user.temp.parsePatterns:set(settingName, value)
+		end
+	end)
+	user.temp:set("parsePatterns", {})
+	for _, detail in pairs(PARSE_SETTINGS) do
+		local settingName = detail.settingName
+		local settingValue = main.services.SettingService.getPlayerSetting(settingName, user)
+		validSettingNames[settingName] = true
+		user.temp.parsePatterns:set(settingName, settingValue)
+	end
+end
+
+function CommandService.createFakeUser()
+	local user = {}
+	user.userId = 1
+	user.name = "Server"
+	user.displayName = "Server"
+	user.perm = main.modules.State.new({
+		playerSettings = {
+			playerIdentifier = "@",
+			playerUndefinedSearch = main.enum.PlayerSearch.UserName,
+			playerDefinedSearch = main.enum.PlayerSearch.DisplayName,
+		}
+	}, true)
+	user.temp = main.modules.State.new(nil, true)
+	user.roles = {}
+	CommandService.setupParsePatterns(user)
+	main.services.RoleService.getCreatorRole():give(user, main.enum.RoleType.Server)
+	return user
+end
+
+function CommandService.chatCommand(callerUser, message)
+	local callerUserId = callerUser.userId
+	local callerPlayer = callerUser.player
+	local batch = main.modules.Parser.parseMessage(message, callerUser)
+	print(callerUser.name, "chatted: ", message, batch)
 	if type(batch) == "table" then
-		for i, statement in pairs(batch) do
+		for _, statement in pairs(batch) do
 			local approved, noticeDetails = CommandService.verifyStatement(callerUserId, statement)
 			if approved then
 				CommandService.executeStatement(callerUserId, statement)
+					:andThen(function(tasks)
+						print("TASKS = ", tasks)
+					end)
 			end
-			for _, detail in pairs(noticeDetails) do
-				local method = main.services.MessageService[detail[1]]
-				method(caller, detail[2])
+			if callerPlayer then
+				for _, detail in pairs(noticeDetails) do
+					local method = main.services.MessageService[detail[1]]
+					method(callerPlayer, detail[2])
+				end
 			end
 		end
 	end
 end
 
 function CommandService.verifyStatement(callerUserId, statement)
+	--[[
 	local approved = true
 	local details = {}
 
@@ -179,8 +278,9 @@ function CommandService.verifyStatement(callerUserId, statement)
 		text = "You do not have permission to do that!",
 		error = true,
 	}})
-
 	return approved, details
+	--]]
+	return true, {}
 end
 
 function CommandService.executeStatement(callerUserId, statement)
@@ -201,10 +301,13 @@ function CommandService.executeStatement(callerUserId, statement)
 		end
 	end
 	local Args = main.modules.Parser.Args
+	local Promise = main.modules.Promise
+	local promises = {}
 	local isPermModifier = statement.modifiers.perm
 	local isGlobalModifier = statement.modifiers.wasGlobal
 	for commandName, arguments in pairs(statement.commands) do
 		local command = CommandService.getCommand(commandName)
+		print("command = ", commandName, command)
 		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(command.args[1])]
 		local TaskService = main.services.TaskService
 		local properties = TaskService.generateRecord()
@@ -236,14 +339,20 @@ function CommandService.executeStatement(callerUserId, statement)
 			properties.qualifiers = statement.qualifiers or properties.qualifiers
 			table.insert(tasks, main.services.TaskService.createTask(addToPerm, properties))
 		else
-			local targets = Args.get("player"):parse(statement.qualifiers, callerUserId)
-			for _, plr in pairs(targets) do
-				properties.targetUserId = plr.UserId
-				table.insert(tasks, main.services.TaskService.createTask(addToPerm, properties))
-			end
+			table.insert(promises, Promise.new(function(resolve)
+				local targets = Args.get("player"):parse(statement.qualifiers, callerUserId)
+				for _, plr in pairs(targets) do
+					properties.targetUserId = plr.UserId
+					table.insert(tasks, main.services.TaskService.createTask(addToPerm, properties))
+				end
+				resolve()
+			end))
 		end
 	end
-	return tasks
+	return Promise.all(promises)
+		:andThen(function()
+			return tasks
+		end)
 end
 
 function CommandService.executeSimpleStatement(callerUserId, commandName, optionalCommandArgs, optionalQualifiers, optionalModifiers)

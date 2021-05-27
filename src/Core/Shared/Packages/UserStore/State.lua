@@ -84,11 +84,21 @@ function State.new(props, convertDescendantsToTables)
 	local hiddenKeys = {}
 	hiddenKeys["_tables"] = {}
 	hiddenKeys["_convertDescendantsToTables"] = convertDescendantsToTables
-	hiddenKeys["changedFirst"] = maid:give(Signal.new())
-	hiddenKeys["changed"] = maid:give(Signal.new())
+	hiddenKeys["changedFirst"] = "signal"
+	hiddenKeys["changed"] = "signal"
 	setmetatable(newTable, {
 		__index = function(this, index)
-			local newIndex = State[index] or hiddenKeys[index]
+			local newIndex = State[index]
+			if newIndex == nil then
+				local hiddenValue = hiddenKeys[index]
+				if hiddenValue ~= nil then
+					if hiddenValue == "signal" then
+						hiddenValue = maid:give(Signal.new())
+						hiddenKeys[index] = hiddenValue
+					end
+					newIndex = hiddenValue
+				end
+			end
 			return newIndex
 		end
 	})
@@ -147,7 +157,7 @@ function State:find(...)
 	max = max - 1
 	local tab = self
 	if max > 0 then
-		tab = self:get(table.unpack(pathwayTable))
+		tab = self:get(unpack(pathwayTable))
 	end
 	if type(tab) == "table" then
 		if #tab == 0 then return tab[value] end

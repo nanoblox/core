@@ -118,7 +118,7 @@ function Thread.spawn(func, ...)
 	thread.behaviour = function()
 		thread:disconnect()
 		if func then
-			func(table.unpack(args, 1, args.n))
+			func(unpack(args, 1, args.n))
 		end
 	end
 	thread:resume()
@@ -134,7 +134,7 @@ function Thread.delay(waitTime, func, ...)
 		if (tick() >= thread.executeTime) then
 			thread:disconnect()
 			if func then
-				func(table.unpack(args, 1, args.n))
+				func(unpack(args, 1, args.n))
 			end
 		end
 	end
@@ -150,7 +150,7 @@ function Thread.delayUntil(criteria, func, ...)
 		if criteria() then
 			thread:disconnect()
 			if func then
-				func(table.unpack(args, 1, args.n))
+				func(unpack(args, 1, args.n))
 			end
 		end
 	end
@@ -166,7 +166,7 @@ function Thread.delayLoop(intervalTimeOrType, func, ...)
 		if (tick() >= thread.executeTime) then
 			thread.executeTime = tick() + intervalTime
 			if func then
-				func(table.unpack(args, 1, args.n))
+				func(unpack(args, 1, args.n))
 			end
 		end
 	end, func, ...)
@@ -182,7 +182,7 @@ function Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...)
 		elseif (tick() >= thread.executeTime) then
 			thread.executeTime = tick() + intervalTime
 			if func then
-				func(table.unpack(args, 1, args.n))
+				func(unpack(args, 1, args.n))
 			end
 		end
 	end, func, ...)
@@ -201,7 +201,7 @@ function Thread.delayLoopFor(intervalTimeOrType, iterations, func, ...)
 			thread.executeTime = tick() + intervalTime
 			i = i + 1
 			if func then
-				func(i, table.unpack(args, 1, args.n))
+				func(i, unpack(args, 1, args.n))
 			end
 		end
 	end, func, ...)

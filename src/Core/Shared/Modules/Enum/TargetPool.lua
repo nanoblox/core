@@ -34,7 +34,7 @@ return {
 	{"None ", 1},
 	
 	{"Individual ", 2, function(player, definedPool)
-		local newPlayer = table.unpack(getArrayOfPlayers(definedPool, function(plrToCheck)
+		local newPlayer = unpack(getArrayOfPlayers(definedPool, function(plrToCheck)
 			return plrToCheck == player
 		end))
 		return newPlayer

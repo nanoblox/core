@@ -73,12 +73,11 @@ function SettingsService.generateRecord(key)
 	return defaultRecords[key]
 end
 
-function SettingsService.getPlayerSetting(settingName, optionalPlayer)
+function SettingsService.getPlayerSetting(settingName, optionalUser)
 	local group = SettingsService.getGroup("Player")
-	local user = optionalPlayer and main.modules.PlayerStore:getLoadedUser(optionalPlayer)
 	local settingValue
-	if user then
-		settingValue = user.perm.playerSettings:get(settingName)
+	if optionalUser then
+		settingValue = optionalUser.perm.playerSettings:get(settingName)
 	end
 	if settingValue == nil then
 		settingValue = group[settingName]
@@ -86,12 +85,9 @@ function SettingsService.getPlayerSetting(settingName, optionalPlayer)
 	return settingValue
 end
 
-function SettingsService.updatePlayerSetting(settingName, settingValue, optionalPlayer)
-	if optionalPlayer ~= nil then
-		local user = main.modules.PlayerStore:getLoadedUser(optionalPlayer)
-		if user then
-			user.perm.playerSettings:set(settingName, settingValue)
-		end
+function SettingsService.updatePlayerSetting(settingName, settingValue, optionalUser)
+	if optionalUser ~= nil then
+		optionalUser.perm.playerSettings:set(settingName, settingValue)
 	else
 		SettingsService.updateGroup("Player", {
 			[settingName] = settingValue

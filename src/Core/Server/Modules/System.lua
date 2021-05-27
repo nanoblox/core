@@ -133,7 +133,7 @@ function System.new(name, ignoreTempChanges)
 		local currentActionRecords = actionRecords
 		actionRecords = {}
 		for _, record in pairs(currentActionRecords) do
-			local pathwayTable, key, newValue = table.unpack(record)
+			local pathwayTable, key, newValue = unpack(record)
 			user.perm:getOrSetup(pathwayTable):set(key, newValue)
 		end
 	end)
@@ -428,7 +428,7 @@ function System.new(name, ignoreTempChanges)
 					self.recordsActionDelay = 0
 					local returnValue = table.pack(method(...))
 					self.recordsActionDelay = previousRecordsActionDelay
-					return table.unpack(returnValue)
+					return unpack(returnValue)
 				end
 			end
 		end
