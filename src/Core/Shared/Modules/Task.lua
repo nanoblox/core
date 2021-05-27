@@ -448,8 +448,15 @@ Task.destroy = Task.kill
 Task.Destroy = Task.kill
 
 -- An abstraction of ``task.maid:give(...)``
-function Task:give(...)
-	return self.maid:give(...)
+function Task:give(item)
+	print("give item: ", self.isDead)
+	if self.isDead then
+		main.modules.Thread.spawn(function()
+			self.maid:clear()
+			print("DESTROY PROPERrlY!!!")
+		end)
+	end
+	return self.maid:give(item)
 end
 
 -- An abstraction of ``task:track(main.modules.Thread.spawn(func, ...))``

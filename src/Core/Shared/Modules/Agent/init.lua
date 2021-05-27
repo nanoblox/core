@@ -250,7 +250,11 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 						BodyUtil.clearFakeBodyParts(self.player, effect, additionalString)
 						--
 					else
-						finalValue = bossBuff.value
+						local buffValue = bossBuff.value
+						if typeof(buffValue) ==  "Instance" then --and buffValue:IsA("HumanoidDescription") then
+							buffValue = buffValue[propertyName]
+						end
+						finalValue = buffValue
 					end
 
 				else
@@ -381,12 +385,22 @@ function Agent:modifyHumanoidDescription(propertyName, value)
 			local iterations = 0
 			self.applyingHumanoidDescription = true
 			local appliedDesc
+			local currentDesc = humanoid and humanoid:FindFirstChildOfClass("HumanoidDescription")
+			local headlessHorsemanPresentOnRemoval = currentDesc and tostring(currentDesc.Head) == "134082579"
 			repeat
 				main.RunService.Heartbeat:Wait()
 				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
 				iterations += 1
 				appliedDesc = humanoid and humanoid:GetAppliedDescription()
 			until (appliedDesc and self.humanoidDescription and appliedDesc[propertyName] == self.humanoidDescription[propertyName]) or iterations == 10
+			if headlessHorsemanPresentOnRemoval then
+				-- Yes this is ugly, but there's a really frustrating bug with HumanoidDescriptions that breaks the face when a Headless Horseman Head is removed
+				local originalFace = self.humanoidDescription.Face
+				self.humanoidDescription.Face = 0
+				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
+				self.humanoidDescription.Face = originalFace
+				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
+			end
 			self.applyingHumanoidDescription = false
 			self.humanoidDescription = nil
 		end

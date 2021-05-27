@@ -302,6 +302,7 @@ function CommandService.executeStatement(callerUserId, statement)
 	local isGlobalModifier = statement.modifiers.wasGlobal
 	for commandName, arguments in pairs(statement.commands) do
 		local command = CommandService.getCommand(commandName)
+		print("command = ", commandName, command)
 		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(command.args[1])]
 		local TaskService = main.services.TaskService
 		local properties = TaskService.generateRecord()

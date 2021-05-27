@@ -79,5 +79,41 @@ function PlayerUtil.getUserIdFromName(username)
 	end)
 end
 
+function PlayerUtil.getHumanoidDescription(userIdOrUsernameOrPlayerOrCharacter, dontDestroyDescription)
+	return main.modules.Promise.defer(function(resolve, reject)
+		local userId, humanoidDesc
+		local itemType = typeof(userIdOrUsernameOrPlayerOrCharacter)
+		if itemType == "number" then
+			userId = userIdOrUsernameOrPlayerOrCharacter
+		elseif itemType == "string" then
+			local success, value = PlayerUtil.getUserIdFromName(userIdOrUsernameOrPlayerOrCharacter):await()
+			if not success then
+				reject(value)
+			end
+			userId = value
+		elseif itemType == "Instance" then
+			local className = userIdOrUsernameOrPlayerOrCharacter.ClassName
+			local character = ((className == "Player") and userIdOrUsernameOrPlayerOrCharacter.Character) or userIdOrUsernameOrPlayerOrCharacter
+			local humanoid = character and character:FindFirstChild("Humanoid")
+			humanoidDesc = humanoid and humanoid:GetAppliedDescription()
+			if not humanoidDesc then
+				reject(("'%s' does not contain a Humanoid or HumanoidDescription!"):format(character.Name))
+			end
+		end
+		if not humanoidDesc then
+			local success, value = pcall(function() return main.Players:GetHumanoidDescriptionFromUserId(userId) end)
+			if not success then
+				reject(value)
+			end
+			humanoidDesc = value
+		end
+		if dontDestroyDescription ~= true then
+			main.modules.Thread.spawn(function()
+				humanoidDesc:Destroy()
+			end)
+		end
+		resolve(humanoidDesc)
+	end)
+end
 
 return PlayerUtil
