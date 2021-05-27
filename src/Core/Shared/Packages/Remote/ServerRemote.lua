@@ -14,19 +14,26 @@ local Promise = require(script.Parent.Promise)
 local Remote = {}
 local players = game:GetService("Players")
 local httpService = game:GetService("HttpService")
+local runService = game:GetService("RunService")
 local requestDetails = {}
 local remotes = {}
 
 
 
 -- BEHAVIOUR
-players.PlayerAdded:Connect(function(player)
+local function playerAdded(player)
 	local detail = {
 		requests = 0,
 		nextRefresh = 0,
 	}
 	requestDetails[player] = detail
+end
+players.PlayerAdded:Connect(function(player)
+	playerAdded(player)
 end)
+for _, player in pairs(players:GetPlayers()) do
+	playerAdded(player)
+end
 players.PlayerRemoving:Connect(function(player)
 	requestDetails[player] = nil
 end)
@@ -103,7 +110,7 @@ function Remote:__newindex(index, value)
 			return false, errorMessage
 		end
 		local returnedValues = table.pack(customFunction(...))
-		return true, table.unpack(returnedValues)
+		return true, unpack(returnedValues)
 	end
 end
 		
@@ -178,12 +185,12 @@ function Remote:invokeClient(player, ...)
 	local remoteInstance = self:_getRemoteInstance("RemoteFunction")
 	local args = table.pack(...)
 	return Promise.defer(function(resolve, reject)
-		local results = table.pack(pcall(remoteInstance.InvokeClient, remoteInstance, player, table.unpack(args)))
+		local results = table.pack(pcall(remoteInstance.InvokeClient, remoteInstance, player, unpack(args)))
 		local success = table.remove(results, 1)
 		if success then
-			resolve(table.unpack(results))
+			resolve(unpack(results))
 		else
-			reject(table.unpack(results))
+			reject(unpack(results))
 		end
 	end)
 end

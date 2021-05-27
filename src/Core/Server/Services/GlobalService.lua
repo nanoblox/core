@@ -76,6 +76,7 @@ local function getDataSize(data)
 end
 
 local function finishRecord(record)
+	record.isFinished = true
 	record.finished:Fire()
 	record.finished:Destroy()
 	record = nil
@@ -148,8 +149,10 @@ function GlobalService.addRecord(record)
 			end
 			active = false
 		end
-		Thread.spawnNow(function()
-			record.finished:Wait()
+		Thread.spawn(function()
+			if not record.isFinished then
+				record.finished:Wait()
+			end
 			Thread.delay(invocationTimeout, function()
 				if not response then
 					informSender()
@@ -389,7 +392,7 @@ function GlobalService.start()
 			return "Receiver not found"
 		end
 		if action == "F" then
-			receiver.onGlobalEvent:Fire(table.unpack(record.args))
+			receiver.onGlobalEvent:Fire(unpack(record.args))
 		elseif action == "I" then
 			local func = receiver.onGlobalInvoke
 			if not func then
@@ -405,7 +408,7 @@ function GlobalService.start()
 					
 				end)
 			-- Invoke function and return desired info
-			local info = table.pack(func(table.unpack(record.args)))
+			local info = table.pack(func(unpack(record.args)))
 			dataToSend.info = info
 			publish(invocationTopic, dataToSend)
 				:catch(function(warning)

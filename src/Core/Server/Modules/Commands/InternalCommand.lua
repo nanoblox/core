@@ -21,18 +21,18 @@ Command.revokeRepeats = false -- before creating the task, remove all tasks with
 Command.persistence = main.enum.Persistence.None -- when set to None, the command will typically revoke (i.e. its task is killed) straight-away - to prevent this, replace 'None' with 'UntilDeath', 'UntilRespawn', 'UntilLeave' or 'UntilRevoke'
 Command.args = {} -- the arguments to be processed and passed through the the command; see the 'Args' module for a list of all arguments
 
-function Command:invoke(task, args)
+function Command.invoke(task, args)
 	print("Hello world")
-	task.track(main.modules.Task.delay(3, function()
+	task:delay(3, function()
 		print("Goodbye world")
-	end))
+	end)
 end
 
-function Command:revoke(task)
+function Command.revoke(task)
 
 end
 
-function Command:preReplication(task, targetPool, packedData) -- this is called after a client calls ``task:replicateTo[...]``. if false, the client replication will be cancelled
+function Command.preReplication(task, targetPool, packedData) -- this is called after a client calls ``task:replicateTo[...]``. if false, the client replication will be cancelled
 	return true
 end
 

@@ -2,13 +2,7 @@
 local main = require(game.Nanoblox)
 local System = main.modules.System
 local TaskService = System.new("Tasks")
-TaskService.remotes = {
-	invokeClientCommand = main.modules.Remote.new("invokeClientCommand"),
-	revokeClientCommand = main.modules.Remote.new("revokeClientCommand"),
-	callClientTaskMethod = main.modules.Remote.new("callClientTaskMethod"),
-	replicationRequest = main.modules.Remote.new("replicationRequest", 12, 1, 200),
-	replicateClientCommand = main.modules.Remote.new("replicateClientCommand"),
-}
+TaskService.remotes = {}
 local systemUser = TaskService.user
 local tasks = {}
 local Task = main.modules.Task
@@ -18,7 +12,19 @@ local Signal = main.modules.Signal.new()
 
 -- START
 function TaskService.start()
-	TaskService.remotes.replicationRequest.onServerEvent:Connect(function(player, taskUID, targetPool, packedArgs, packedData)
+
+	-- REMOTES
+	local invokeClientCommand = main.modules.Remote.new("invokeClientCommand")
+    TaskService.remotes.invokeClientCommand = invokeClientCommand
+
+	local revokeClientCommand = main.modules.Remote.new("revokeClientCommand")
+    TaskService.remotes.revokeClientCommand = revokeClientCommand
+
+	local callClientTaskMethod = main.modules.Remote.new("callClientTaskMethod")
+    TaskService.remotes.callClientTaskMethod = callClientTaskMethod
+
+	local replicationRequest = main.modules.Remote.new("replicationRequest")
+	replicationRequest.onServerEvent:Connect(function(player, taskUID, targetPool, packedArgs, packedData)
 		local task = TaskService.getTask(taskUID)
 		local clockTime = os.clock()
 		local errorMessage
@@ -28,7 +34,7 @@ function TaskService.start()
 		elseif task.callerUserId ~= player.UserId then
 			errorMessage = "Replication blocked: Requester's UserId does not match caller's UserId!"
 		elseif not task.command.preReplication then
-			errorMessage = "Replication blocked: ServerCommand:PreReplication(task, targetPool, packedData) must be specified!"
+			errorMessage = "Replication blocked: ServerCommand.preReplication(task, targetPool, packedData) must be specified!"
 		elseif not targetPoolName then
 			errorMessage = "Replication blocked: Invalid argument, 'targetPool' must be a TargetPool enum!"
 		elseif typeof(packedArgs) ~= "table" then
@@ -39,9 +45,9 @@ function TaskService.start()
 		if not errorMessage then
 			if clockTime >= (task._nextReplicationsThisSecondRefresh or 0) then
 				task._nextReplicationsThisSecondRefresh = clockTime + 1
-				task.replicationsThisSecond = 0
+				task.replicationRequestsThisSecond = 1
 			end
-			local success, blockMessage = task.command:preReplication(task, targetPool, packedData)
+			local success, blockMessage = task.command.preReplication(task, targetPool, packedData)
 			if not success then
 				if not blockMessage then
 					blockMessage = ("Unspecified command rejection for '%s'."):format(task.command.name)
@@ -50,22 +56,43 @@ function TaskService.start()
 			end
 		end
 		if not errorMessage then
-			local success, playersArrayOrErrorMessage = pcall(function() return main.enum.TargetPool.getProperty(targetPoolName)(table.unpack(packedArgs)) end)
+			local success, playersArrayOrErrorMessage = pcall(function() return main.enum.TargetPool.getProperty(targetPoolName)(unpack(packedArgs)) end)
 			if not success then
 				errorMessage = playersArrayOrErrorMessage
 			else
 				for _, plr in pairs(playersArrayOrErrorMessage) do
-					main.replicateClientCommand:fireClient(plr, packedData)
+					TaskService.remotes.replicateClientCommand:fireClient(plr, task.UID, packedData)
 				end
-				task.totalReplications += 1
-				task.replicationsThisSecond += 1
+				task.totalReplicationRequests += 1
+				task.replicationRequestsThisSecond += 1
 			end
 		end
 		if errorMessage then
-			--!!!notice here
+			warn(errorMessage)
+			--!!!notice here player or caller??, probably player
 			return
 		end
 	end)
+	TaskService.remotes.replicationRequest = replicationRequest
+
+	local replicateClientCommand = main.modules.Remote.new("replicateClientCommand")
+    TaskService.remotes.replicateClientCommand = replicateClientCommand
+
+
+	-- GLOBALS
+	local callerLeftSender = main.services.GlobalService.createSender("callerLeft")
+	local callerLeftReceiver = main.services.GlobalService.createReceiver("callerLeft")
+	callerLeftReceiver.onGlobalEvent:Connect(function(callerUserId)
+		local tasksNow = TaskService.getTasks()
+		for _, task in pairs(tasksNow) do
+			if task.callerUserId == callerUserId and not task.isDead then
+				task.callerLeft:Fire()
+			end
+		end
+	end)
+	TaskService.callerLeftSender = callerLeftSender
+	TaskService.callerLeftReceiver = callerLeftReceiver
+
 end
 
 

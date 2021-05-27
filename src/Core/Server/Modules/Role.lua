@@ -30,6 +30,10 @@ function Role:destroy()
 	self._maid:clean()
 end
 
+function Role:give(user, roleType)
+
+end
+
 
 
 return Role

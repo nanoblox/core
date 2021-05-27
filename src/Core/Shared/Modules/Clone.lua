@@ -13,7 +13,7 @@ Clone.replicatedStorage = nil
 
 
 -- CONSTRUCTOR
-function Clone.new(characterOrUserId, spawnCFrame)
+function Clone.new(playerOrCharacterOrUserId, spawnCFrame)
 	local self = {}
 	setmetatable(self, Clone)
 	
@@ -32,8 +32,12 @@ function Clone.new(characterOrUserId, spawnCFrame)
     self.humanoid = nil
     self.destroyed = false
     self.destroyedSignal = main.modules.Signal.new()
-
-	self:become(characterOrUserId)
+    self.humanoidDescriptionCount = 0
+    self.humanoidDescriptionToApply = nil
+    self.applyingHumanoidDescription = false
+    self.humanoidDescriptionQueue = {}
+    
+	self:become(playerOrCharacterOrUserId)
     
 	return self
 end
@@ -41,11 +45,23 @@ end
 
 
 -- METHODS
-function Clone:become(characterOrUserIdOrUsername)
-	self.character = typeof(characterOrUserIdOrUsername) == "Instance" and characterOrUserIdOrUsername
-	self.userId = typeof(characterOrUserIdOrUsername) == "number" and characterOrUserIdOrUsername
-    self.username = typeof(characterOrUserIdOrUsername) == "string" and characterOrUserIdOrUsername
-
+function Clone:become(item)
+    --[[ Valid things to become:
+        character
+        userId
+        username
+        player
+        humanoidDescription
+    --]]
+    local IsAHumanoidDesc = typeof(item) == "Instance" and item:IsA("HumanoidDescription")
+    if typeof(item) == "Instance" and item:IsA("Player") then
+        item = item.Character
+    end
+    self.character = typeof(item) == "Instance" and not IsAHumanoidDesc and item
+	self.userId = typeof(item) == "number" and item
+    self.username = typeof(item) == "string" and item
+    self.humanoidDescription = typeof(item) == "Instance" and IsAHumanoidDesc and item
+    
     --[[
         if not clone present
             if character then copy character, make archivable, set parent
@@ -57,7 +73,10 @@ function Clone:become(characterOrUserIdOrUsername)
     ]]
     local clone = self.clone
     local function getAndApplyDescription()
-        main.modules.Thread.spawnNow(function()
+        main.modules.Thread.spawn(function()
+            if self.humanoidDescription then
+                return self:applyHumanoidDescription(self.humanoidDescription)
+            end
             local userId = self.userId
             if not userId then
                 local success, newUserId = main.modules.PlayerUtil.getUserIdFromName(self.username):await()
@@ -66,7 +85,7 @@ function Clone:become(characterOrUserIdOrUsername)
             end
             local success, description = pcall(function() return main.Players:GetHumanoidDescriptionFromUserId(userId) end)
             if success and not self.destroyed then
-                clone.Humanoid:ApplyDescription(description)
+                self:applyHumanoidDescription(description)
             end
         end)
     end
@@ -82,9 +101,9 @@ function Clone:become(characterOrUserIdOrUsername)
             clone.HumanoidRootPart.CFrame = self.spawnCFrame or (hrp and hrp.CFrame * SPAWN_OFFSET) or CFrame.new()
             clone.Name = self.character.Name
             local charHumanoid = self.character:FindFirstChild("Humanoid")
-            clone.Humanoid.DisplayName = (charHumanoid and charHumanoid.DisplayName) or self.character.Name
+            clone.Humanoid.DisplayName = self.displayName or (charHumanoid and charHumanoid.DisplayName) or self.character.Name
             
-        elseif self.userId or self.username then
+        else
             local randomPlayer = main.Players:GetPlayers()[1]
             local rigType
             if randomPlayer then
@@ -99,35 +118,37 @@ function Clone:become(characterOrUserIdOrUsername)
             end
             clone = self._maid:give(main.shared.Assets.Rigs[rigType]:Clone())
             clone.HumanoidRootPart.CFrame = self.spawnCFrame or CFrame.new()
-            local inServerPlayer = (self.userId and main.Players:GetPlayerByUserId(self.userId)) or main.Players:FindFirstChild(self.username)
-            if inServerPlayer then
-                clone.Name = inServerPlayer.Name.."'s Clone"
-                clone.Humanoid.DisplayName = inServerPlayer.DisplayName
-                self.username = inServerPlayer.Name
-                clone.Name = self.username
-                self.userId = inServerPlayer.UserId
-            else
-                main.modules.Thread.spawnNow(function()
-                    local username = self.username
-                    if not username then
-                        local success, newUsername = main.modules.PlayerUtil.getNameFromUserId(self.userId):await()
-                        username = (success and newUsername) or "####"
-                    end
-                    local userId = self.userId
-                    if not userId then
-                        local success, newUserId = main.modules.PlayerUtil.getUserIdFromName(username):await()
-                        userId = (success and newUserId) or 0
-                    end
-                    if not self.destroyed then
-                        clone.Humanoid.DisplayName = username
-                        clone.Name = username
-                    end
-                    self.username = username
-                    self.userId = userId
-                end)
+            if item then
+                local inServerPlayer = (self.userId and main.Players:GetPlayerByUserId(self.userId)) or main.Players:FindFirstChild(self.username)
+                if inServerPlayer then
+                    clone.Name = inServerPlayer.Name.."'s Clone"
+                    clone.Humanoid.DisplayName = self.displayName or inServerPlayer.DisplayName
+                    self.username = inServerPlayer.Name
+                    clone.Name = self.username
+                    self.userId = inServerPlayer.UserId
+                else
+                    main.modules.Thread.spawn(function()
+                        local username = self.username
+                        if not username and self.userId then
+                            local success, newUsername = main.modules.PlayerUtil.getNameFromUserId(self.userId):await()
+                            username = (success and newUsername) or "####"
+                        end
+                        local userId = self.userId
+                        if not userId and self.username then
+                            local success, newUserId = main.modules.PlayerUtil.getUserIdFromName(username):await()
+                            userId = (success and newUserId) or 0
+                        end
+                        if not self.destroyed and username then
+                            clone.Humanoid.DisplayName = self.displayName or username
+                            clone.Name = username
+                        end
+                        self.username = username
+                        self.userId = userId
+                    end)
+                end
+                clone.Parent = Clone.replicatedStorage
+                getAndApplyDescription()
             end
-            clone.Parent = Clone.replicatedStorage
-            getAndApplyDescription()
 
         end 
 
@@ -177,8 +198,8 @@ function Clone:become(characterOrUserIdOrUsername)
             local humanoid = self.character:FindFirstChild("Humanoid")
             local description = humanoid and humanoid:GetAppliedDescription()
             if description then
-                clone.Humanoid:ApplyDescription(description)
-                clone.Humanoid.DisplayName = humanoid.DisplayName
+                self:applyHumanoidDescription(description)
+                clone.Humanoid.DisplayName = self.displayName or humanoid.DisplayName
             end
             self.clone.Name = self.character.Name
             for _, charChild in pairs(self.character:GetChildren()) do
@@ -201,23 +222,30 @@ function Clone:become(characterOrUserIdOrUsername)
                 end
             end
 
-        elseif self.userId or self.username then
+        elseif self.userId or self.username or self.humanoidDescription then
             getAndApplyDescription()
-            main.modules.Thread.spawnNow(function()
+            main.modules.Thread.spawn(function()
                 local username = self.username
-                if not username then
+                if not username and self.userId then
                     local success, newUsername = main.modules.PlayerUtil.getNameFromUserId(self.userId):await()
                     username = (success and newUsername) or "####"
                     self.username = username
                 end
-                if not self.destroyed then
+                if not self.destroyed and username then
                     clone.Name = username
-                    clone.Humanoid.DisplayName = username
+                    clone.Humanoid.DisplayName = self.displayName or username
                 end
             end)
         end
     end
 
+end
+
+function Clone:setName(name)
+    local stringName = tostring(name)
+    self.humanoid.DisplayName = stringName
+    self.displayName = name
+    self.clone.Name = stringName
 end
 
 function Clone:show()
@@ -367,10 +395,10 @@ function Clone:face(playerOrBasePart, power, dampening)
 
     local basePart
     if playerOrBasePart:IsA("Player") then
-        coroutine.wrap(function()
+        main.modules.Thread.spawn(function()
             local currentChar = playerOrBasePart.Character or playerOrBasePart.CharacterAdded:Wait()
             basePart = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:WaitForChild("HumanoidRootPart", 3)
-        end)()
+        end)
         faceMaid:give(playerOrBasePart.CharacterAdded:Connect(function(newChar)
             basePart = newChar:WaitForChild("HumanoidRootPart", 3)
         end))
@@ -422,10 +450,10 @@ function Clone:watch(playerOrBasePart)
 
     local basePart
     if playerOrBasePart:IsA("Player") then
-        coroutine.wrap(function()
+        main.modules.Thread.spawn(function()
             local currentChar = playerOrBasePart.Character or playerOrBasePart.CharacterAdded:Wait()
             basePart = currentChar:FindFirstChild("Head") or currentChar:WaitForChild("Head", 3)
-        end)()
+        end)
         watchMaid:give(playerOrBasePart.CharacterAdded:Connect(function(newChar)
             basePart = newChar:WaitForChild("Head", 3)
         end))
@@ -495,29 +523,81 @@ function Clone:unwatch()
 	self._maid.watchMaid = nil
 end
 
+function Clone:modifyHumanoidDescription(propertyName, value)
+
+    self.humanoidDescriptionCount += 1
+	local myCount = self.humanoidDescriptionCount
+	local humanoid = self.humanoid
+	if not self.humanoidDescriptionToApply then
+		self.humanoidDescriptionToApply = humanoid:GetAppliedDescription()
+	end
+    if propertyName then
+	    self.humanoidDescriptionToApply[propertyName] = value
+    end
+	if self.humanoidDescriptionCount == myCount and not self.applyingHumanoidDescription then
+        self.applyingHumanoidDescription = true
+        main.modules.Thread.spawn(function()
+			local iterations = 0
+            local appliedDesc
+            local watchingPart = self.watchingPlayerOrBasePart
+            if watchingPart then
+                self:unwatch()
+            end
+            repeat
+				main.RunService.Heartbeat:Wait()
+				pcall(function() humanoid:ApplyDescription(self.humanoidDescriptionToApply) end)
+				iterations += 1
+                appliedDesc = humanoid and humanoid:GetAppliedDescription()
+			until propertyName == nil or (appliedDesc and self.humanoidDescriptionToApply and appliedDesc[propertyName] == self.humanoidDescriptionToApply[propertyName]) or iterations == 10
+            self.humanoidDescriptionToApply:Destroy()
+			self.humanoidDescriptionToApply = nil
+            self.applyingHumanoidDescription = false
+            if watchingPart then
+                self:watch(watchingPart)
+            end
+            if #self.humanoidDescriptionQueue > 0 then
+                local newDesc = table.remove(self.humanoidDescriptionQueue, 1)
+                self.humanoidDescriptionToApply = newDesc
+                self:modifyHumanoidDescription()
+            end
+		end)
+	end
+end
+
+function Clone:applyHumanoidDescription(newDesc)
+    local cloneDesc = newDesc:Clone()
+    if self.applyingHumanoidDescription then
+        table.insert(self.humanoidDescriptionQueue, cloneDesc)
+    else
+        self.humanoidDescriptionToApply = cloneDesc
+        self:modifyHumanoidDescription()
+    end
+end
+
 function Clone:_setScale(propertyName, value)
     local sMaidName = ("scaleMaid%s"):format(propertyName)
     local sMaid = main.modules.Maid.new()
     self._maid[sMaidName] = sMaid
     
     local function updateScaleValue()
-        local humanoidDesc = self.humanoid:GetAppliedDescription()
-        humanoidDesc[propertyName] = value
-        self.humanoid:ApplyDescription(humanoidDesc)
+        self:modifyHumanoidDescription(propertyName, value)
     end
 
-    local humanoidValueInstance = self.humanoid:FindFirstChild(propertyName) or self.humanoid:FindFirstChild("Body"..propertyName)
-    if humanoidValueInstance then
+    local function trackHumanoidValueInstance(humanoidValueInstance)
         sMaid:give(humanoidValueInstance.Changed:Connect(function()
             main.RunService.Heartbeat:Wait()
-            if self.watchingPlayerOrBasePart then
-                self:unwatch()
-            end
             updateScaleValue()
-            main.RunService.Heartbeat:Wait()
-            self:watch(self.watchingPlayerOrBasePart)
         end))
     end
+    local humanoidValueInstance = self.humanoid:FindFirstChild(propertyName) or self.humanoid:FindFirstChild("Body"..propertyName)
+    if humanoidValueInstance then
+        trackHumanoidValueInstance(humanoidValueInstance)
+    end
+    sMaid:give(self.humanoid.ChildAdded:Connect(function(child)
+        if child.Name == propertyName or child.Name == "Body"..propertyName then
+            trackHumanoidValueInstance(child)
+        end
+    end))
     
     updateScaleValue()
 end
@@ -557,11 +637,12 @@ function Clone:setProportion(number)
 	self:_setScale("ProportionScale", number)
 end
 
-function Clone:moveTo(targetPosition)
+function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
 	
     local pathMaid = main.modules.Maid.new()
     self._maid.pathMaid = pathMaid
-    
+    studsAwayToStop = studsAwayToStop or 0
+
     local agentHrpSize = self.hrp.Size
     local agentHead = self.clone.Head
     local pathParams = {
@@ -575,6 +656,35 @@ function Clone:moveTo(targetPosition)
     
     local waypoints = {}
     local currentWaypointIndex = 1
+
+    local nextCheck = 0
+    local previousPosition
+    local nextIdleCheck = 0
+    pathMaid:give(main.RunService.Heartbeat:Connect(function()
+        -- This prevents the clone completely walking on top of the target position
+        local timeNow = os.clock()
+        if timeNow >= nextCheck then
+            nextCheck = timeNow + 0.2
+            local trackingPosition = (trackingBasePart and trackingBasePart.Position) or targetPosition
+            local distanceFromClone = self:getDistanceFromClone(trackingPosition)
+            local waypointsAway = #waypoints - currentWaypointIndex
+            if distanceFromClone <= studsAwayToStop and waypointsAway < math.ceil(studsAwayToStop / 3) then
+                self.reachedTarget = true
+                self._maid.pathMaid = nil
+                cloneHumanoid:MoveTo(self.hrp.Position)
+            end
+        end
+        if timeNow >= nextIdleCheck then
+            nextIdleCheck = timeNow + 0.5
+            if previousPosition then
+                local distanceFromPrevious = (self.hrp.Position - previousPosition).Magnitude
+                if distanceFromPrevious < self.humanoid.WalkSpeed/20 then
+                    self.humanoid.Jump = true
+                end
+            end
+            previousPosition = self.hrp.Position
+        end
+    end))
 
     self.reachedTarget = false
 
@@ -644,22 +754,22 @@ function Clone:moveTo(targetPosition)
         end
     end
 
-    main.modules.Thread.spawnNow(computeWaypoints)
+    main.modules.Thread.spawn(computeWaypoints)
 
     pathMaid:give(path.Blocked:Connect(onPathBlocked))
     pathMaid:give(cloneHumanoid.MoveToFinished:Connect(onWaypointReached))
 end
 
-function Clone:follow(playerOrBasePart)
+function Clone:follow(playerOrBasePart, studsAwayToStop)
     local followMaid = main.modules.Maid.new()
     self._maid.followMaid = followMaid
 
 	local basePart
     if playerOrBasePart:IsA("Player") then
-        coroutine.wrap(function()
+        main.modules.Thread.spawn(function()
             local currentChar = playerOrBasePart.Character or playerOrBasePart.CharacterAdded:Wait()
             basePart = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:WaitForChild("HumanoidRootPart", 3)
-        end)()
+        end)
         followMaid:give(playerOrBasePart.CharacterAdded:Connect(function(newChar)
             basePart = newChar:WaitForChild("HumanoidRootPart", 3)
         end))
@@ -667,13 +777,7 @@ function Clone:follow(playerOrBasePart)
         basePart = playerOrBasePart
     end
 
-    local targetPosition = basePart.Position
-    local function getDistanceFromClone(positionOfTarget)
-        local clonePosition = self.hrp.Position
-        local normalisedClonePosition = Vector3.new(clonePosition.X, positionOfTarget.Y, clonePosition.Z)
-        local distanceFromClone = (positionOfTarget - normalisedClonePosition).Magnitude
-        return distanceFromClone
-    end
+    local targetPosition
 
     local function stillPresentCheck()
         local stillPresent = basePart:FindFirstAncestorWhichIsA("Workspace") or basePart:FindFirstAncestorWhichIsA("ReplicatedStorage")
@@ -684,17 +788,20 @@ function Clone:follow(playerOrBasePart)
         return true
     end
 
-    local REACTIVATE_DISTANCE = 4
-    local MAXIMUM_DISTANCE_DRIFT = 10
+    local STUDS_AWAY_TO_STOP = 2
+    local REACTIVATE_DISTANCE = 1
+    local MAXIMUM_DISTANCE_DRIFT = 5
+    local finalStudsAwayToStop = studsAwayToStop or STUDS_AWAY_TO_STOP
+    local finalReactiveDistance = finalStudsAwayToStop + REACTIVATE_DISTANCE
     followMaid:give(self.humanoid.MoveToFinished:Connect(function()
         if not stillPresentCheck() then return end
         local newTargetPosition = basePart.Position
         local distanceFromPreviousTarget = (newTargetPosition - targetPosition).Magnitude
-        local distanceFromClone = getDistanceFromClone(newTargetPosition)
+        local distanceFromClone = self:getDistanceFromClone(newTargetPosition)
         targetPosition = newTargetPosition
 
-        if (self.reachedTarget and distanceFromClone > REACTIVATE_DISTANCE) or distanceFromPreviousTarget > MAXIMUM_DISTANCE_DRIFT then
-            self:moveTo(targetPosition)
+        if (self.reachedTarget and distanceFromClone > finalReactiveDistance) or distanceFromPreviousTarget > MAXIMUM_DISTANCE_DRIFT then
+            self:moveTo(targetPosition, finalStudsAwayToStop, basePart)
         elseif self.reachedTarget then
             local nextCheck = 0
             followMaid.positionChangedChecker = main.RunService.Heartbeat:Connect(function()
@@ -704,17 +811,28 @@ function Clone:follow(playerOrBasePart)
                     if not stillPresentCheck() then return end
                     if basePart then
                         newTargetPosition = basePart.Position
-                        distanceFromClone = getDistanceFromClone(newTargetPosition)
-                        if distanceFromClone > REACTIVATE_DISTANCE then
+                        distanceFromClone = self:getDistanceFromClone(newTargetPosition)
+                        if distanceFromClone > finalReactiveDistance then
                             followMaid.positionChangedChecker = nil
-                            self:moveTo(newTargetPosition)
+                            self:moveTo(newTargetPosition, finalStudsAwayToStop, basePart)
                         end
                     end
                 end
             end)
         end
     end))
-    self:moveTo(targetPosition)
+
+    followMaid:give(main.modules.Thread.delayUntil(function() return basePart end, function()
+        targetPosition = basePart.Position
+        self:moveTo(targetPosition)
+    end))
+end
+
+function Clone:getDistanceFromClone(positionOfTarget)
+    local clonePosition = self.hrp.Position
+    local normalisedClonePosition = Vector3.new(clonePosition.X, positionOfTarget.Y, clonePosition.Z)
+    local distanceFromClone = (positionOfTarget - normalisedClonePosition).Magnitude
+    return distanceFromClone
 end
 
 function Clone:unfollow()

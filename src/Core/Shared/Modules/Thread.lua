@@ -19,38 +19,40 @@ local intervalTypes = {
 
 -- LOCAL FUNCTIONS
 local function createThread()
+
+	-- Thread has multiple names for properties and methods to accurately mimic items like Tweens
 	local thread = {}
-	thread.state = main.enum.ThreadState.Playing
+	local function updateState(newState)
+		thread.state = newState
+		thread.PlaybackState = newState
+	end
+
+	updateState(main.enum.ThreadState.Playing)
 	thread.completed = main.modules.Signal.new()
 	thread.Completed = thread.completed -- this, and the method aliases, enable the easy-mimicking of TweenBases
 	thread.startTime = tick()
 	thread.executeTime = nil
 	thread.remainingTime = nil
 	thread.connection = nil
-	
-	local function isDead(state)
-		return state == main.enum.ThreadState.Completed or state == main.enum.ThreadState.Cancelled
-	end
-	local function checkDead(state)
-		if isDead(state) then
-			error("Cannot call a dead thread!")
-		end
-	end
+	thread.isDead = false -- equivalent to ``state == main.enum.ThreadState.Completed or state == main.enum.ThreadState.Cancelled``
 	
 	function thread:pause()
-		checkDead(thread.state)
-		thread.connection:Disconnect()
-		thread.connection = nil
-		thread.remainingTime = (thread.executeTime and thread.executeTime - tick()) or 0
+		if not thread.isDead then
+			thread.connection:Disconnect()
+			thread.connection = nil
+			thread.remainingTime = (thread.executeTime and thread.executeTime - tick()) or 0
+		end
 	end
 	thread.Pause = thread.pause
 	thread.yield = thread.pause
 	thread.Yield = thread.pause
 
 	function thread:resume()
-		checkDead(thread.state)
-		thread.executeTime = tick() + (thread.remainingTime or 0)
-		thread.connection = thread.frameEvent:Connect(thread.behaviour)
+		if not thread.isDead then
+			updateState(main.enum.ThreadState.Playing)
+			thread.executeTime = tick() + (thread.remainingTime or 0)
+			thread.connection = thread.frameEvent:Connect(thread.behaviour)
+		end
 	end
 	thread.Resume = thread.resume
 	thread.play = thread.resume
@@ -62,20 +64,21 @@ local function createThread()
 	thread.Cancel = thread.cancel
 	
 	function thread:disconnect(incomplete)
-		checkDead(thread.state)
 		local originalState = thread.state
 		local newState
-		if isDead(originalState) then
+		if thread.isDead then
 			return false
 		elseif incomplete then
 			newState = main.enum.ThreadState.Cancelled
+			thread.isDead = true
 		else
 			newState = main.enum.ThreadState.Completed
+			thread.isDead = true
 		end
 		if originalState ~= main.enum.ThreadState.Paused then
 			thread.connection:Disconnect()
 		end
-		thread.state = newState
+		updateState(newState)
 		thread.completed:Fire(newState)
 		thread.completed:Destroy()
 		return true
@@ -99,18 +102,13 @@ end
 
 -- METHODS
 function Thread.spawnNow(func, ...)
-	--[[
-		This method was originally written by Quenty and is slightly
-		modified for this module. The original source can be found in
-		the link below, as well as the MIT license:
-			https://github.com/Quenty/NevermoreEngine/blob/version2/Modules/Shared/Utility/fastSpawn.lua
-			https://github.com/Quenty/NevermoreEngine/blob/version2/LICENSE.md
-	--]]
-	local args = table.pack(...)
-	local bindable = Instance.new("BindableEvent")
-	bindable.Event:Connect(function() func(table.unpack(args, 1, args.n)) end)
-	bindable:Fire()
-	bindable:Destroy()
+	-- Ideally avoid using spawnNow as it does not provide an as-accurate traceback (and in general is bad practise)
+	-- Credit to BenSBK for this
+	local thread = coroutine.create(func)
+    local isSuccessful, result = coroutine.resume(thread, ...)
+    if not isSuccessful then
+        warn(string.format("%s\n%s", result, debug.traceback(thread)))
+    end
 end
 
 function Thread.spawn(func, ...)
@@ -120,7 +118,7 @@ function Thread.spawn(func, ...)
 	thread.behaviour = function()
 		thread:disconnect()
 		if func then
-			func(table.unpack(args, 1, args.n))
+			func(unpack(args, 1, args.n))
 		end
 	end
 	thread:resume()
@@ -136,7 +134,7 @@ function Thread.delay(waitTime, func, ...)
 		if (tick() >= thread.executeTime) then
 			thread:disconnect()
 			if func then
-				func(table.unpack(args, 1, args.n))
+				func(unpack(args, 1, args.n))
 			end
 		end
 	end
@@ -152,7 +150,7 @@ function Thread.delayUntil(criteria, func, ...)
 		if criteria() then
 			thread:disconnect()
 			if func then
-				func(table.unpack(args, 1, args.n))
+				func(unpack(args, 1, args.n))
 			end
 		end
 	end
@@ -168,7 +166,7 @@ function Thread.delayLoop(intervalTimeOrType, func, ...)
 		if (tick() >= thread.executeTime) then
 			thread.executeTime = tick() + intervalTime
 			if func then
-				func(table.unpack(args, 1, args.n))
+				func(unpack(args, 1, args.n))
 			end
 		end
 	end, func, ...)
@@ -184,7 +182,7 @@ function Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...)
 		elseif (tick() >= thread.executeTime) then
 			thread.executeTime = tick() + intervalTime
 			if func then
-				func(table.unpack(args, 1, args.n))
+				func(unpack(args, 1, args.n))
 			end
 		end
 	end, func, ...)
@@ -203,7 +201,7 @@ function Thread.delayLoopFor(intervalTimeOrType, iterations, func, ...)
 			thread.executeTime = tick() + intervalTime
 			i = i + 1
 			if func then
-				func(i, table.unpack(args, 1, args.n))
+				func(i, unpack(args, 1, args.n))
 			end
 		end
 	end, func, ...)

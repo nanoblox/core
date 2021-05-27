@@ -34,6 +34,7 @@ local function playerAdded(player)
 	
 	-- Call .playerAdded for all services
 	local cancelThread = callEventMethod("playerAdded", player)
+	PlayerService.playerAdded:Fire(player)
 	if cancelThread then
 		return
 	end
@@ -46,7 +47,7 @@ local function playerAdded(player)
 	user:setStartData({
 		playerSettings = {},
 	})
-	user.agent = main.modules.Agent.new(player) -- an agent is automatically destroyed on player leave so no need to give to maid
+	user.agent = main.modules.Agent.new(player, true) -- an agent is automatically destroyed on player leave so no need to give to maid
 	user:initAutoSave()
 
 	-- Listen for chat
@@ -67,15 +68,17 @@ local function playerAdded(player)
 	
 	-- Call .userLoaded for all services
 	callEventMethod("userLoaded", user)
+	PlayerService.userLoaded:Fire(player)
 	
 	-- Call .playerLoaded for all services
 	callEventMethod("playerLoaded", player, user)
+	PlayerService.playerLoaded:Fire()
 	
 end
 
 
 -- Wait until every other service has initialised and data loaded before beginning
-function PlayerService.begin()
+function PlayerService.loaded()
 	-- Call PlayerAdded when player enters game
 	main.Players.PlayerAdded:Connect(playerAdded)
 	

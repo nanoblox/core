@@ -39,6 +39,7 @@ local bodyGroups = {
         ClassName = "Accessories"
     },
 }
+BodyUtil.bodyGroups = bodyGroups
 
 local FAKE_GROUP_NAME = "AgentFakeBodyParts"
 
@@ -227,6 +228,48 @@ function BodyUtil.clearFakeBodyParts(player, effect, additionalString)
     if additionalTag then
         additionalTag:Destroy()
     end
+end
+
+function BodyUtil.getHumanoidDescriptionProperties()
+    return {
+        "BackAccessory",
+        "FaceAccessory",
+        "FrontAccessory",
+        "HairAccessory",
+        "HatAccessory",
+        "NeckAccessory",
+        "ShouldersAccessory",
+        "WaistAccessory",
+        "BodyTypeScale",
+        "DepthScale",
+        "HeadScale",
+        "HeightScale",
+        "ProportionScale",
+        "WidthScale",
+        "ClimbAnimation",
+        "FallAnimation",
+        "IdleAnimation",
+        "JumpAnimation",
+        "RunAnimation",
+        "SwimAnimation",
+        "WalkAnimation",
+        "Face",
+        "Head",
+        "LeftArm",
+        "LeftLeg",
+        "RightArm",
+        "RightLeg",
+        "Torso",
+        "GraphicTShirt",
+        "Pants",
+        "Shirt",
+        "HeadColor",
+        "LeftArmColor",
+        "LeftLegColor",
+        "RightArmColor",
+        "RightLegColor",
+        "TorsoColor",
+    }
 end
 
 

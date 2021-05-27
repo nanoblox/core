@@ -9,7 +9,7 @@ function Core.init(loader)
     local server = script.Server
     local shared = script.Shared
     local starterPlayer = client.StarterPlayer
-    local Directory = require(shared.Assets.Directory)
+    local Directory = require(shared.Modules.Directory)
 
     -- It's important to setup the source of networking before the modules are initialised
     -- Rojo doesn't accurately build empty folders therefore we create it here
@@ -37,7 +37,7 @@ function Core.init(loader)
                 end
             end
         end
-    end--]]
+    end
 
     -- This splits up the core into its key areas
     Directory.createDirectory("ServerStorage.Nanoblox", {server})
@@ -45,7 +45,7 @@ function Core.init(loader)
     Directory.createDirectory("StarterCharacterScripts", starterPlayer.StarterCharacterScripts:GetChildren())
 
    -- This sets-up the server datamodel reference (i.e. game.Nanoblox)
-    local pathwayModule = shared.Assets.Nanoblox:Clone()
+    local pathwayModule = shared.Assets.__forceReplicate.Nanoblox:Clone()
     pathwayModule.Parent = game
     require(pathwayModule).initiate(loader)
 

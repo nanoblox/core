@@ -20,9 +20,10 @@ function CommandController.start()
 	end
 
 	local revokeClientCommand = main.modules.Remote.new("revokeClientCommand")
-	revokeClientCommand.onClientEvent:Connect(function(taskUID)
+	revokeClientCommand.onClientEvent:Connect(function(taskUID, ...)
 		local task = clientTasks[taskUID]
 		if task then
+			task.revokeArguments = table.pack(...)
 			task:kill()
 			clientTasks[taskUID] = nil
 		end
@@ -42,8 +43,10 @@ function CommandController.start()
 	local replicateClientCommand = main.modules.Remote.new("replicateClientCommand")
 	replicateClientCommand.onClientEvent:Connect(function(taskUID, packedData)
 		local task = clientTasks[taskUID]
-		if task and task.replication then
-			task:replication(table.unpack(packedData))
+		local clientCommand = task and task.command
+		local replicationFunction = clientCommand and clientCommand.replication
+		if replicationFunction then
+			replicationFunction(task, unpack(packedData))
 		end
 	end)
 
@@ -51,6 +54,9 @@ function CommandController.start()
 	previewCommand.onClientEvent:Connect(function(statement)
 		--!!! preview command statement
 	end)
+
+	local replicationRequest = main.modules.Remote.new("replicationRequest")
+	CommandController.replicationRequest = replicationRequest
 	
 end
 

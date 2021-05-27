@@ -84,11 +84,21 @@ function State.new(props, convertDescendantsToTables)
 	local hiddenKeys = {}
 	hiddenKeys["_tables"] = {}
 	hiddenKeys["_convertDescendantsToTables"] = convertDescendantsToTables
-	hiddenKeys["changedFirst"] = maid:give(Signal.new())
-	hiddenKeys["changed"] = maid:give(Signal.new())
+	hiddenKeys["changedFirst"] = "signal"
+	hiddenKeys["changed"] = "signal"
 	setmetatable(newTable, {
 		__index = function(this, index)
-			local newIndex = State[index] or hiddenKeys[index]
+			local newIndex = State[index]
+			if newIndex == nil then
+				local hiddenValue = hiddenKeys[index]
+				if hiddenValue ~= nil then
+					if hiddenValue == "signal" then
+						hiddenValue = maid:give(Signal.new())
+						hiddenKeys[index] = hiddenValue
+					end
+					newIndex = hiddenValue
+				end
+			end
 			return newIndex
 		end
 	})
@@ -129,7 +139,7 @@ function State:getOrSetup(...)
 	for i, key in pairs(pathwayTable) do
 		local nextValue = value[key]
 		if type(nextValue) ~= "table" then
-			nextValue = value:set(key, {})
+			nextValue = value:set(key, {}, true)
 		end
 		value = nextValue
 	end
@@ -147,7 +157,7 @@ function State:find(...)
 	max = max - 1
 	local tab = self
 	if max > 0 then
-		tab = self:get(table.unpack(pathwayTable))
+		tab = self:get(unpack(pathwayTable))
 	end
 	if type(tab) == "table" then
 		if #tab == 0 then return tab[value] end
@@ -169,12 +179,12 @@ function State:len()
 	return count
 end
 
-function State:set(stat, value)
+function State:set(stat, value, forceConvertTableToState)
 	local oldValue = self[stat]
-	if type(value) == "table" and self._convertDescendantsToTables then--and not value.new then
+	if type(value) == "table" and (self._convertDescendantsToTables or forceConvertTableToState) then--and not value.new then
 		-- Convert tables and descending tables into States unless an object
 		local thisMaid = activeTables[self].maid
-		value = thisMaid:give(State.new(value, true))
+		value = thisMaid:give(State.new(value, self._convertDescendantsToTables))
 	elseif value == nil and type(oldValue) == "table" and oldValue.isState then
 		-- Destroy State and descending States
 		oldValue:destroy()

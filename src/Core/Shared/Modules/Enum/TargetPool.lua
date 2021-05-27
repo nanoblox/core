@@ -2,7 +2,7 @@ local players = game:GetService("Players")
 local function getArrayOfPlayers(definedPool, criteria)
 	local playersArray = {}
 	local newDefinedPool = definedPool or players:GetPlayers()
-	local isAnArray = definedPool[1]
+	local isAnArray = newDefinedPool[1]
 	local function check(player)
 		if criteria(player) then
 			table.insert(playersArray, player)
@@ -34,7 +34,7 @@ return {
 	{"None ", 1},
 	
 	{"Individual ", 2, function(player, definedPool)
-		local newPlayer = table.unpack(getArrayOfPlayers(definedPool, function(plrToCheck)
+		local newPlayer = unpack(getArrayOfPlayers(definedPool, function(plrToCheck)
 			return plrToCheck == player
 		end))
 		return newPlayer

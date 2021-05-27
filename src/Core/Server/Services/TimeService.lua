@@ -1,12 +1,21 @@
 -- LOCAL
 local main = require(game.Nanoblox)
 local TimeService = {
-	remotes = {
-		grabLocalDate = main.modules.Remote.new("grabLocalDate"),
-		grabLocalTime = main.modules.Remote.new("grabLocalTime"),
-	}
+	remotes = {}
 }
-local Promise = main.modules.Promise
+
+
+
+-- START
+function TimeService.start()
+
+    local grabLocalDate = main.modules.Remote.new("grabLocalDate")
+    TimeService.remotes.grabLocalDate = grabLocalDate
+
+	local grabLocalTime = main.modules.Remote.new("grabLocalTime")
+    TimeService.remotes.grabLocalTime = grabLocalTime
+    
+end
 
 
 

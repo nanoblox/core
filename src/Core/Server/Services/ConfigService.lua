@@ -92,8 +92,7 @@ function ConfigService.start()
 		-- Finally, update the temp (server) container
 		service.recordsActionDelay = 0
 		systemUser.temp:transformTo(categoryTable)
-		Thread.spawnNow(function()
-			main.RunService.Heartbeat:Wait()
+		Thread.spawn(function()
 			service.recordsActionDelay = service.originalRecordsActionDelay
 		end)
 		-- Remove tm

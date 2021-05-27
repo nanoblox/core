@@ -6,17 +6,15 @@
 local main = require(game.Nanoblox)
 local Modifiers = {}
 
-
-
 -- ARRAY
 Modifiers.array = {
-	
+
 	-----------------------------------
 	{
 		name = "preview",
-		aliases = {"pr-"},
+		aliases = { "pr-" },
 		order = 1,
-		description	= "Displays a menu that previews the command instead of executing it.",
+		description = "Displays a menu that previews the command instead of executing it.",
 		preAction = function(callerUserId, statement)
 			local caller = main.Players:GetPlayerByUserId(callerUserId)
 			if caller then
@@ -24,58 +22,52 @@ Modifiers.array = {
 			end
 			return false
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "random",
-		aliases = {"r-"},
+		aliases = { "r-" },
 		order = 2,
-		description	= "Randomly selects a command within a statement. All other commands are discarded.",
+		description = "Randomly selects a command within a statement. All other commands are discarded.",
 		preAction = function(_, statement)
 			local commands = statement.commands
 			if #commands > 1 then
 				local randomIndex = math.random(1, #commands)
 				local selectedItem = commands[randomIndex]
-				commands = {selectedItem}
+				commands = { selectedItem }
 				statement.commands = commands
 			end
 			return true
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "perm",
-		aliases = {"p-"},
+		aliases = { "p-" },
 		order = 3,
-		description	= "Permanently saves the task. This means in addition to the initial execution, the command will be executed whenever a server starts, or if player specific, every time the player joins a server.",
+		description = "Permanently saves the task. This means in addition to the initial execution, the command will be executed whenever a server starts, or if player specific, every time the player joins a server.",
 		preAction = function(_, statement)
 			local modifiers = statement.modifiers
 			local oldGlobal = modifiers.global
 			if oldGlobal then
 				-- Its important to ignore the global modifier in this situation as setting Task to
 				-- perm storage achieves the same effect. Merging both together however would create
-				-- a vicious infinite cycle 
+				-- a vicious infinite cycle
 				modifiers.global = nil
 				modifiers.wasGlobal = oldGlobal
 			end
 			return true
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "global",
-		aliases = {"g-"},
+		aliases = { "g-" },
 		order = 4,
-		description	= "Broadcasts the task to all servers.",
+		description = "Broadcasts the task to all servers.",
 		preAction = function(callerUserId, statement)
 			local CommandService = main.services.CommandService
 			local modifiers = statement.modifiers
@@ -85,16 +77,14 @@ Modifiers.array = {
 			CommandService.executeStatementGloballySender:fireAllServers(callerUserId, statement)
 			return false
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "undo",
-		aliases = {"un", "u-", "revoke"},
+		aliases = { "un", "u-", "revoke" },
 		order = 5,
-		description	= "Revokes all tasks that match the given command name(s) (and associated player targets if specified). To revoke a task across all servers, the 'global' modifier must be included.",
+		description = "Revokes all tasks that match the given command name(s) (and associated player targets if specified). To revoke a task across all servers, the 'global' modifier must be included.",
 		preAction = function(callerUserId, statement)
 			local Args = main.modules.Parser.Args
 			local targets = Args.get("player"):parse(statement.qualifiers, callerUserId)
@@ -114,61 +104,55 @@ Modifiers.array = {
 			end
 			return false
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "epoch",
-		aliases = {"e-"},
+		aliases = { "e-" },
 		order = 6,
-		description	= "Waits until the given epoch time before executing. If the epoch time has already passed, the command will be executed right away. Combine with 'global' and 'perm' for a permanent game effect. Example: ``;globalPermEpoch(3124224000)message(green) Happy new year!``",
+		description = "Waits until the given epoch time before executing. If the epoch time has already passed, the command will be executed right away. Combine with 'global' and 'perm' for a permanent game effect. Example: ``;globalPermEpoch(3124224000)message(green) Happy new year!``",
 		executeRightAway = false,
 		executeAfterThread = true,
 		yieldUntilThreadComplete = true,
 		action = function(task, values)
-			local executionTime = table.unpack(values)
+			local executionTime = unpack(values)
 			local timeNow = os.time()
 			local newExecutionTime = tonumber(executionTime) or timeNow + 1
 			local seconds = newExecutionTime - timeNow
 			local thread = main.modules.Thread.delay(seconds)
 			return thread
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "delay",
-		aliases = {"d-"},
+		aliases = { "d-" },
 		order = 7,
-		description	= "Waits x amount of time before executing the command. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;delay(3s)kill all``.",
+		description = "Waits x amount of time before executing the command. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;delay(3s)kill all``.",
 		executeRightAway = false,
 		executeAfterThread = true,
 		yieldUntilThreadComplete = true,
 		action = function(task, values)
-			local timeDelay = table.unpack(values)
+			local timeDelay = unpack(values)
 			local seconds = main.modules.DataUtil.convertTimeStringToSeconds(timeDelay)
 			local thread = main.modules.Thread.delay(seconds)
 			return thread
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "loop",
-		aliases = {"repeat", "l-"},
+		aliases = { "repeat", "l-" },
 		order = 8,
-		description	= "Repeats a command for x iterations every y time delay. If not specified, x defaults to ∞ and y to 1s. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;loop(50,1s)jump me``.",
+		description = "Repeats a command for x iterations every y time delay. If not specified, x defaults to ∞ and y to 1s. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;loop(50,1s)jump me``.",
 		executeRightAway = true,
 		executeAfterThread = false,
 		yieldUntilThreadComplete = false,
 		action = function(task, values)
-			local iterations, interval = table.unpack(values)
+			local iterations, interval = unpack(values)
 			local ITERATION_LIMIT = 10000
 			local MINIMUM_INTERVAL = 0.1
 			local newInterations = tonumber(iterations) or ITERATION_LIMIT
@@ -182,16 +166,14 @@ Modifiers.array = {
 			local thread = main.modules.Thread.delayLoopFor(newInterval, newInterations, task.execute, task)
 			return thread
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "spawn",
-		aliases = {"s-"},
+		aliases = { "s-" },
 		order = 9,
-		description	= "Executes the command every time the given player(s) respawn (in addition to the initial execution). This modifier only works for commands with player-related arguments.",
+		description = "Executes the command every time the given player(s) respawn (in addition to the initial execution). This modifier only works for commands with player-related arguments.",
 		executeRightAway = true,
 		executeAfterThread = false,
 		yieldUntilThreadComplete = false,
@@ -206,38 +188,33 @@ Modifiers.array = {
 					char:WaitForChild("Humanoid")
 					task:execute()
 				end))
-				local thread = main.modules.Thread.delayLoopUntil(0.1, function() return targetUser.isDestroyed == true end)
+				local thread = main.modules.Thread.delayLoopUntil(0.1, function()
+					return targetUser.isDestroyed == true
+				end)
 				return thread
 			end
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
 	{
 		name = "expire",
-		aliases = {"x-", "until"},
+		aliases = { "x-", "until" },
 		order = 10,
-		description	= "Revokes the command after its first execution plus the given time. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;expire(2m30s)mute player``.",
+		description = "Revokes the command after its first execution plus the given time. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;expire(2m30s)mute player``.",
 		executeRightAway = true,
 		executeAfterThread = false,
 		yieldUntilThreadComplete = false,
 		action = function(task, values)
-			local timeDelay = table.unpack(values)
+			local timeDelay = unpack(values)
 			local seconds = main.modules.DataUtil.convertTimeStringToSeconds(timeDelay)
 			local thread = main.modules.Thread.delay(seconds, task.kill, task)
 			return thread
 		end,
-	};
-	
-	
-	
+	},
+
 	-----------------------------------
-	
-};
-
-
+}
 
 -- DICTIONARY
 -- This means instead of scanning through the array to find a name match
@@ -253,18 +230,20 @@ for _, item in pairs(Modifiers.array) do
 	end
 end
 
-
-
 -- SORTED ARRAY(S)
 local copy = main.modules.TableUtil.copy
 Modifiers.sortedNameAndAliasLengthArray = {}
 for itemNameOrAlias, item in pairs(Modifiers.dictionary) do
 	table.insert(Modifiers.sortedNameAndAliasLengthArray, itemNameOrAlias)
 end
-table.sort(Modifiers.sortedNameAndAliasLengthArray, function(a, b) return #a > #b end)
+table.sort(Modifiers.sortedNameAndAliasLengthArray, function(a, b)
+	return #a > #b
+end)
 
 Modifiers.sortedOrderArray = copy(Modifiers.array)
-table.sort(Modifiers.sortedOrderArray, function(a, b) return a.order > b.order end)
+table.sort(Modifiers.sortedOrderArray, function(a, b)
+	return a.order > b.order
+end)
 
 Modifiers.sortedOrderArrayWithOnlyPreAction = {}
 Modifiers.sortedOrderArrayWithOnlyAction = {}
@@ -277,13 +256,9 @@ for _, item in pairs(Modifiers.sortedOrderArray) do
 	end
 end
 
-
-
 -- METHODS
 function Modifiers.get(name)
 	return Modifiers.lowerCaseNameAndAliasToModifierDictionary[name:lower()]
 end
-
-
 
 return Modifiers
