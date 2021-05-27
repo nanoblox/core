@@ -237,10 +237,13 @@ function CommandService.chatCommand(callerUser, message)
 	local batch = main.modules.Parser.parseMessage(message, callerUser)
 	print(callerUser.name, "chatted: ", message, batch)
 	if type(batch) == "table" then
-		for i, statement in pairs(batch) do
+		for _, statement in pairs(batch) do
 			local approved, noticeDetails = CommandService.verifyStatement(callerUserId, statement)
 			if approved then
 				CommandService.executeStatement(callerUserId, statement)
+					:andThen(function(tasks)
+						print("TASKS = ", tasks)
+					end)
 			end
 			if callerPlayer then
 				for _, detail in pairs(noticeDetails) do
@@ -298,6 +301,8 @@ function CommandService.executeStatement(callerUserId, statement)
 		end
 	end
 	local Args = main.modules.Parser.Args
+	local Promise = main.modules.Promise
+	local promises = {}
 	local isPermModifier = statement.modifiers.perm
 	local isGlobalModifier = statement.modifiers.wasGlobal
 	for commandName, arguments in pairs(statement.commands) do
@@ -334,14 +339,20 @@ function CommandService.executeStatement(callerUserId, statement)
 			properties.qualifiers = statement.qualifiers or properties.qualifiers
 			table.insert(tasks, main.services.TaskService.createTask(addToPerm, properties))
 		else
-			local targets = Args.get("player"):parse(statement.qualifiers, callerUserId)
-			for _, plr in pairs(targets) do
-				properties.targetUserId = plr.UserId
-				table.insert(tasks, main.services.TaskService.createTask(addToPerm, properties))
-			end
+			table.insert(promises, Promise.new(function(resolve)
+				local targets = Args.get("player"):parse(statement.qualifiers, callerUserId)
+				for _, plr in pairs(targets) do
+					properties.targetUserId = plr.UserId
+					table.insert(tasks, main.services.TaskService.createTask(addToPerm, properties))
+				end
+				resolve()
+			end))
 		end
 	end
-	return tasks
+	return Promise.all(promises)
+		:andThen(function()
+			return tasks
+		end)
 end
 
 function CommandService.executeSimpleStatement(callerUserId, commandName, optionalCommandArgs, optionalQualifiers, optionalModifiers)
