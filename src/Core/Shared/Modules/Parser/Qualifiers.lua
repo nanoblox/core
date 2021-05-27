@@ -317,6 +317,23 @@ Qualifiers.array = {
 
 	-----------------------------------
 	{
+		name = "nonpremium",
+		aliases = { "nonprem" },
+		multi = true,
+		description = "Players without Roblox Premium membership",
+		getTargets = function(_)
+			local targets = {}
+			for _, plr in pairs(main.Players:GetPlayers()) do
+				if plr.MembershipType == Enum.MembershipType.None then
+					table.insert(targets, plr)
+				end
+			end
+			return targets
+		end,
+	},
+
+	-----------------------------------
+	{
 		name = "friends",
 		aliases = {},
 		multi = true,
