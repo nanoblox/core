@@ -167,6 +167,35 @@ Qualifiers.array = {
 
 	-----------------------------------
 	{
+		name = "group",
+		aliases = {"groups"},
+		multi = true,
+		description	= "Players who are in the specified group(s).",
+		getTargets = function(_, ...)
+			local targets = {}
+			local groupIds = {}
+			for _, groupId in pairs(table.pack(...)) do
+				groupId = tonumber(groupId)
+				if groupId then
+					table.insert(groupIds, groupId)
+				end
+			end
+			for _, plr in pairs(main.Players:GetPlayers()) do
+				for _, groupId in pairs(groupIds) do
+					if plr:IsInGroup(groupId) then
+						table.insert(targets, plr)
+						break
+					end
+				end
+			end
+			return targets
+		end,
+	};
+	
+	
+	
+	-----------------------------------
+	{
 		name = "role",
 		aliases = { "roles", "@" },
 		multi = true,
@@ -428,5 +457,7 @@ Qualifiers.defaultQualifier = Qualifiers.dictionary["user"]
 function Qualifiers.get(name)
 	return Qualifiers.lowerCaseNameAndAliasToArgDictionary[name:lower()]
 end
+
+
 
 return Qualifiers
