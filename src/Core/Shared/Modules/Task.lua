@@ -110,9 +110,7 @@ function Task.new(properties)
 				end
 				registerCharacter(char)
 			end))
-			main.modules.Thread.spawn(function()
-				registerCharacter(targetPlayer.Character)
-			end)
+			main.modules.Thread.spawn(registerCharacter, targetPlayer.Character)
 		end
 	end
 
