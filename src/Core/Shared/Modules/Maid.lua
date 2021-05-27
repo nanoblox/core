@@ -15,6 +15,48 @@ local Promise = main.modules.Promise
 
 
 local Maid = {}
+function Maid.isValidType(task)
+	local taskType = typeof(task)
+	if not Maid.validTypes[taskType] then
+		return false, ("'%s' is an invalid task type!"):format(tostring(task))
+	elseif taskType == "table" then
+		for _, validMethodName in pairs(Maid.validTableMethods) do
+			local method = task[validMethodName]
+			if method then
+				return true
+			end
+		end
+		return false, ("'%s' does not contain a valid table method!"):format(tostring(task))
+	end
+	return true
+end
+Maid.validTypes = {
+	["function"] = function(task)
+		task()
+	end,
+	["RBXScriptConnection"] = function(task)
+		task:Disconnect()
+	end,
+	["Instance"] = function(task)
+		task:Destroy()
+	end,
+	["table"] = function(task)
+		for _, validMethodName in pairs(Maid.validTableMethods) do
+			local method = task[validMethodName]
+			if method then
+				method(task)
+			end
+		end
+	end,
+}
+Maid.validTableMethods = {
+	"Destroy",
+	"destroy",
+	"Cancel",
+	"cancel",
+	"Disconnect",
+	"disconnect",
+}
 Maid.ClassName = "Maid"
 
 --- Returns a new Maid object
@@ -64,15 +106,8 @@ function Maid:__newindex(index, newTask)
 	tasks[index] = newTask
 
 	if oldTask then
-		if type(oldTask) == "function" then
-			oldTask()
-		elseif typeof(oldTask) == "RBXScriptConnection" then
-			oldTask:Disconnect()
-		elseif oldTask.Destroy then
-			oldTask:Destroy()
-		elseif oldTask.destroy then
-			oldTask:destroy()
-		end
+		local endOfTaskAction = Maid.validTypes[typeof(oldTask)]
+		endOfTaskAction(oldTask)
 	end
 end
 
@@ -111,6 +146,10 @@ function Maid:givePromise(promise)
 end
 
 function Maid:give(taskOrPromise)
+	local success, errorMessage = Maid.isValidType(taskOrPromise)
+	if not success then
+		error(errorMessage)
+	end
 	local taskId, newPromise
 	if type(taskOrPromise) == "table" and taskOrPromise.getStatus then
 		newPromise, taskId = self:givePromise(taskOrPromise)
@@ -138,29 +177,14 @@ function Maid:doCleaning()
 	local index, task = next(tasks)
 	while task ~= nil do
 		tasks[index] = nil
-		if type(task) == "function" then
-			task()
-		elseif typeof(task) == "RBXScriptConnection" then
-			task:Disconnect()
-		elseif task.Destroy then
-			task:Destroy()
-		elseif task.destroy then
-			task:destroy()
-		elseif task.cancel then
-			task:cancel()
-		elseif task.Cancel then
-			task:Cancel()
-		elseif task.disconnect then
-			task:disconnect()
-		elseif task.Disconnect then
-			task:Disconnect()
-		end
+		local endOfTaskAction = Maid.validTypes[typeof(task)]
+		endOfTaskAction(task)
 		index, task = next(tasks)
 	end
 end
 
 --- Alias for DoCleaning()
--- @function Destroy
+Maid.Destroy = Maid.doCleaning
 Maid.destroy = Maid.doCleaning
 Maid.clean = Maid.doCleaning
 

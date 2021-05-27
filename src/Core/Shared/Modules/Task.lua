@@ -363,8 +363,8 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 		elseif self.isPaused then
 			threadOrTween:Pause() --thread:pause()
 		end
+		threadOrTween = self.maid:give(threadOrTween)
 	end
-	threadOrTween = self.maid:give(threadOrTween)
 	self[newCountPropertyName] += 1
 	local function declareDead()
 		main.modules.Thread.spawn(function()
@@ -377,9 +377,33 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 	end
 	if isAPromise then
 		if promiseIsStarting then
-			threadOrTween:finally(function()
+			local task = self
+			local newPromise = threadOrTween:andThen(function(...)
+				-- This ensures all objects within the promise are given to the task maid
+				local items = {...}
+				local function maybeAddItemToMaid(potentialItem)
+					if typeof(potentialItem) == "table" then
+						for potentialItemA, potentialItemB in pairs(potentialItem) do
+							maybeAddItemToMaid(potentialItemA)
+							maybeAddItemToMaid(potentialItemB)
+						end
+					end
+					if main.modules.Maid.isValidType(potentialItem) then
+						self.maid:give(potentialItem)
+					end
+				end
+				maybeAddItemToMaid(items)
+				if task.isDead then
+					self.maid:clean()
+					threadOrTween:cancel()
+					return
+				end
+				return ...
+			end)
+			newPromise:finally(function()
 				declareDead()
 			end)
+			threadOrTween = newPromise
 		else
 			declareDead()
 		end
@@ -449,11 +473,9 @@ Task.Destroy = Task.kill
 
 -- An abstraction of ``task.maid:give(...)``
 function Task:give(item)
-	print("give item: ", self.isDead)
 	if self.isDead then
 		main.modules.Thread.spawn(function()
 			self.maid:clear()
-			print("DESTROY PROPERrlY!!!")
 		end)
 	end
 	return self.maid:give(item)
@@ -494,17 +516,6 @@ function Task:tween(instance, tweenInfo, propertyTable)
 	return self:track(main.TweenService:Create(instance, tweenInfo, propertyTable))
 end
 
--- This tracks assets for the methods below
-function Task:_trackAsset(asset)
-	if self.isDead then
-		main.modules.Thread.spawn(function()
-			pcall(function() asset:Destroy() end)
-		end)
-	else
-		self:give(asset)
-	end
-end
-
 -- An abstraction of ``self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))`` (or the server equivalent)
 function Task:getAsset(assetName)
 	if main.isServer then
@@ -515,12 +526,8 @@ function Task:getAsset(assetName)
 		-- THE SERVER IS SYNCHRONOUS THEREFORE RETURNS ASSETS IMMEDIATELY
 		return asset
 	end
+	-- THE CLIENT IS ASSYNCHRONOUS THEREFORE RETURNS A PROMISE
 	return self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))
-		:andThen(function(asset)
-			self:_trackAsset(asset)
-			-- THE CLIENT IS ASSYNCHRONOUS THEREFORE RETURNS A PROMISE
-			return asset
-		end)
 end
 
 -- An abstraction of ``self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))`` (or the server equivalent)
@@ -535,14 +542,8 @@ function Task:getAssets(...)
 		-- THE SERVER IS SYNCHRONOUS THEREFORE RETURNS ASSETS IMMEDIATELY
 		return assets
 	end
+	-- THE CLIENT IS ASSYNCHRONOUS THEREFORE RETURNS A PROMISE
 	return self:track(main.controllers.AssetController.getClientCommandAssetsOrClientPermittedAssets(self.commandName, ...))
-		:andThen(function(assets)
-			for _, asset in pairs(assets) do
-				self:_trackAsset(asset)
-			end
-			-- THE CLIENT IS ASSYNCHRONOUS THEREFORE RETURNS A PROMISE
-			return assets
-		end)
 end
 
 -- An abstraction of ``task.agent:buff(...)``
