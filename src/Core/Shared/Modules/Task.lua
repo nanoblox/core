@@ -41,6 +41,11 @@ function Task.new(properties)
 	self.totalReplicationRequests = 0
 	self.replicationRequestsThisSecond = 0
 	self.buffs = {}
+	self.trackingItems = {}
+	self.anchoredParts = {}
+	maid:give(function()
+		self.anchoredParts = nil
+	end)
 
 	local qualifierPresent = false
 	if self.qualifiers then
@@ -259,7 +264,7 @@ function Task:execute()
 						[argString] = {}
 					}
 				end
-				local promise = main.modules.Promise.new(function(resolve, reject)
+				local promise = main.modules.Promise.defer(function(resolve)
 					resolve(argItem:parse(argString, self.callerUserId, self.targetUserId))
 				end)
 				table.insert(promises, promise
@@ -342,6 +347,11 @@ function Task:execute()
 end
 
 function Task:track(threadOrTween, countPropertyName, completedSignalName)
+	local threadType = typeof(threadOrTween)
+	local isAPromise = threadType == "table" and threadOrTween.getStatus
+	if not isAPromise and not ((threadType == "Instance" or threadType == "table") and threadOrTween.PlaybackState) then
+		error("Can only track Threads, Tweens or Promises!")
+	end
 	local newCountPropertyName = countPropertyName or "totalExecutionThreads"
 	local newCompletedSignalName = completedSignalName or "executionThreadsCompleted"
 	if not self[newCountPropertyName] then
@@ -350,7 +360,6 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 	if not self[newCompletedSignalName] then
 		self[newCompletedSignalName] = self.maid:give(Signal.new())
 	end
-	local isAPromise = typeof(threadOrTween) == "table" and threadOrTween.getStatus
 	local promiseIsStarting = isAPromise and threadOrTween:getStatus() == main.modules.Promise.Status.Started
 	if isAPromise then
 		if self.isDead and promiseIsStarting then
@@ -389,7 +398,7 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 						end
 					end
 					if main.modules.Maid.isValidType(potentialItem) then
-						self.maid:give(potentialItem)
+						self:give(potentialItem)
 					end
 				end
 				maybeAddItemToMaid(items)
@@ -419,9 +428,31 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 	return threadOrTween
 end
 
+function Task:_setItemAnchored(item, bool)
+	local function setAnchored(part)
+		local originalValue = self.anchoredParts[part]
+		if part:IsA("BasePart") then
+			if (bool == true and originalValue == nil) then
+				self.anchoredParts[part] = part.Anchored
+				part.Anchored = true
+			elseif originalValue ~= nil then
+				self.anchoredParts[part] = nil
+				part.Anchored = originalValue
+			end
+		end
+		for _, child in pairs(part:GetChildren()) do
+			setAnchored(child)
+		end
+	end
+	setAnchored(item)
+end
+
 function Task:pause()
 	for thread, _ in pairs(self.threads) do
 		thread:Pause() --thread:pause()
+	end
+	for item, _ in pairs(self.trackingItems) do
+		self:_setItemAnchored(item, true)
 	end
 	if main.isServer then
 		self:pauseAllClients()
@@ -432,6 +463,9 @@ end
 function Task:resume()
 	for thread, _ in pairs(self.threads) do
 		thread:Play() --thread:resume()
+	end
+	for item, _ in pairs(self.trackingItems) do
+		self:_setItemAnchored(item, false)
 	end
 	if main.isServer then
 		self:resumeAllClients()
@@ -477,6 +511,37 @@ function Task:give(item)
 		main.modules.Thread.spawn(function()
 			self.maid:clear()
 		end)
+	end
+	local function trackInstance(instance)
+		self.trackingItems[instance] = true
+		self.maid:give(function()
+			self.trackingItems[instance] = nil
+		end)
+	end
+	local itemType = typeof(item)
+	-- trackInstance() tracks all relavent instances so that they can be Anchored/Unanchored when a task is paused/resumed
+	if itemType == "Instance" then
+		trackInstance(item)
+	elseif itemType == "table" then
+		-- This is to track custom objects like 'Clone' which contain the model within the table
+		local MAX_DEPTH = 2
+		local function trackSurfaceLevelInstances(object, depth)
+			depth = depth or 0
+			depth += 1
+			if depth > MAX_DEPTH then
+				return
+			end
+			local objectType = typeof(object)
+			if objectType == "Instance" then
+				trackInstance(object)
+				return
+			elseif objectType == "table" then
+				for _, value in pairs(object) do
+					trackSurfaceLevelInstances(value, depth)
+				end
+			end
+		end
+		trackSurfaceLevelInstances(item)
 	end
 	return self.maid:give(item)
 end

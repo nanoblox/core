@@ -6,7 +6,7 @@ local ChatUtil = {}
 
 -- METHODS
 function ChatUtil.getTextObject(message, fromPlayerId)
-	return main.modules.Promise.new(function(resolve, reject)
+	return main.modules.Promise.defer(function(resolve, reject)
 		local success, textObjectOrError = pcall(main.TextService.FilterStringAsync, main.TextService, message, fromPlayerId)
 		if success then
 			resolve(textObjectOrError)
@@ -16,7 +16,7 @@ function ChatUtil.getTextObject(message, fromPlayerId)
 end
  
 function ChatUtil.getFilteredMessage(textObject, toPlayerId)
-	return main.modules.Promise.new(function(resolve, reject)
+	return main.modules.Promise.defer(function(resolve, reject)
 		if not textObject then reject("textObject arg[1] required!") end
 		local success, filteredMessageOrError = pcall(textObject.GetChatForUserAsync, textObject, toPlayerId)
 		if not success then

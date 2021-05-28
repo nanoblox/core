@@ -304,6 +304,14 @@ function RoleService.isJunior(roleA, roleB)
 	return roleA._order > roleB._order
 end
 
+function RoleService.verifySetting(user, ...)
+
+end
+
+function RoleService.getHighestSetting(user, ...)
+
+end
+
 
 
 --[[

@@ -50,7 +50,7 @@ function PlayerUtil.getHumanoid(playerOrUserId)
 end
 
 function PlayerUtil.getNameFromUserId(userId)
-	return main.modules.Promise.new(function(resolve, reject)
+	return main.modules.Promise.defer(function(resolve, reject)
 		local player = main.Players:GetPlayerByUserId(userId)
 		if player then
 			resolve(player.Name)
@@ -65,7 +65,7 @@ function PlayerUtil.getNameFromUserId(userId)
 end
 
 function PlayerUtil.getUserIdFromName(username)
-	return main.modules.Promise.new(function(resolve, reject)
+	return main.modules.Promise.defer(function(resolve, reject)
 		local player = main.Players:FindFirstChild(username)
 		if player and player:IsA("Player") then
 			resolve(player.UserId)

@@ -112,9 +112,9 @@ TaskService.recordAdded:Connect(function(UID, record)
 	tasks[UID] = task
 	task:begin()
 	if task.targetUserId then
-		targetUserIdToTaskGroup:getOrSetup(task.targetUserId, task.commandName):set(UID, task)  -- This allows for super quick retrieval of a group of tasks with the same targetUserId
+		targetUserIdToTaskGroup:getOrSetup(task.targetUserId, task.commandNameLower):set(UID, task)  -- This allows for super quick retrieval of a group of tasks with the same targetUserId
 	end
-	commandNameToTask:getOrSetup(task.commandName):set(UID, task)
+	commandNameToTask:getOrSetup(task.commandNameLower):set(UID, task)
 	TaskService.taskAdded:Fire(task)
 end)
 
@@ -125,11 +125,11 @@ TaskService.recordRemoved:Connect(function(UID)
 		task:destroy()
 		task[UID] = nil
 	end
-	local userTaskCommandGroup = targetUserIdToTaskGroup:find(task.targetUserId, task.commandName)
+	local userTaskCommandGroup = targetUserIdToTaskGroup:find(task.targetUserId, task.commandNameLower)
 	if userTaskCommandGroup then
 		userTaskCommandGroup:set(UID, nil)
 	end
-	local taskCommandGroup = commandNameToTask:find(task.commandName)
+	local taskCommandGroup = commandNameToTask:find(task.commandNameLower)
 	if taskCommandGroup then
 		taskCommandGroup:set(UID, nil)
 	end
@@ -164,12 +164,13 @@ function TaskService.createTask(isGlobal, properties)
 	local key = (properties and properties.UID) or main.modules.DataUtil.generateUID(10)
 	properties.UID = key
 	---
-	local commandName = properties.commandName
-	local command = main.services.CommandService.getCommand(commandName)
+	local command = main.services.CommandService.getCommand(properties.commandName)
 	if not command then
 		return false
 	end
-	local runningTasks = TaskService.getTasksWithCommandNameAndOptionalTargetUserId(commandName, properties.targetUserId)
+	local commandNameLower = string.lower(properties.commandName)
+	properties.commandNameLower = commandNameLower
+	local runningTasks = TaskService.getTasksWithCommandNameAndOptionalTargetUserId(commandNameLower, properties.targetUserId)
 	if command.revokeRepeats then
 		for _, task in pairs(runningTasks) do
 			task:kill()
@@ -180,7 +181,7 @@ function TaskService.createTask(isGlobal, properties)
 			preventRepeats = main.services.SettingService.getGroup("System").preventRepeatCommands
 		end
 		if preventRepeats and #runningTasks > 0 then
-			warn("Wait until command '%s' has finished before using again!") --!!!notice
+			warn(("Wait until command '%s' has finished before using again!"):format(commandNameLower)) --!!!notice
 			return
 		end
 	end

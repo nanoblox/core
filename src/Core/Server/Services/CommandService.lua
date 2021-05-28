@@ -339,14 +339,17 @@ function CommandService.executeStatement(callerUserId, statement)
 			properties.qualifiers = statement.qualifiers or properties.qualifiers
 			table.insert(tasks, main.services.TaskService.createTask(addToPerm, properties))
 		else
-			table.insert(promises, Promise.new(function(resolve)
+			table.insert(promises, Promise.defer(function(resolve)
 				local targets = Args.get("player"):parse(statement.qualifiers, callerUserId)
 				for _, plr in pairs(targets) do
 					properties.targetUserId = plr.UserId
-					table.insert(tasks, main.services.TaskService.createTask(addToPerm, properties))
+					local task = main.services.TaskService.createTask(addToPerm, properties)
+					if task then
+						table.insert(tasks, task)
+					end
 				end
 				resolve()
-			end))
+			end):catch(warn))
 		end
 	end
 	return Promise.all(promises)

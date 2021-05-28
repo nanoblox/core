@@ -13,6 +13,15 @@ Args.array = {
 		playerArg = true,
 		executeForEachPlayer = true,
 		parse = function(self, qualifiers, callerUserId)
+			local defaultToMe = qualifiers == nil or main.modules.TableUtil.isEmpty(qualifiers)
+			if defaultToMe then
+				local players = {}
+				local callerPlayer = main.Players:GetPlayerByUserId(callerUserId)
+				if callerPlayer then
+					table.insert(players, callerPlayer)
+				end
+				return players
+			end
 			local targetsDict = {} -- IF THIS IS COMPLETELY EMPTY THEN DEFAULY TO 'ME' BUT CONSIDER HOW IT IMPACTS OTHER PLAYERS ONES
 			for qualifierName, qualifierArgs in pairs(qualifiers or {}) do
 				local Qualifiers = main.modules.Parser.Qualifiers
@@ -59,7 +68,7 @@ Args.array = {
 		hidden = true,
 		executeForEachPlayer = true,
 		parse = function(self, qualifiers, callerUserId)
-			local defaultToAll = qualifiers == nil or main.modules.TableUtil.isEmpty(self.qualifiers)
+			local defaultToAll = qualifiers == nil or main.modules.TableUtil.isEmpty(qualifiers)
 			if defaultToAll then
 				return main.Players:GetPlayers()
 			end
@@ -112,7 +121,7 @@ Args.array = {
 		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			return 666
+			return tonumber(stringToParse)
 		end,
 	},
 
@@ -123,6 +132,29 @@ Args.array = {
 		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
+
+		end,
+	},
+
+	-----------------------------------
+	{
+		name = "scale", -- Consider scale limits
+		aliases = {},
+		description = "",
+		defaultValue = 0,
+		parse = function(self, stringToParse)
+
+		end,
+	},
+
+	-----------------------------------
+	{
+		name = "gearId", -- Consider gear limits
+		aliases = {},
+		description = "",
+		defaultValue = 0,
+		parse = function(self, stringToParse)
+			
 		end,
 	},
 
@@ -195,26 +227,6 @@ Args.array = {
 	{
 		name = "stat", -- Consider making a setting to update this or set its pathway
 		aliases = { "statName" },
-		description = "",
-		defaultValue = 0,
-		parse = function(self, stringToParse)
-		end,
-	},
-
-	-----------------------------------
-	{
-		name = "scale", -- Consider scale limits
-		aliases = {},
-		description = "",
-		defaultValue = 0,
-		parse = function(self, stringToParse)
-		end,
-	},
-
-	-----------------------------------
-	{
-		name = "gearId", -- Consider gear limits
-		aliases = {},
 		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
