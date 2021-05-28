@@ -109,7 +109,7 @@ function main.initiate(loader)
 				-- Call init
 				if rawget(moduleData, "init") then
 					if doNotYield then
-						Thread.spawn(function() moduleData.init() end)
+						Thread.spawn(moduleData.init)
 					else
 						moduleData.init()
 					end

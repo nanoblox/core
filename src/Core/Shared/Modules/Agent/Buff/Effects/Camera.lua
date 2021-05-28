@@ -1,5 +1,5 @@
 local isClient = game:GetService("RunService"):IsClient()
-local localPlayer = isClient and game:GetService("Players").LocalPlayer
+local localPlayer = game:GetService("Players").LocalPlayer
 
 if not isClient then
     warn(("'%s' buff effect cannnot be used on the server!"):format(script.Name))
