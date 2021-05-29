@@ -2,7 +2,6 @@
 local main = require(game.Nanoblox)
 local System = main.modules.System
 local RoleService = System.new("Roles")
-local systemUser = RoleService.user
 local Role = main.modules.Role
 local PlayerStore = main.modules.PlayerStore
 local DataUtil = main.modules.DataUtil
@@ -87,14 +86,14 @@ function RoleService.generateRecord()
 		giveToCreator = false,
 		giveToUsers = {},
 		giveToUsersWithGamepasses = {},
-		giveToUsersWithAssets = {},
-		giveToUsersOfRanksInGroups = {},
+		giveToUsersWithAssets = {},  -- Note: impossible to tell unless in game
+		giveToUsersOfRanksInGroups = {}, -- Note: impossible to tell unless in game
 		giveToFriendsOfUsers = {},
 		giveToVipServerOwner = false,
 		giveToVipServerPlayers = false,
-		giveToPremiumUsers = false,
+		giveToPremiumUsers = false,  -- Note: impossible to tell unless in game
 		enableAccountAgeGiver = false,
-		giveToUsersWithMinimumAccountAge = 0,
+		giveToUsersWithMinimumAccountAge = 0, -- Note: impossible to tell unless in game
 		enableDailyLoginStreakGiver = false,
 		giveToUsersWithDailyLoginStreak = 14,
 		giveToStarCreators = false,

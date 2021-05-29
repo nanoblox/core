@@ -3,7 +3,6 @@ local main = require(game.Nanoblox)
 local System = main.modules.System
 local TaskService = System.new("Tasks")
 TaskService.remotes = {}
-local systemUser = TaskService.user
 local tasks = {}
 local Task = main.modules.Task
 local Signal = main.modules.Signal.new()

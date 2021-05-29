@@ -2,8 +2,6 @@
 local main = require(game.Nanoblox)
 local System = main.modules.System
 local WarnService = System.new("Warns")
-local systemUser = WarnService.user
-local PlayerStore = main.modules.PlayerStore
 
 
 

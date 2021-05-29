@@ -2,7 +2,6 @@
 local main = require(game.Nanoblox)
 local System = main.modules.System
 local BanService = System.new("Bans")
-local systemUser = BanService.user
 local PlayerStore = main.modules.PlayerStore
 local unbanLimit = 7884000000   -- 250 Years (anything above is displayed as Expires: Never) Do not exceed 500 years otherwise os.date fails
 

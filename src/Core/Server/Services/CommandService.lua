@@ -3,7 +3,6 @@ local main = require(game.Nanoblox)
 local System = main.modules.System
 local CommandService = System.new("Commands")
 CommandService.remotes = {}
-local systemUser = CommandService.user
 
 
 
@@ -212,9 +211,10 @@ function CommandService.setupParsePatterns(user)
 	end
 end
 
-function CommandService.createFakeUser()
+function CommandService.createFakeUser(userId)
+	local DEFAULT_USER_ID = 1
 	local user = {}
-	user.userId = 1
+	user.userId = userId or DEFAULT_USER_ID
 	user.name = "Server"
 	user.displayName = "Server"
 	user.perm = main.modules.State.new({
@@ -227,6 +227,7 @@ function CommandService.createFakeUser()
 	user.temp = main.modules.State.new(nil, true)
 	user.roles = {}
 	CommandService.setupParsePatterns(user)
+	-- if DEFAULT_USER_ID then get creator role, else use RoleService
 	main.services.RoleService.getCreatorRole():give(user, main.enum.RoleType.Server)
 	return user
 end
