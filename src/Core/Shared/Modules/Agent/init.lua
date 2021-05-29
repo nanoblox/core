@@ -38,7 +38,7 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 	self._maid = maid
 	self.reduceMaids = {}
 	self.buffs = {}
-    self.defaultValues = {}
+	self.defaultValues = {}
 	self.reapplyBuffsOnRespawn = reapplyBuffsOnRespawn
 	self.silentlyEndBuffs = false
 	self.player = player
