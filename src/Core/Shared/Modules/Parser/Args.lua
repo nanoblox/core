@@ -9,7 +9,6 @@ Args.array = {
 		name = "player",
 		aliases = {},
 		description = "",
-		defaultValue = 0,
 		playerArg = true,
 		executeForEachPlayer = true,
 		parse = function(self, qualifiers, callerUserId)
@@ -22,7 +21,7 @@ Args.array = {
 				end
 				return players
 			end
-			local targetsDict = {} -- IF THIS IS COMPLETELY EMPTY THEN DEFAULY TO 'ME' BUT CONSIDER HOW IT IMPACTS OTHER PLAYERS ONES
+			local targetsDict = {}
 			for qualifierName, qualifierArgs in pairs(qualifiers or {}) do
 				local Qualifiers = main.modules.Parser.Qualifiers
 				local qualifierDetail = Qualifiers.get(qualifierName)
@@ -50,7 +49,6 @@ Args.array = {
 		name = "players",
 		aliases = {},
 		description = "",
-		defaultValue = 0,
 		playerArg = true,
 		executeForEachPlayer = false,
 		parse = function(self, qualifiers, callerUserId)
@@ -63,7 +61,6 @@ Args.array = {
 		name = "optionalplayer",
 		aliases = {},
 		description = "Hides the players argument for general use and only displays it within the preview menu.",
-		defaultValue = 0,
 		playerArg = true,
 		hidden = true,
 		executeForEachPlayer = true,
@@ -81,7 +78,6 @@ Args.array = {
 		name = "optionalplayers",
 		aliases = {},
 		description = "Hides the players argument for general use and only displays it within the preview menu.",
-		defaultValue = 0,
 		playerArg = true,
 		hidden = true,
 		executeForEachPlayer = false,
@@ -95,7 +91,6 @@ Args.array = {
 		name = "text",
 		aliases = { "string", "reason", "question", "teamname" },
 		description = "",
-		defaultValue = 0,
 		parse = function(self, textToFilter, callerUserId, targetUserId)
 			-- This is asynchronous
 			local _, value = main.modules.ChatUtil.filterText(callerUserId, targetUserId, textToFilter):await()
@@ -121,7 +116,8 @@ Args.array = {
 		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			return tonumber(stringToParse)
+			return stringToParse
+			--return tonumber(stringToParse)
 		end,
 	},
 
@@ -132,6 +128,10 @@ Args.array = {
 		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
+			return stringToParse
+			-- verify is a sound, and the sound can play
+		end,
+		verifyCanUse = function(self, callerUser, stringToParse)
 
 		end,
 	},
@@ -145,16 +145,22 @@ Args.array = {
 		parse = function(self, stringToParse)
 
 		end,
+		verifyCanUse = function(self, callerUser, stringToParse)
+
+		end,
 	},
 
 	-----------------------------------
 	{
-		name = "gearId", -- Consider gear limits
+		name = "gearid", -- Consider gear limits
 		aliases = {},
 		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			
+			-- very asset type is a gear
+		end,
+		verifyCanUse = function(self, callerUser, stringToParse)
+
 		end,
 	},
 
@@ -165,6 +171,7 @@ Args.array = {
 		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
+
 		end,
 	},
 
@@ -175,6 +182,7 @@ Args.array = {
 		description = "",
 		defaultValue = 180,
 		parse = function(self, stringToParse)
+
 		end,
 	},
 
@@ -185,6 +193,7 @@ Args.array = {
 		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
+
 		end,
 	},
 
@@ -198,7 +207,8 @@ Args.array = {
 			-- predifined terms like 'blue', 'red', etc
 			-- RGB codes such as '100,110,120'
 			-- hex codes such as #FF5733
-			return Color3.fromRGB(50, 100, 150)
+			return stringToParse
+			--return Color3.fromRGB(50, 100, 150)
 		end,
 	},
 
@@ -240,6 +250,7 @@ Args.array = {
 		description = "",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
+
 		end,
 	},
 

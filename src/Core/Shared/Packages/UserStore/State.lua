@@ -111,7 +111,7 @@ end
 
 
 -- METHODS
-function State:get(...)
+function State:_get(cancelCriteria, ...)
 	local pathwayTable = {...}
 	if type(pathwayTable[1]) == "table" then
 		pathwayTable = ...
@@ -123,11 +123,23 @@ function State:get(...)
 	end
 	for i, key in pairs(pathwayTable) do
 		value = value[key]
-		if not (i == max or (type(value) == "table" and value.isState)) then
+		if not cancelCriteria(i, max, value) then
 			return nil
 		end
 	end
 	return value
+end
+
+function State:get(...)
+	return self:_get(function(i, max, value)
+		return (i == max or (type(value) == "table" and value.isState))
+	end, ...)
+end
+
+function State:getSimple(...)
+	return State._get(self, function(i, max, value)
+		return (i == max or type(value) == "table")
+	end, ...)
 end
 
 function State:getOrSetup(...)

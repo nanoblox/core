@@ -44,9 +44,6 @@ local function playerAdded(player)
 
 	-- Setup user object
 	local user = PlayerStore:createUser(player)
-	user:setStartData({
-		playerSettings = {},
-	})
 	user.agent = main.modules.Agent.new(player, true) -- an agent is automatically destroyed on player leave so no need to give to maid
 	user:initAutoSave()
 
@@ -68,11 +65,11 @@ local function playerAdded(player)
 	
 	-- Call .userLoaded for all services
 	callEventMethod("userLoaded", user)
-	PlayerService.userLoaded:Fire(player)
+	PlayerService.userLoaded:Fire(user)
 	
 	-- Call .playerLoaded for all services
 	callEventMethod("playerLoaded", player, user)
-	PlayerService.playerLoaded:Fire()
+	PlayerService.playerLoaded:Fire(player, user)
 	
 end
 

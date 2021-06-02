@@ -20,6 +20,7 @@ RoleService.recordAdded:Connect(function(roleUID, record)
 	--warn(("ROLE '%s' ADDED!"):format(record.name))
 	local role = Role.new(record)
 	role.UID = roleUID
+	role.environment = role.environment or main.enum.Environment.Global
 	roles[roleUID] = role
 	RoleService.roleAdded:Fire(role)
 end)
@@ -28,8 +29,9 @@ RoleService.recordRemoved:Connect(function(roleUID, oldRecord)
 	--warn(("ROLE '%s' (UID = %s) REMOVED!"):format((oldRecord and oldRecord.name) or "*No name*", roleUID))
 	local role = roles[roleUID]
 	if role then
-		role:destroy()
 		roles[roleUID] = nil
+		role:updateUsers()
+		role:destroy()
 	end
 	RoleService.roleRemoved:Fire(role)
 end)
@@ -38,6 +40,7 @@ RoleService.recordChanged:Connect(function(roleUID, propertyName, propertyValue,
 	local role = roles[roleUID]
 	if role then
 		role[propertyName] = propertyValue
+		role:updateUsers()
 	end
 	RoleService.roleChanged:Fire(role, propertyName, propertyValue, propertyOldValue)
 	--warn(("ROLE '%s' CHANGED %s to %s (from %s)"):format(tostring(role and role.name), tostring(propertyName), tostring(propertyValue), tostring(propertyOldValue)))
@@ -47,9 +50,10 @@ end)
 
 -- PLAYERSERVICE METHOD EVENTS
 function RoleService.userLoadedMethod(user)
-	-- Load user roles
-	
-	-- End
+	--------- !!!test
+	RoleService.giveRoles(user, {"Mod", "Admin", "Basic"})
+	---------
+	RoleService.updateRoleInformation(user)
 	user.isRolesLoaded = true
 	user.rolesLoaded:Fire()
 end
@@ -66,7 +70,7 @@ function RoleService.loaded()
 	RoleService.createRole(false, {
 		UID = creatorRoleUID,
 		name = "Creator_"..creatorRoleUID,
-		_order = 0,
+		roleOrder = 0,
 		giveToCreator = true,
 	})
 end
@@ -79,110 +83,155 @@ function RoleService.generateRecord()
 		-- Appearance
 		name = "Unnamed Role",
 		color = Color3.fromRGB(255, 255, 255),
+
+		-- Behaviour
+		environment = main.enum.Environment.Global,
+		roleOrder = 0,
 		nonadmin = false, -- This is solely for the 'nonadmins' and 'admins' qualifiers
-		
+
 		-- Role Givers
-		giveToEveryone = false,
-		giveToCreator = false,
-		giveToUsers = {},
-		giveToUsersWithGamepasses = {},
-		giveToUsersWithAssets = {},  -- Note: impossible to tell unless in game
-		giveToUsersOfRanksInGroups = {}, -- Note: impossible to tell unless in game
-		giveToFriendsOfUsers = {},
-		giveToVipServerOwner = false,
-		giveToVipServerPlayers = false,
-		giveToPremiumUsers = false,  -- Note: impossible to tell unless in game
+		giveTo = {
+			everyone = false,
+			creator = false,
+			users = {},
+			usersWithGamepasses = {},
+			usersWithAssets = {},  -- Note: impossible to tell unless in game
+			usersOfRanksInGroup = {},  -- Note: impossible to tell unless in game
+			friendsOfUsers = {},
+			vipServerOwner = false,
+			vipServerPlayers = false,
+			premiumUsers = false,  -- Note: impossible to tell unless in game
+			starCreators = false,
+			usersWithMinimumAccountAge = 7,  -- Note: impossible to tell unless in game
+			usersWithDailyLoginStreak = 14,
+		},
 		enableAccountAgeGiver = false,
-		giveToUsersWithMinimumAccountAge = 0, -- Note: impossible to tell unless in game
 		enableDailyLoginStreakGiver = false,
-		giveToUsersWithDailyLoginStreak = 14,
-		giveToStarCreators = false,
 		
 		-- Command Inheritance
-		inheritCommandsWithNames = {},
-		inheritCommandsWithTags = {},
-		inheritCommandsFromAllRoles = false,
-		inheritCommandsFromJuniorRoles = true,
-		inheritCommandsFromSpecificRoles = {},
-		
-		-- Limit Abuse
-		limitCommandsPerInterval = true,
-		commandRefreshInterval = 20,
-		commandLimit = 20,
-		limitGlobalExecutionsPerInterval = true,
-		globalRefreshInterval = 20,
-		globalLimit = 5,
-		limitExecutions = false,
-		executionCooldown = 1, -- if 'limitExecutions' is true, this amount of seconds must be waited before being allowed to execute another statement
-		limitScale = true,
-		scaleLimit = 5,
-		limitDenylistedIDs = true,
-		limitToAllowlistedIDs = false, 
-		
-		-- Individual Powers
-		canUseAll = false,
-		canUseCommandsOnOthers = true,
-		canUseCommandsOnFriends = true,
-		canUseMultiQualifiers = true, -- Qualifiers which impact more than 1 person at a time (e.g. 'all', 'others'). This will also prevent multiple people being selected in a single execution
-		canUseGlobalModifier = false,
-		canUseLoopModifier = false,
-		canUseCmdbar1 = false,
-		canUseCmdbar2 = false,
-		
-		-- Client Prompts
-		promptWelcomeRankNotice = true,
-		
-		-- Client Permissions & Pages
-		canBlockAll = false,
-		canBlockSeniors = false,
-		canBlockPeers = false,
-		canBlockJuniors = true,
-		
-		canViewAll = false,
-		canEditAll = false,
-		canEditGlobally = false,
-		canViewUnusableCommands = true,
-		canEditCommands = false,
-		canViewRolesList = true,
-		canEditRolesList = false,
-		canViewServerRoles = true,
-		canViewGlobalRoles = false,
-		canEditGlobalRoles = false,
-		canEditGlobalRolesBySeniors = false,
-		canViewBans = false,
-		canEditBans = false,
-		canEditBansBySeniors = false,
-		canViewWarnings = false,
-		canEditWarnings = false,
-		canEditWarningsBySeniors = false,
-		canViewLogs = false,
-		canEditLogs = false,
-		canViewGlobalSettings = false,
-		canEditGlobalSettings = false,
-		
-		-- Custom Chat
-		-- https://devforum.roblox.com/t/bubblechats-epic-makeover/739458
-		customBubble = false,
-		bubbleImageColor = Color3.fromRGB(255, 255, 255),
-		bubbleTextColor = Color3.fromRGB(255, 255, 255),
-		bubbleTextFont = "SourceSans",
-		customNameColor = false,
-		nameColor = Color3.fromRGB(255, 255, 255),
-		customChatColor = false,
-		chatColor = Color3.fromRGB(255, 255, 255),
-		customChatTags = false,
-		chatTags = {
-			{
-				tagText = "",
-				tagColor = Color3.fromRGB(255, 255, 255),
-			}
+		inheritCommands = {
+			withNames = {},
+			withTags = {},
+			fromAllRoles = false,
+			fromJuniorRoles = true,
+			fromSpecificRoles = {},
 		},
 		
+		-- Limit Abuse
+		limit = {
+			commandsPerInterval = true,
+			globalExecutionsPerInterval = true,
+			executionCooldown = false,
+			scaleSize = true,
+			denylistedIDs = true,
+			allowlistedIDs = false,
+		},
+		commandsPerIntervalRefresh = 20,
+		commandsPerIntervalAmount = 20,
+		globalExecutionsPerIntervalRefresh = 20,
+		globalExecutionsPerIntervalAmount = 5,
+		executionCooldownAmount = 1, -- if 'limitExecutions' is true, this amount of seconds must be waited before being allowed to execute another statement
+		scaleSizeAmount = 5,
+		
+		-- Individual Powers
+		canUse = {
+			all = false,
+			commandsOnOthers = true,
+			commandsOnFriends = true,
+			multiQualifiers = true, -- Qualifiers which impact more than 1 person at a time (e.g. 'all', 'others'). This will also prevent multiple people being selected in a single execution
+			cmdbar1 = false,
+			cmdbar2 = false,
+		},
+
+		-- Modifiers
+		canUseModifier = {
+			all = false,
+			preview = true,
+			random = true,
+			perm = false,
+			global = false,
+			undo = true,
+			epoch = true,
+			delay = true,
+			loop = false,
+			spawn = true,
+			expire = true,
+		},
+		
+		-- Client Prompts
+		prompts = {
+			welcomeRankNotice = true,
+		},
+		
+		canBlockTasksFrom = { -- A block prevents that class of users using commands on the player
+			all = false,
+			seniors = false,
+			peers = false,
+			juniors = true,
+		},
+
+		canRevokeTasksFrom = {
+			all = false,
+			seniors = false,
+			peers = false,
+			juniors = true,
+		},
+		
+		-- Client Permissions & Pages
+		canView = {
+			all = false,
+			unusableCommands = true,
+			rolesList = true,
+			tempRoles = true,
+			permRoles = false,
+			bans = false,
+			warnings = false,
+			logs = false,
+			systemSettings = false,
+			playerSettings = false,
+		},
+
+		canEdit = {
+			all = false,
+			unusableCommands = false,
+			rolesList = false,
+			tempRoles = false,
+			permRoles = false,
+			bans = false,
+			warnings = false,
+			logs = false,
+			systemSettings = false,
+			playerSettings = false,
+		},
+		
+		-- Custom Bubble Chat
+		customBubble = {
+			enabled = false,
+			imageColor = Color3.fromRGB(255, 255, 255),
+			textColor = Color3.fromRGB(255, 255, 255),
+			textFont = "SourceSans",
+		},
+		
+		-- Custom Menu Chat
+		customChat = {
+			enabled = false,
+			nameColor = Color3.fromRGB(255, 255, 255),
+			chatColor = Color3.fromRGB(255, 255, 255),
+			chatTags = {
+				--[[{
+					tagText = "",
+					tagColor = Color3.fromRGB(255, 255, 255),
+				}--]]
+			},
+		},
+
 		-- Custom Title
-		customTitle = false,
-		titleText = "",
-		titlePrimaryColor = Color3.fromRGB(255, 255, 255),
-		titleStrokeColor = Color3.fromRGB(255, 255, 255),
+		customTitle = {
+			enabled = false,
+			text = "Unnamed Title",
+			primaryColor = Color3.fromRGB(255, 255, 255),
+			strokeColor = Color3.fromRGB(255, 255, 255),
+		},
 	}
 end
 
@@ -259,13 +308,13 @@ local function sortRoles(tableOfRoleUIDsOrNames, approveRole)
 	local currentOrder, selectedRole = nil, nil
 	for _, roleUID in pairs(arrayOfRoles) do
 		local role = RoleService.getRole(roleUID)
-		if role and (selectedRole == nil or approveRole(role._order, currentOrder)) then
-			currentOrder, selectedRole = role._order, role
+		if role and (selectedRole == nil or approveRole(role.roleOrder, currentOrder)) then
+			currentOrder, selectedRole = role.roleOrder, role
 		end
 	end
 	if not selectedRole then
 		selectedRole = {
-			_order = 100,
+			roleOrder = 100,
 			unselectedRole = true,
 			name = "RoleFailed"
 		}
@@ -288,27 +337,107 @@ end
 function RoleService.isSenior(roleA, roleB)
 	assert(typeof(roleA) == "table", "roleA must be a role or table!")
 	assert(typeof(roleB) == "table", "roleB must be a role or table!")
-	return roleA._order < roleB._order
+	return roleA.roleOrder < roleB.roleOrder
 end
 
 function RoleService.isPeer(roleA, roleB)
 	assert(typeof(roleA) == "table", "roleA must be a role or table!")
 	assert(typeof(roleB) == "table", "roleB must be a role or table!")
-	return roleA._order == roleB._order
+	return roleA.roleOrder == roleB.roleOrder
 end
 
 function RoleService.isJunior(roleA, roleB)
 	assert(typeof(roleA) == "table", "roleA must be a role or table!")
 	assert(typeof(roleB) == "table", "roleB must be a role or table!")
-	return roleA._order > roleB._order
+	return roleA.roleOrder > roleB.roleOrder
 end
 
 function RoleService.verifySetting(user, ...)
-
+	local roleInformation = user.temp:get("roleInformation")
+	local environment = roleInformation and roleInformation._collectiveEnvironment
+	local settingInfo = roleInformation and roleInformation:get(...)
+	local methods = {}
+	function methods.is(value)
+		if settingInfo and settingInfo[tostring(value)] then
+			return true, environment
+		end
+		return false, environment
+	end
+	function methods.has(value)
+		if settingInfo and settingInfo[tostring(value)] then
+			return true, environment
+		end
+		return false, environment
+	end
+	return methods
 end
 
-function RoleService.getHighestSetting(user, ...)
+function RoleService.updateRoleInformation(user)
+	local userRoles = user.temp:getOrSetup("roles")
+	local information = {}
+	local function scanTable(roleTable, tableToUpdate)
+		for key, value in pairs(roleTable) do
+			local stringKey = tostring(key)
+			local ignoreValueTypes = {
+				["function"] = true,
+				["table"] = true,
+			}
+			local valueType = typeof(value)
+			if ignoreValueTypes[valueType] then
+				if valueType == "table" then
+					local newTableToUpdate = tableToUpdate[stringKey]
+					if not newTableToUpdate then
+						newTableToUpdate = {}
+						tableToUpdate[stringKey] = newTableToUpdate
+					end
+					scanTable(value, newTableToUpdate)
+				end
+				continue
+			end
+			local infoTable = tableToUpdate[stringKey]
+			if not infoTable then
+				infoTable = {}
+				tableToUpdate[stringKey] = infoTable
+			end
+			local stringValue = tostring(value)
+			infoTable[stringValue] = true
+		end
+	end
+	for roleKey, _ in pairs(userRoles) do
+		local role = RoleService.getRoleByUID(roleKey)
+		if role then
+			-- This setups up the info dictionaries for each setting
+			scanTable(role, information)
+			-- This determines the environment across *all* roles
+			-- If the collection of Roles contain 'Private' *and* 'Global', then set to 'Multiple'
+			local roleEnvironment = role.environment
+			local existingEnvironment = information["_collectiveEnvironment"]
+			local newEnvironment = roleEnvironment
+			if existingEnvironment and existingEnvironment ~= roleEnvironment then
+				newEnvironment = main.enum.Environment.Multiple
+			end
+			information["_collectiveEnvironment"] = newEnvironment
+		end
+	end
+	user.temp:set("roleInformation", information)
+end
+RoleService.updateRoleInformation = main.modules.FunctionUtil.preventMultiFrameUpdates(RoleService.updateRoleInformation)
 
+function RoleService.getHighestSetting(user, ...)
+	local userRoles = user.temp.roles or {}
+	local highestRole = RoleService.getHighestRole(userRoles)
+	if highestRole then
+		return main.modules.State.getSimple(highestRole, ...)
+	end
+end
+
+function RoleService.giveRoles(user, arrayOfRoleNamesOrUIDs, roleType)
+	for _, roleNameOrUID in pairs(arrayOfRoleNamesOrUIDs) do
+		local role = RoleService.getRole(roleNameOrUID)
+		if role then
+			role:give(user, roleType)
+		end
+	end
 end
 
 
@@ -325,6 +454,14 @@ local main = require(game.Nanoblox)
 local SystemStore = main.modules.SystemStore
 local user = SystemStore:getUser("User")
 main.modules.TableUtil.print(user._data, "", true)
+
+print("A")
+local main = require(game.Nanoblox).getFramework()
+print("B")
+local SystemStore = main.modules.SystemStore
+print("C")
+local user = SystemStore:getUser("Roles")
+print("D")
 
 
 

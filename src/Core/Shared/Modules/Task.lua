@@ -41,6 +41,7 @@ function Task.new(properties)
 	self.totalReplicationRequests = 0
 	self.replicationRequestsThisSecond = 0
 	self.buffs = {}
+	self.originalArgReturnValues = {}
 	self.trackingItems = {}
 	self.anchoredParts = {}
 	maid:give(function()
@@ -263,7 +264,12 @@ function Task:execute()
 					}
 				end
 				local promise = main.modules.Promise.defer(function(resolve)
-					resolve(argItem:parse(argString, self.callerUserId, self.targetUserId))
+					local returnValue = argItem:parse(argString, self.callerUserId, self.targetUserId)
+					self.originalArgReturnValues[argItem.name] = returnValue
+					if returnValue == nil then
+						returnValue = argItem.defaultValue
+					end
+					resolve(returnValue)
 				end)
 				table.insert(promises, promise
 					:andThen(function(parsedArg)
@@ -629,6 +635,11 @@ function Task:clearBuffs()
 	self.buffs = {}
 end
 
+function Task:getOriginalArgValue(argName)
+	local argItem = main.modules.Parser.Args.get(argName)
+	local originalValue = self.originalArgReturnValues
+	--self.originalArgReturnValues
+end
 
 
 -- SERVER NETWORKING METHODS

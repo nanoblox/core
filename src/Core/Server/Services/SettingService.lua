@@ -32,7 +32,6 @@ function SettingsService.generateRecord(key)
 			
 			theme = "",
 			backgroundTransparency 	= 0.1,
-			--]]
 		},
 		
 		
@@ -65,6 +64,13 @@ function SettingsService.generateRecord(key)
 			globalBanUsers = true,
 			warnsToGlobalBan = 5,
 			globalBanTime = 172800, -- 2 days
+
+			-- Environments
+			createPrivateEnvironmentIfA = {
+				privateServer = true,
+				reservedServer = true,
+				normalServer = true,
+			},
 		}
 		
 		
@@ -77,7 +83,8 @@ function SettingsService.getPlayerSetting(settingName, optionalUser)
 	local group = SettingsService.getGroup("Player")
 	local settingValue
 	if optionalUser then
-		settingValue = optionalUser.perm.playerSettings:get(settingName)
+		local playerSettings = optionalUser.perm:getOrSetup("playerSettings")
+		settingValue = playerSettings:get(settingName)
 	end
 	if settingValue == nil then
 		settingValue = group[settingName]
@@ -87,7 +94,8 @@ end
 
 function SettingsService.updatePlayerSetting(settingName, settingValue, optionalUser)
 	if optionalUser ~= nil then
-		optionalUser.perm.playerSettings:set(settingName, settingValue)
+		local playerSettings = optionalUser.perm:getOrSetup("playerSettings")
+		playerSettings:set(settingName, settingValue)
 	else
 		SettingsService.updateGroup("Player", {
 			[settingName] = settingValue

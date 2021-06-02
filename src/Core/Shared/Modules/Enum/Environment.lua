@@ -2,5 +2,5 @@
 return {
 	{"Multiple", 1},
 	{"Global", 2},
-	{"PrivateServer", 3},
+	{"Private", 3},
 }

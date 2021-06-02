@@ -54,7 +54,7 @@ MessageService.messageProperties = {
 }
 
 function MessageService.message(player, messageDetails)
-	MessageService.remotes.message:Fire(player, messageDetails)
+	MessageService.remotes.message:fireClient(player, messageDetails)
 end
 
 function MessageService.messagePool(targetPoolName, packedPoolArgs, messageDetails)
@@ -90,7 +90,7 @@ MessageService.hintProperties = {
 }
 
 function MessageService.hint(player, hintDetails)
-	MessageService.remotes.message:Fire(player, hintDetails)
+	MessageService.remotes.message:fireClient(player, hintDetails)
 end
 
 function MessageService.hintPool(targetPoolName, packedPoolArgs, hintPool)
@@ -110,6 +110,7 @@ Rounded rectangle, appear in bottom right corner, disappear after duration OR re
 noticeDetails = {
 	text = [String],
 	icon = [ImageId],
+	error = [Bool],
 	disappear = [Bool],
 	duration = [Number],
 	soundId = [Integer],
@@ -127,7 +128,13 @@ MessageService.noticeProperties = {
 }
 
 function MessageService.notice(player, noticeDetails)
-	MessageService.remotes.message:Fire(player, noticeDetails)
+	MessageService.remotes.message:fireClient(player, noticeDetails)
+	--!!!notice REMOVE THIS
+	if noticeDetails.error == true then
+		warn("Nanoblox Error Notice: "..tostring(noticeDetails.text))
+	else
+		print("Nanoblox Prompt Notice: "..tostring(noticeDetails.text))
+	end
 end
 
 function MessageService.noticePool(targetPoolName, packedPoolArgs, noticeDetails)
@@ -160,7 +167,7 @@ MessageService.snackbarProperties = {
 }
 
 function MessageService.snackbar(player, snackbarDetails)
-	MessageService.remotes.message:Fire(player, snackbarDetails)
+	MessageService.remotes.message:fireClient(player, snackbarDetails)
 end
 
 function MessageService.snackbarPool(targetPoolName, packedPoolArgs, snackbarDetails)
@@ -195,7 +202,7 @@ MessageService.popupProperties = {
 }
 
 function MessageService.popup(player, popupDetails)
-	MessageService.remotes.message:Fire(player, popupDetails)
+	MessageService.remotes.message:fireClient(player, popupDetails)
 end
 
 function MessageService.popupPool(targetPoolName, packedPoolArgs, popupDetails)

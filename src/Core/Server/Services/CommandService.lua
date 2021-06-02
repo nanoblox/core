@@ -16,12 +16,9 @@ end
 
 
 
--- PLAYER LOADED
-function CommandService.playerLoadedMethod(player)
-	local user = main.modules.PlayerStore:getLoadedUser(player)
-	if user then
-		CommandService.setupParsePatterns(user)
-	end
+-- PLAYER USER LOADED
+function CommandService.userLoadedMethod(user)
+	CommandService.setupParsePatterns(user)
 end
 
 
@@ -197,7 +194,8 @@ function CommandService.setupParsePatterns(user)
 		},
 	}
 	local validSettingNames = {}
-	user.perm.playerSettings.changed:Connect(function(settingName, value)
+	local playerSettings = user.perm:getOrSetup("playerSettings")
+	playerSettings.changed:Connect(function(settingName, value)
 		if validSettingNames[settingName] then
 			user.temp.parsePatterns:set(settingName, value)
 		end
@@ -239,12 +237,9 @@ function CommandService.chatCommand(callerUser, message)
 	print(callerUser.name, "chatted: ", message, batch)
 	if type(batch) == "table" then
 		for _, statement in pairs(batch) do
-			local approved, noticeDetails = CommandService.verifyStatement(callerUserId, statement)
+			local approved, noticeDetails = CommandService.verifyStatement(callerUser, statement)
 			if approved then
 				CommandService.executeStatement(callerUserId, statement)
-					:andThen(function(tasks)
-						print("TASKS = ", tasks)
-					end)
 			end
 			if callerPlayer then
 				for _, detail in pairs(noticeDetails) do
@@ -256,8 +251,7 @@ function CommandService.chatCommand(callerUser, message)
 	end
 end
 
-function CommandService.verifyStatement(callerUserId, statement)
-	--[[
+function CommandService.verifyStatement(callerUser, statement)
 	local approved = true
 	local details = {}
 
@@ -265,23 +259,57 @@ function CommandService.verifyStatement(callerUserId, statement)
 	local statementCommands = statement.commands
 	local modifiers = statement.modifiers
 	local qualifiers = statement.qualifiers
-	
-	-- Global
+
+	-- This verifies the caller can use the given commands and associated arguments
+	if statementCommands then
+		for commandName, arguments in pairs(statementCommands) do
+			
+			-- Does the command exist
+			local command = main.services.CommandService.getCommand(commandName)
+			if not command then
+				return false, {{"notice", {
+					text = string.format("'%s' is an invalid command name!", commandName),
+					error = true,
+				}}}
+			end
+
+			-- Does the caller have permission to use it
+			local commandNameLower = string.lower(commandName)
+			if not main.services.RoleService.verifySetting(callerUser, "commands").has(commandNameLower) then
+				--!!! RE_ENABLE THIS
+				--[[return false, {{"notice", {
+					text = string.format("You do not have permission to use command '%s'!", commandName),
+					error = true,
+				}}}--]]
+			end
+
+			-- Does the caller have permission to use the associated arguments of the command
+			for i, argString in pairs(arguments) do
+				local argName = command.args[i]
+				local argItem = main.modules.Parser.Args.get(argName)
+				if argItem.verifyCanUse then
+					local canUseArg, deniedReason = argItem:verifyCanUse(callerUser, argString)
+					if not canUseArg then
+						return false, {{"notice", {
+							text = deniedReason,
+							error = true,
+						}}}
+					end
+				end
+			end
+
+		end
+	end
+
+	-- This adds an additional notification if global as these commands can take longer to execute
 	if modifiers.global then
 		table.insert(details, {"notice", {
 			text = "Executing global command...",
-			error = true,
+			error = false,
 		}})
 	end
 
-	-- !!! Error example
-	table.insert(details, {"notice", {
-		text = "You do not have permission to do that!",
-		error = true,
-	}})
 	return approved, details
-	--]]
-	return true, {}
 end
 
 function CommandService.executeStatement(callerUserId, statement)
