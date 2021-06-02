@@ -76,6 +76,15 @@ end
 
 -- EVENTS
 CommandService.recordAdded:Connect(function(commandName, record)
+	local args = record.args
+	if args then
+		for _, argName in pairs(args) do
+			local argItem = main.modules.Parser.Args.get(argName)
+			if not argItem then
+				warn(("Nanoblox: '%s' is not a valid arg name or alias!"):format(argName))
+			end
+		end
+	end
 	--warn(("COMMAND '%s' ADDED!"):format(commandName))
 end)
 

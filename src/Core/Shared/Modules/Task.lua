@@ -42,6 +42,7 @@ function Task.new(properties)
 	self.replicationRequestsThisSecond = 0
 	self.buffs = {}
 	self.originalArgReturnValues = {}
+	self.originalArgReturnValuesFromIndex = {}
 	self.trackingItems = {}
 	self.anchoredParts = {}
 	maid:give(function()
@@ -256,7 +257,8 @@ function Task:execute()
 			end
 			local i = #parsedArgs + 1
 			for _, argString in pairs(self.args) do
-				local argName = command.args[i]
+				local iNow = i
+				local argName = command.args[iNow]
 				local argItem = main.modules.Parser.Args.get(argName)
 				if argItem.playerArg then
 					argString = {
@@ -266,6 +268,7 @@ function Task:execute()
 				local promise = main.modules.Promise.defer(function(resolve)
 					local returnValue = argItem:parse(argString, self.callerUserId, self.targetUserId)
 					self.originalArgReturnValues[argItem.name] = returnValue
+					self.originalArgReturnValuesFromIndex[iNow] = returnValue
 					if returnValue == nil then
 						returnValue = argItem.defaultValue
 					end
@@ -273,11 +276,12 @@ function Task:execute()
 				end)
 				table.insert(promises, promise
 					:andThen(function(parsedArg)
-						table.insert(parsedArgs, parsedArg)
+						parsedArgs[iNow] = parsedArg
 					end)
 				)
 				i += 1
 			end
+			--parsedArgs["n"] = #self.command.args
 		end
 		main.modules.Promise.all(promises)
 			:finally(function()
@@ -635,10 +639,14 @@ function Task:clearBuffs()
 	self.buffs = {}
 end
 
-function Task:getOriginalArgValue(argName)
-	local argItem = main.modules.Parser.Args.get(argName)
-	local originalValue = self.originalArgReturnValues
-	--self.originalArgReturnValues
+function Task:getOriginalArg(argNameOrIndex)
+	local index = tonumber(argNameOrIndex)
+	if index then
+		return self.originalArgReturnValuesFromIndex[index]
+	end
+	local argItem = main.modules.Parser.Args.get(argNameOrIndex)
+	local originalValue = self.originalArgReturnValues[argItem.name]
+	return originalValue
 end
 
 

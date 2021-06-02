@@ -8,7 +8,7 @@ Args.array = {
 	{
 		name = "player",
 		aliases = {},
-		description = "",
+		description = "Accepts qualifiers (e.g. 'raza', '@ForeverHD', 'others' from ';paint raza,@ForeverHD,others'), calls the command *for each player*, and returns a single Player instance.",
 		playerArg = true,
 		executeForEachPlayer = true,
 		parse = function(self, qualifiers, callerUserId)
@@ -48,7 +48,7 @@ Args.array = {
 	{
 		name = "players",
 		aliases = {},
-		description = "",
+		description = "Accepts qualifiers (e.g. 'raza', '@ForeverHD', 'others' from ';paint raza,@ForeverHD,others') and returns an array of Player instances.",
 		playerArg = true,
 		executeForEachPlayer = false,
 		parse = function(self, qualifiers, callerUserId)
@@ -89,8 +89,9 @@ Args.array = {
 	-----------------------------------
 	{
 		name = "text",
-		aliases = { "string", "reason", "question", "teamname" },
-		description = "",
+		aliases = {"string", "reason", "question", "teamname"},
+		description = "Accepts a string and filters it based upon the caller and target.",
+		defaultValue = "",
 		parse = function(self, textToFilter, callerUserId, targetUserId)
 			-- This is asynchronous
 			local _, value = main.modules.ChatUtil.filterText(callerUserId, targetUserId, textToFilter):await()
@@ -100,10 +101,10 @@ Args.array = {
 
 	-----------------------------------
 	{
-		name = "code",
-		aliases = { "lua" },
-		description = "",
-		defaultValue = 0,
+		name = "unfilteredtext",
+		aliases = {"code", "lua"},
+		description = "Accepts a string and returns it unfiltered.",
+		defaultValue = "",
 		parse = function(self, stringToParse)
 			return stringToParse
 		end,
@@ -112,22 +113,23 @@ Args.array = {
 	-----------------------------------
 	{
 		name = "number",
-		aliases = { "integer", "studs", "speed", "intensity" },
-		description = "",
+		aliases = {"integer", "studs", "speed", "intensity"},
+		description = "Accepts a number string and returns a Number",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
-			return stringToParse
+			return nil
 			--return tonumber(stringToParse)
 		end,
 	},
 
 	-----------------------------------
 	{
-		name = "soundid", -- consider blocking soundids and a setting to achieve this
-		aliases = { "musicid" },
-		description = "",
+		name = "sound", -- consider blocking soundids and a setting to achieve this
+		aliases = {"music"},
+		description = "Accepts a soundId (aka a LibraryId) and returns the Sound instance if valid.",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
+			-- cache the sound item, and return the sound item
 			return stringToParse
 			-- verify is a sound, and the sound can play
 		end,
@@ -140,8 +142,8 @@ Args.array = {
 	{
 		name = "scale", -- Consider scale limits
 		aliases = {},
-		description = "",
-		defaultValue = 0,
+		description = "Accepts a number and returns a number which is considerate of scale limits.",
+		defaultValue = 1,
 		parse = function(self, stringToParse)
 
 		end,
@@ -152,11 +154,13 @@ Args.array = {
 
 	-----------------------------------
 	{
-		name = "gearid", -- Consider gear limits
+		name = "gear", -- Consider gear limits
 		aliases = {},
-		description = "",
+		displayName = "gearId",
+		description = "Accepts a gearId (aka a CatalogId) and returns the Tool instance if valid.",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
+			-- cache the gear item, and return the gear item
 			-- very asset type is a gear
 		end,
 		verifyCanUse = function(self, callerUser, stringToParse)
@@ -167,8 +171,8 @@ Args.array = {
 	-----------------------------------
 	{
 		name = "duration", -- returns the time string (such as 5s7d8h) in seconds
-		aliases = { "time", "durationtime", "timelength" },
-		description = "",
+		aliases = {"time", "durationtime", "timelength"},
+		description = "Accepts a timestring (such as '5s7d8h') and returns the integer equivalent in seconds. Timestring letters are: seconds(s), minutes(m), hours(h), days(d), weeks(w), months(o) and years(y).",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
 
@@ -179,8 +183,8 @@ Args.array = {
 	{
 		name = "degrees",
 		aliases = {},
-		description = "",
-		defaultValue = 180,
+		description = "Accepts a number and returns a value between 0 and 360.",
+		defaultValue = 0,
 		parse = function(self, stringToParse)
 
 		end,
@@ -190,8 +194,9 @@ Args.array = {
 	{
 		name = "role",
 		aliases = {},
-		description = "",
-		defaultValue = 0,
+		displayName = "roleName",
+		description = "Accepts a valid role name and returns the role object.",
+		defaultValue = "",
 		parse = function(self, stringToParse)
 
 		end,
@@ -200,9 +205,9 @@ Args.array = {
 	-----------------------------------
 	{
 		name = "color", -- have a predefined list of colors such as 'red', 'blue', etc which the user can reference. also consider rgb capsules
-		aliases = { "colour", "color3", "uigradient", "colorgradient", "gradient" },
-		description = "",
-		defaultValue = 0,
+		aliases = {"colour", "color3", "uigradient", "colorgradient", "gradient"},
+		description = "Accepts a color name (such as 'red'), a hex code (such as '#FF0000') or an RGB capsule (such as '[255,0,0]') and returns a Color3.",
+		defaultValue = Color3.fromRGB(255, 255, 255),
 		parse = function(self, stringToParse)
 			-- predifined terms like 'blue', 'red', etc
 			-- RGB codes such as '100,110,120'
@@ -215,9 +220,9 @@ Args.array = {
 	-----------------------------------
 	{
 		name = "optionalcolor",
-		aliases = { "optionalcolour", "optionalcolor3" },
-		description = "",
-		defaultValue = 0,
+		aliases = {"optionalcolour", "optionalcolor3"},
+		description = "Accepts a color name (such as 'red'), a hex code (such as '#FF0000') or an RGB capsule (such as '[255,0,0]') and returns a Color3.",
+		defaultValue = Color3.fromRGB(255, 255, 255),
 		hidden = true,
 		parse = function(self, stringToParse)
 		end,
@@ -226,9 +231,9 @@ Args.array = {
 	-----------------------------------
 	{
 		name = "bool",
-		aliases = { "boolean", "trueOrFalse", "yesOrNo" },
-		description = "",
-		defaultValue = 0,
+		aliases = {"boolean", "trueOrFalse", "yesOrNo"},
+		description = "Accepts 'true', 'false', 'yes' or 'no' and returns a boolean.",
+		defaultValue = false,
 		parse = function(self, stringToParse)
 		end,
 	},
@@ -236,29 +241,32 @@ Args.array = {
 	-----------------------------------
 	{
 		name = "stat", -- Consider making a setting to update this or set its pathway
-		aliases = { "statName" },
-		description = "",
-		defaultValue = 0,
+		aliases = {"statName"},
+		description = "Accepts a valid stat name and returns the stat.",
+		defaultValue = "",
 		parse = function(self, stringToParse)
+			-- maybe this should also be a statName
 		end,
 	},
 
 	-----------------------------------
 	{
-		name = "user",
-		aliases = { "username", "userid", "playerid", "playername" },
-		description = "",
-		defaultValue = 0,
-		parse = function(self, stringToParse)
-
-		end,
-	},
-
-	-----------------------------------
-	{
-		name = "playeroruser", -- returns a string instead of a player instance - it fist looks for a player in the server otherwise defaults to the given string
+		name = "userid",
 		aliases = {},
-		description = "",
+		displayName = "userNameOrId",
+		description = "Accepts an @userName, displayName or userId and returns a userId.",
+		defaultValue = "",
+		parse = function(self, stringToParse)
+
+		end,
+	},
+
+	-----------------------------------
+	{
+		name = "username", -- returns a string instead of a player instance - it fist looks for a player in the server otherwise defaults to the given string
+		aliases = {"playerOrUser"},
+		displayName = "userNameOrId",
+		description = "Accepts an @userName, displayName or userId and returns a username. It first checks the players of that server for a matching shorthand name and returns their userName if present.",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
 		end,
@@ -267,20 +275,36 @@ Args.array = {
 	-----------------------------------
 	{
 		name = "team",
+		displayName = "teamName",
 		aliases = {},
-		description = "",
+		description = "Accepts a valid team name and returns the team instance.",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
+			local stringToParseLower = string.lower(stringToParse)
+			for _,team in pairs(main.Teams:GetChildren()) do
+				local teamName = string.lower(team.Name)
+				if string.sub(teamName, 1, #stringToParseLower) == stringToParseLower then
+					return team
+				end
+			end
 		end,
 	},
 
 	-----------------------------------
 	{
 		name = "teamcolor",
+		displayName = "teamName",
 		aliases = {},
-		description = "",
+		description = "Accepts a valid team name and returns the teams TeamColor.",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
+			local stringToParseLower = string.lower(stringToParse)
+			for _,team in pairs(main.Teams:GetChildren()) do
+				local teamName = string.lower(team.Name)
+				if string.sub(teamName, 1, #stringToParseLower) == stringToParseLower then
+					return team.TeamColor
+				end
+			end
 		end,
 	},
 
@@ -288,19 +312,24 @@ Args.array = {
 	{
 		name = "material",
 		aliases = {},
-		description = "",
-		defaultValue = 0,
+		description = "Accepts a valid material and returns a Material enum.",
+		defaultValue = Enum.Material.Plastic,
 		parse = function(self, stringToParse)
+			local enumName = stringToParse:sub(1,1):upper()..stringToParse:sub(2):lower()
+			local success, enum = pcall(function() return Enum.Material[enumName] end)
+			return (success and enum)
 		end,
 	},
 
 	-----------------------------------
 	{
 		name = "tool",
-		aliases = { "gear", "item" },
-		description = "",
+		aliases = {"gear", "item"},
+		displayName = "toolName",
+		description = "Accepts a tool name that was present in either Nanoblox/Extensions/Tools, ServerStorage, ReplicatedStorage or Workspace upon the server initialising and returns the Tool instance",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
+			-- consider searching workspace, serverscriptservice, nanoblox, etc for that tool
 		end,
 	},
 
@@ -308,9 +337,11 @@ Args.array = {
 	{
 		name = "morph",
 		aliases = {},
-		description = "",
+		displayName = "morphName",
+		description = "Accepts a valid morph name and returns the morph",
 		defaultValue = 0,
 		parse = function(self, stringToParse)
+
 		end,
 	},
 
