@@ -246,16 +246,19 @@ function CommandService.chatCommand(callerUser, message)
 	print(callerUser.name, "chatted: ", message, batch)
 	if type(batch) == "table" then
 		for _, statement in pairs(batch) do
-			local approved, noticeDetails = CommandService.verifyStatement(callerUser, statement)
-			if approved then
-				CommandService.executeStatement(callerUserId, statement)
-			end
-			if callerPlayer then
-				for _, detail in pairs(noticeDetails) do
-					local method = main.services.MessageService[detail[1]]
-					method(callerPlayer, detail[2])
-				end
-			end
+			CommandService.verifyStatement(callerUser, statement)
+				:andThen(function(approved, noticeDetails)
+					if approved then
+						CommandService.executeStatement(callerUserId, statement)
+					end
+					if callerPlayer then
+						for _, detail in pairs(noticeDetails) do
+							local method = main.services.MessageService[detail[1]]
+							method(callerPlayer, detail[2])
+						end
+					end
+				end)
+				:catch()
 		end
 	end
 end
@@ -263,62 +266,74 @@ end
 function CommandService.verifyStatement(callerUser, statement)
 	local approved = true
 	local details = {}
+	local Promise = main.modules.Promise
+	local promises = {}
 
 	local jobId = statement.jobId
 	local statementCommands = statement.commands
 	local modifiers = statement.modifiers
 	local qualifiers = statement.qualifiers
 
-	-- This verifies the caller can use the given commands and associated arguments
-	if statementCommands then
+	-- argItem.verifyCanUse can sometimes be asynchronous therefore we return and resolve a Promise
+	return Promise.defer(function(resolve, reject)
+		if not statementCommands then
+			resolve(false, {})
+		end
+
+		-- This verifies the caller can use the given commands and associated arguments
 		for commandName, arguments in pairs(statementCommands) do
 			
 			-- Does the command exist
 			local command = main.services.CommandService.getCommand(commandName)
 			if not command then
-				return false, {{"notice", {
+				resolve(false, {{"notice", {
 					text = string.format("'%s' is an invalid command name!", commandName),
 					error = true,
-				}}}
+				}}})
 			end
 
 			-- Does the caller have permission to use it
 			local commandNameLower = string.lower(commandName)
-			if not main.services.RoleService.verifySetting(callerUser, "commands").has(commandNameLower) then
+			if not main.services.RoleService.verifySettings(callerUser, {"commands"}).have(commandNameLower) then
 				--!!! RE_ENABLE THIS
-				--[[return false, {{"notice", {
+				--[[resolve(false, {{"notice", {
 					text = string.format("You do not have permission to use command '%s'!", commandName),
 					error = true,
-				}}}--]]
+				}}})--]]
 			end
 
 			-- Does the caller have permission to use the associated arguments of the command
-			for i, argString in pairs(arguments) do
-				local argName = command.args[i]
-				local argItem = main.modules.Parser.Args.get(argName)
+			local argStringIndex = 0
+			for _, argNameOrAlias in pairs(command.args) do
+				local argItem = main.modules.Parser.Args.get(argNameOrAlias)
+				if argStringIndex == 0 and argItem.playerArg then
+					continue
+				end
+				argStringIndex += 1
+				local argString = arguments[argStringIndex]
 				if argItem.verifyCanUse then
 					local canUseArg, deniedReason = argItem:verifyCanUse(callerUser, argString)
 					if not canUseArg then
-						return false, {{"notice", {
+						resolve(false, {{"notice", {
 							text = deniedReason,
 							error = true,
-						}}}
+						}}})
 					end
 				end
 			end
 
 		end
-	end
 
-	-- This adds an additional notification if global as these commands can take longer to execute
-	if modifiers.global then
-		table.insert(details, {"notice", {
-			text = "Executing global command...",
-			error = false,
-		}})
-	end
+		-- This adds an additional notification if global as these commands can take longer to execute
+		if modifiers and modifiers.global then
+			table.insert(details, {"notice", {
+				text = "Executing global command...",
+				error = false,
+			}})
+		end
 
-	return approved, details
+		resolve(approved, details)
+	end)
 end
 
 function CommandService.executeStatement(callerUserId, statement)

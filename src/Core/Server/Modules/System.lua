@@ -244,11 +244,16 @@ function System.new(name, ignoreTempChanges)
 					local generateRecord = self.generateRecord
 					if generateRecord then
 						local defaultRecord = generateRecord(recordKey)
-						for k, v in pairs(defaultRecord) do
-							if newRecord[k] == nil then
-								newRecord[k] = v
+						local function compareAndUpdateTables(defaultTable, newTable)
+							for k, v in pairs(defaultTable) do
+								if newTable[k] == nil then
+									newTable[k] = v
+								elseif typeof(v) == "table" and typeof(newTable[k]) == "table" then
+									compareAndUpdateTables(v, newTable[k])
+								end
 							end
 						end
+						compareAndUpdateTables(defaultRecord, newRecord)
 					end
 					-- Mark record as global if present within config
 					if main.config[self.name] and main.config[self.name][recordKey] ~= nil and user.temp[recordKey]._global == nil then

@@ -1,19 +1,19 @@
 -- LOCAL
 local main = require(game.Nanoblox)
 local System = main.modules.System
-local SettingsService = System.new("Settings")
+local SettingService = System.new("Settings")
 
 
 
 -- EVENTS
-SettingsService.recordChanged:Connect(function(groupName, statName, value)
+SettingService.recordChanged:Connect(function(groupName, statName, value)
 	
 end)
 
 
 
 -- METHODS
-function SettingsService.generateRecord(key)
+function SettingService.generateRecord(key)
 	local defaultRecords = {
 		---------------------------
 		["Player"] = {
@@ -38,17 +38,19 @@ function SettingsService.generateRecord(key)
 		---------------------------
 		["System"] = {
 			
-			libraryIDs = { -- Gear, Sounds, Images, etc
-				denylist = {},
-				allowlist = {},
-			},
-			catalogIDs = { -- Accessories, Faces, etc
-				denylist = {},
-				allowlist = {},
-			},
-			bundleIDs = { -- Bundles
-				denylist = {},
-				allowlist = {},
+			restrictedIDs = {
+				library = { -- Sounds, Images, Models, etc
+					denylist = {["0000"] = true,},
+					allowlist = {},
+				},
+				catalog = { -- Gear, Accessories, Faces, etc
+					denylist = {},
+					allowlist = {},
+				},
+				bundle = { -- Bundles
+					denylist = {},
+					allowlist = {},
+				},
 			},
 
 			-- Commands
@@ -79,8 +81,8 @@ function SettingsService.generateRecord(key)
 	return defaultRecords[key]
 end
 
-function SettingsService.getPlayerSetting(settingName, optionalUser)
-	local group = SettingsService.getGroup("Player")
+function SettingService.getPlayerSetting(settingName, optionalUser)
+	local group = SettingService.getGroup("Player")
 	local settingValue
 	if optionalUser then
 		local playerSettings = optionalUser.perm:getOrSetup("playerSettings")
@@ -92,44 +94,69 @@ function SettingsService.getPlayerSetting(settingName, optionalUser)
 	return settingValue
 end
 
-function SettingsService.updatePlayerSetting(settingName, settingValue, optionalUser)
+function SettingService.updatePlayerSetting(settingName, settingValue, optionalUser)
 	if optionalUser ~= nil then
 		local playerSettings = optionalUser.perm:getOrSetup("playerSettings")
 		playerSettings:set(settingName, settingValue)
 	else
-		SettingsService.updateGroup("Player", {
+		SettingService.updateGroup("Player", {
 			[settingName] = settingValue
 		})
 	end
 end
 
-function SettingsService.getSystemSetting(settingName)
-	local group = SettingsService.getGroup("System")
+function SettingService.getSystemSetting(settingName)
+	local group = SettingService.getGroup("System")
 	local settingValue = group[settingName]
 	return settingValue
 end
 
-function SettingsService.updateSystemSetting(settingName, settingValue)
-	SettingsService.updateGroup("System", {
+function SettingService.updateSystemSetting(settingName, settingValue)
+	SettingService.updateGroup("System", {
 		[settingName] = settingValue
 	})
 end
 
-function SettingsService.getGroup(groupName)
-	return SettingsService:getRecord(groupName)
+function SettingService.getGroup(groupName)
+	return SettingService:getRecord(groupName)
 end
 
-function SettingsService.getGroups()
-	return SettingsService:getRecords()
+function SettingService.getGroups()
+	return SettingService:getRecords()
 end
 
-function SettingsService.updateGroup(groupName, propertiesToUpdate)
+function SettingService.updateGroup(groupName, propertiesToUpdate)
 	local key = tostring(groupName)
 	--propertiesToUpdate["_global"] = true
-	SettingsService:updateRecord(key, propertiesToUpdate)
+	SettingService:updateRecord(key, propertiesToUpdate)
+	return true
+end
+
+function SettingService.verifyCanUseRestrictedID(user, groupName, ID)
+	-- Check group exists
+	local groupNameLower = tostring(groupName):lower()
+	local restrictedIDs = SettingService.getSystemSetting("restrictedIDs")
+	local group = restrictedIDs[groupNameLower]
+	if not group then
+		error(("Attempt to check for a non-existent group '%s'"):format(tostring(groupName)))
+	end
+	local stringID = tostring(ID)
+	local groupNameUpper = groupNameLower:sub(1,1):upper()..groupNameLower:sub(2)
+	-- Check if denylisted
+	if main.services.RoleService.verifySettings(user, {"limit", "denylistedIDs"}).areAll(true) then
+		if group.denylist[stringID] then
+			return false, string.format("'%s' is a denied %sID!", stringID, groupNameUpper)
+		end
+	end
+	-- Check if allowlisted
+	if main.services.RoleService.verifySettings(user, {"limit", "toAllowlistedIDs"}).areAll(true) then
+		if not group.allowlist[stringID] then
+			return false, string.format("'%s' is not an allowed %sID!", stringID, groupNameUpper)
+		end
+	end
 	return true
 end
 
 
 
-return SettingsService
+return SettingService

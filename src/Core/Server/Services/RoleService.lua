@@ -51,7 +51,7 @@ end)
 -- PLAYERSERVICE METHOD EVENTS
 function RoleService.userLoadedMethod(user)
 	--------- !!!test
-	RoleService.giveRoles(user, {"Mod", "Admin", "Basic"})
+	RoleService.giveRoles(user, {"Manager"})
 	---------
 	RoleService.updateRoleInformation(user)
 	user.isRolesLoaded = true
@@ -124,7 +124,7 @@ function RoleService.generateRecord()
 			executionCooldown = false,
 			scaleSize = true,
 			denylistedIDs = true,
-			allowlistedIDs = false,
+			toAllowlistedIDs = false,
 		},
 		commandsPerIntervalRefresh = 20,
 		commandsPerIntervalAmount = 20,
@@ -352,24 +352,67 @@ function RoleService.isJunior(roleA, roleB)
 	return roleA.roleOrder > roleB.roleOrder
 end
 
-function RoleService.verifySetting(user, ...)
+function RoleService.verifySettings(user, ...)
 	local roleInformation = user.temp:get("roleInformation")
-	local environment = roleInformation and roleInformation._collectiveEnvironment
-	local settingInfo = roleInformation and roleInformation:get(...)
-	local methods = {}
-	function methods.is(value)
-		if settingInfo and settingInfo[tostring(value)] then
-			return true, environment
-		end
-		return false, environment
+	local combinedSettingInfo = {}
+	local groups = {...}
+	if typeof(groups[1]) ~= "table" then
+		groups = {groups}
 	end
-	function methods.has(value)
-		if settingInfo and settingInfo[tostring(value)] then
-			return true, environment
+	if roleInformation then
+		for _, group in pairs(groups) do
+			local settingInfo = roleInformation:get(unpack(group))
+			if settingInfo then
+				for k,v in pairs(settingInfo) do
+					combinedSettingInfo[k] = v
+				end
+			end
 		end
-		return false, environment
+	end
+	local methods = {}
+	function methods.areSome(value)
+		if combinedSettingInfo[tostring(value)] then
+			return true
+		end
+		return false
+	end
+	function methods.areSomeNot(value)
+		local stringValue = tostring(value)
+		for settingValue, _ in pairs(combinedSettingInfo) do
+			if settingValue ~= stringValue then
+				return true
+			end
+		end
+		return false
+	end
+	function methods.areAll(value)
+		local stringValue = tostring(value)
+		for settingValue, _ in pairs(combinedSettingInfo) do
+			if settingValue ~= stringValue then
+				return false
+			end
+		end
+		return true
+	end
+	function methods.areAllNot(value)
+		if combinedSettingInfo[tostring(value)] == nil then
+			return true
+		end
+		return false
+	end
+	function methods.have(value)
+		if combinedSettingInfo[tostring(value)] then
+			return true
+		end
+		return false
 	end
 	return methods
+end
+
+function RoleService.getEnvironment(user)
+	local roleInformation = user.temp:get("roleInformation")
+	local environment = roleInformation and roleInformation._collectiveEnvironment
+	return environment
 end
 
 function RoleService.updateRoleInformation(user)
@@ -421,7 +464,7 @@ function RoleService.updateRoleInformation(user)
 	end
 	user.temp:set("roleInformation", information)
 end
-RoleService.updateRoleInformation = main.modules.FunctionUtil.preventMultiFrameUpdates(RoleService.updateRoleInformation)
+--RoleService.updateRoleInformation = main.modules.FunctionUtil.preventMultiFrameUpdates(RoleService.updateRoleInformation)
 
 function RoleService.getHighestSetting(user, ...)
 	local userRoles = user.temp.roles or {}
@@ -436,6 +479,8 @@ function RoleService.giveRoles(user, arrayOfRoleNamesOrUIDs, roleType)
 		local role = RoleService.getRole(roleNameOrUID)
 		if role then
 			role:give(user, roleType)
+		else
+			warn(("Nanoblox: failed to give role '%s'; role does not exist!"):format(roleNameOrUID))
 		end
 	end
 end
