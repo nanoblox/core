@@ -17,7 +17,7 @@ Command.requiresRig = main.enum.HumanoidRigType.None -- 'None' can be changed to
 Command.preventRepeats = main.enum.TriStateSetting.Default -- prevents two of the same commands being used on the same user or server at once
 Command.revokeRepeats = false -- before creating the task, remove all tasks with the same commandName for the associated user or server
 Command.persistence = main.enum.Persistence.None -- when set to 'None', the command will revoke after being invoked - to change this, replace 'None' with 'UntilRevoke', UntilPlayerDies', 'UntilPlayerRespawns', 'UntilPlayerLeaves', 'UntilCallerLeaves' or 'UntilPlayerOrCallerLeave'
-Command.args = {"Player", "Stat", "StatValue"} -- the arguments to be processed and passed through the the command; see the 'Args' module for a list of all arguments
+Command.args = {"Player", "Stat", "Text"} -- the arguments to be processed and passed through the the command; see the 'Args' module for a list of all arguments
 
 function Command.invoke(task, args)
 	local _, stat, value = unpack(args)
