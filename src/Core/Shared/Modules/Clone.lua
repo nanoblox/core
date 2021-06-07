@@ -4,7 +4,13 @@ local main = require(game.Nanoblox)
 local storageName = ("NanobloxCloneStorage (%s)"):format(main.location)
 local CollisionUtil = main.modules.CollisionUtil
 local Clone = {}
-Clone.__index = Clone
+Clone.__index = function(table, index)
+    local objectIndex = Clone[index]
+    if objectIndex then
+        return objectIndex
+    end
+    --return rawget(table, "clone")
+end
 Clone.spawnOffset = SPAWN_OFFSET
 Clone.storageName = "NanobloxCloneStorage"
 Clone.workspaceStorage = nil
@@ -847,6 +853,7 @@ function Clone:destroy()
         self.destroyedSignal:Destroy()
     end
 end
+Clone.Destroy = Clone.destroy
 
 
 

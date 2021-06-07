@@ -31,9 +31,9 @@ end
 
 -- enumName, enumValue, additionalProperty
 return {
-	{"None ", 1},
+	{"None", 1},
 	
-	{"Individual ", 2, function(player, definedPool)
+	{"Individual", 2, function(player, definedPool)
 		local newPlayer = unpack(getArrayOfPlayers(definedPool, function(plrToCheck)
 			return plrToCheck == player
 		end))

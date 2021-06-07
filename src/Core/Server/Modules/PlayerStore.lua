@@ -1,4 +1,5 @@
 local main = require(game.Nanoblox)
 local UserStore = require(main.shared.Packages.UserStore)
-local PlayerStore = UserStore.new("Nanoblox new G")
+local dataStoreName = "NanobloxPlayerData"
+local PlayerStore = UserStore.new(dataStoreName)
 return PlayerStore

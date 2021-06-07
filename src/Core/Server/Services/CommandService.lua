@@ -3,7 +3,6 @@ local main = require(game.Nanoblox)
 local System = main.modules.System
 local CommandService = System.new("Commands")
 CommandService.remotes = {}
-local systemUser = CommandService.user
 
 
 
@@ -17,12 +16,9 @@ end
 
 
 
--- PLAYER LOADED
-function CommandService.playerLoadedMethod(player)
-	local user = main.modules.PlayerStore:getLoadedUser(player)
-	if user then
-		CommandService.setupParsePatterns(user)
-	end
+-- PLAYER USER LOADED
+function CommandService.userLoadedMethod(user)
+	CommandService.setupParsePatterns(user)
 end
 
 
@@ -80,6 +76,15 @@ end
 
 -- EVENTS
 CommandService.recordAdded:Connect(function(commandName, record)
+	local args = record.args
+	if args then
+		for _, argName in pairs(args) do
+			local argItem = main.modules.Parser.Args.get(argName)
+			if not argItem then
+				warn(("Nanoblox: '%s' is not a valid arg name or alias!"):format(argName))
+			end
+		end
+	end
 	--warn(("COMMAND '%s' ADDED!"):format(commandName))
 end)
 
@@ -198,7 +203,8 @@ function CommandService.setupParsePatterns(user)
 		},
 	}
 	local validSettingNames = {}
-	user.perm.playerSettings.changed:Connect(function(settingName, value)
+	local playerSettings = user.perm:getOrSetup("playerSettings")
+	playerSettings.changed:Connect(function(settingName, value)
 		if validSettingNames[settingName] then
 			user.temp.parsePatterns:set(settingName, value)
 		end
@@ -212,9 +218,10 @@ function CommandService.setupParsePatterns(user)
 	end
 end
 
-function CommandService.createFakeUser()
+function CommandService.createFakeUser(userId)
+	local DEFAULT_USER_ID = 1
 	local user = {}
-	user.userId = 1
+	user.userId = userId or DEFAULT_USER_ID
 	user.name = "Server"
 	user.displayName = "Server"
 	user.perm = main.modules.State.new({
@@ -227,6 +234,7 @@ function CommandService.createFakeUser()
 	user.temp = main.modules.State.new(nil, true)
 	user.roles = {}
 	CommandService.setupParsePatterns(user)
+	-- if DEFAULT_USER_ID then get creator role, else use RoleService
 	main.services.RoleService.getCreatorRole():give(user, main.enum.RoleType.Server)
 	return user
 end
@@ -238,49 +246,94 @@ function CommandService.chatCommand(callerUser, message)
 	print(callerUser.name, "chatted: ", message, batch)
 	if type(batch) == "table" then
 		for _, statement in pairs(batch) do
-			local approved, noticeDetails = CommandService.verifyStatement(callerUserId, statement)
-			if approved then
-				CommandService.executeStatement(callerUserId, statement)
-					:andThen(function(tasks)
-						print("TASKS = ", tasks)
-					end)
-			end
-			if callerPlayer then
-				for _, detail in pairs(noticeDetails) do
-					local method = main.services.MessageService[detail[1]]
-					method(callerPlayer, detail[2])
-				end
-			end
+			CommandService.verifyStatement(callerUser, statement)
+				:andThen(function(approved, noticeDetails)
+					if approved then
+						CommandService.executeStatement(callerUserId, statement)
+					end
+					if callerPlayer then
+						for _, detail in pairs(noticeDetails) do
+							local method = main.services.MessageService[detail[1]]
+							method(callerPlayer, detail[2])
+						end
+					end
+				end)
+				:catch()
 		end
 	end
 end
 
-function CommandService.verifyStatement(callerUserId, statement)
-	--[[
+function CommandService.verifyStatement(callerUser, statement)
 	local approved = true
 	local details = {}
+	local Promise = main.modules.Promise
+	local promises = {}
 
 	local jobId = statement.jobId
 	local statementCommands = statement.commands
 	local modifiers = statement.modifiers
 	local qualifiers = statement.qualifiers
-	
-	-- Global
-	if modifiers.global then
-		table.insert(details, {"notice", {
-			text = "Executing global command...",
-			error = true,
-		}})
-	end
 
-	-- !!! Error example
-	table.insert(details, {"notice", {
-		text = "You do not have permission to do that!",
-		error = true,
-	}})
-	return approved, details
-	--]]
-	return true, {}
+	-- argItem.verifyCanUse can sometimes be asynchronous therefore we return and resolve a Promise
+	return Promise.defer(function(resolve, reject)
+		if not statementCommands then
+			resolve(false, {})
+		end
+
+		-- This verifies the caller can use the given commands and associated arguments
+		for commandName, arguments in pairs(statementCommands) do
+			
+			-- Does the command exist
+			local command = main.services.CommandService.getCommand(commandName)
+			if not command then
+				resolve(false, {{"notice", {
+					text = string.format("'%s' is an invalid command name!", commandName),
+					error = true,
+				}}})
+			end
+
+			-- Does the caller have permission to use it
+			local commandNameLower = string.lower(commandName)
+			if not main.services.RoleService.verifySettings(callerUser, "commands").have(commandNameLower) then
+				--!!! RE_ENABLE THIS
+				--[[resolve(false, {{"notice", {
+					text = string.format("You do not have permission to use command '%s'!", commandName),
+					error = true,
+				}}})--]]
+			end
+
+			-- Does the caller have permission to use the associated arguments of the command
+			local argStringIndex = 0
+			for _, argNameOrAlias in pairs(command.args) do
+				local argItem = main.modules.Parser.Args.get(argNameOrAlias)
+				if argStringIndex == 0 and argItem.playerArg then
+					continue
+				end
+				argStringIndex += 1
+				local argString = arguments[argStringIndex]
+				if argItem.verifyCanUse then
+					local canUseArg, deniedReason = argItem:verifyCanUse(callerUser, argString)
+					if not canUseArg then
+						resolve(false, {{"notice", {
+							text = deniedReason,
+							error = true,
+						}}})
+					end
+				end
+			end
+
+		end
+
+		-- This adds an additional notification if global as these commands can take longer to execute
+		if modifiers and modifiers.global then
+			table.insert(details, {"notice", {
+				text = "Executing global command...",
+				error = false,
+			}})
+		end
+
+		resolve(approved, details)
+	end)
 end
 
 function CommandService.executeStatement(callerUserId, statement)
@@ -339,14 +392,17 @@ function CommandService.executeStatement(callerUserId, statement)
 			properties.qualifiers = statement.qualifiers or properties.qualifiers
 			table.insert(tasks, main.services.TaskService.createTask(addToPerm, properties))
 		else
-			table.insert(promises, Promise.new(function(resolve)
+			table.insert(promises, Promise.defer(function(resolve)
 				local targets = Args.get("player"):parse(statement.qualifiers, callerUserId)
 				for _, plr in pairs(targets) do
 					properties.targetUserId = plr.UserId
-					table.insert(tasks, main.services.TaskService.createTask(addToPerm, properties))
+					local task = main.services.TaskService.createTask(addToPerm, properties)
+					if task then
+						table.insert(tasks, task)
+					end
 				end
 				resolve()
-			end))
+			end):catch(warn))
 		end
 	end
 	return Promise.all(promises)

@@ -244,11 +244,16 @@ function System.new(name, ignoreTempChanges)
 					local generateRecord = self.generateRecord
 					if generateRecord then
 						local defaultRecord = generateRecord(recordKey)
-						for k, v in pairs(defaultRecord) do
-							if newRecord[k] == nil then
-								newRecord[k] = v
+						local function compareAndUpdateTables(defaultTable, newTable)
+							for k, v in pairs(defaultTable) do
+								if newTable[k] == nil then
+									newTable[k] = v
+								elseif typeof(v) == "table" and typeof(newTable[k]) == "table" then
+									compareAndUpdateTables(v, newTable[k])
+								end
 							end
 						end
+						compareAndUpdateTables(defaultRecord, newRecord)
 					end
 					-- Mark record as global if present within config
 					if main.config[self.name] and main.config[self.name][recordKey] ~= nil and user.temp[recordKey]._global == nil then
@@ -338,7 +343,7 @@ function System.new(name, ignoreTempChanges)
 				if type(newPropValue) == "table" then
 					newPropValue = TableUtil.copy(newPropValue)
 				end
-				self.records[recordKey][propName] = newPropValue
+				self.records[recordKey]:set(propName, newPropValue)--self.records[recordKey][propName] = newPropValue
 				-- Data may change rapidly - flter these rapid changes and only
 				-- show the last request
 				local actionUID = DataUtil.generateUID()
@@ -496,9 +501,21 @@ function System:updateRecord(key, propertiesToUpdate)
 	end
 	--
 	local data = (newGlobal == true and user.perm) or user.temp
+	--[[
 	for propName, propValue in pairs(propertiesToUpdate) do
 		data:getOrSetup(key):set(propName, propValue)
+	end--]]
+	local function setData(tableToUpdate, vauesToBeApplied)
+		for propName, propValue in pairs(vauesToBeApplied) do
+			local subTable = tableToUpdate:getOrSetup(key)
+			if false then--typeof(subTable:get(propName)) == "table" and typeof(propValue) == "table" then
+				setData(subTable, propValue)
+			else
+				subTable:set(propName, propValue)
+			end
+		end
 	end
+	setData(data, propertiesToUpdate)
 	return data
 end
 

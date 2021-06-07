@@ -27,6 +27,7 @@ function Task.new(properties)
 	end
 	
 	self.command = (main.isServer and main.services.CommandService.getCommand(self.commandName)) or main.modules.ClientCommands.get(self.commandName)
+	self.commandName = (main.isServer and self.command.name) or self.commandName
 	self.threads = {}
 	self.isPaused = false
 	self.isDead = false
@@ -41,6 +42,13 @@ function Task.new(properties)
 	self.totalReplicationRequests = 0
 	self.replicationRequestsThisSecond = 0
 	self.buffs = {}
+	self.originalArgReturnValues = {}
+	self.originalArgReturnValuesFromIndex = {}
+	self.trackingItems = {}
+	self.anchoredParts = {}
+	maid:give(function()
+		self.anchoredParts = nil
+	end)
 
 	local qualifierPresent = false
 	if self.qualifiers then
@@ -110,9 +118,7 @@ function Task.new(properties)
 				end
 				registerCharacter(char)
 			end))
-			main.modules.Thread.spawn(function()
-				registerCharacter(targetPlayer.Character)
-			end)
+			main.modules.Thread.spawn(registerCharacter, targetPlayer.Character)
 		end
 	end
 
@@ -250,21 +256,38 @@ function Task:execute()
 				parsedArgs = {}
 				additional[1] = parsedArgs
 			end
+			local firstAlreadyParsedArg = parsedArgs[1]
 			local i = #parsedArgs + 1
-			for _, argString in pairs(self.args) do
-				local argName = command.args[i]
+			for _, _ in pairs(command.args) do
+				local iNow = i
+				local argName = command.args[iNow]
 				local argItem = main.modules.Parser.Args.get(argName)
+				if not argItem then
+					break
+				end
+				local argStringIndex = (firstAlreadyParsedArg and iNow - 1) or iNow
+				local argString = self.args[argStringIndex] or ""
 				if argItem.playerArg then
 					argString = {
 						[argString] = {}
 					}
 				end
-				local promise = main.modules.Promise.new(function(resolve, reject)
-					resolve(argItem:parse(argString, self.callerUserId, self.targetUserId))
+				local promise = main.modules.Promise.defer(function(resolve)
+					local returnValue = argItem:parse(argString, self.callerUserId, self.targetUserId)
+					resolve(returnValue)
 				end)
 				table.insert(promises, promise
-					:andThen(function(parsedArg)
-						table.insert(parsedArgs, parsedArg)
+					:andThen(function(returnValue)
+						return returnValue
+					end)
+					:catch(warn)
+					:andThen(function(returnValue)
+						self.originalArgReturnValues[argItem.name] = returnValue
+						self.originalArgReturnValuesFromIndex[iNow] = returnValue
+						if returnValue == nil then
+							returnValue = argItem.defaultValue
+						end
+						parsedArgs[iNow] = returnValue
 					end)
 				)
 				i += 1
@@ -342,6 +365,11 @@ function Task:execute()
 end
 
 function Task:track(threadOrTween, countPropertyName, completedSignalName)
+	local threadType = typeof(threadOrTween)
+	local isAPromise = threadType == "table" and threadOrTween.getStatus
+	if not isAPromise and not ((threadType == "Instance" or threadType == "table") and threadOrTween.PlaybackState) then
+		error("Can only track Threads, Tweens or Promises!")
+	end
 	local newCountPropertyName = countPropertyName or "totalExecutionThreads"
 	local newCompletedSignalName = completedSignalName or "executionThreadsCompleted"
 	if not self[newCountPropertyName] then
@@ -350,7 +378,6 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 	if not self[newCompletedSignalName] then
 		self[newCompletedSignalName] = self.maid:give(Signal.new())
 	end
-	local isAPromise = typeof(threadOrTween) == "table" and threadOrTween.getStatus
 	local promiseIsStarting = isAPromise and threadOrTween:getStatus() == main.modules.Promise.Status.Started
 	if isAPromise then
 		if self.isDead and promiseIsStarting then
@@ -389,7 +416,7 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 						end
 					end
 					if main.modules.Maid.isValidType(potentialItem) then
-						self.maid:give(potentialItem)
+						self:give(potentialItem)
 					end
 				end
 				maybeAddItemToMaid(items)
@@ -419,9 +446,31 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 	return threadOrTween
 end
 
+function Task:_setItemAnchored(item, bool)
+	local function setAnchored(part)
+		local originalValue = self.anchoredParts[part]
+		if part:IsA("BasePart") then
+			if (bool == true and originalValue == nil) then
+				self.anchoredParts[part] = part.Anchored
+				part.Anchored = true
+			elseif originalValue ~= nil then
+				self.anchoredParts[part] = nil
+				part.Anchored = originalValue
+			end
+		end
+		for _, child in pairs(part:GetChildren()) do
+			setAnchored(child)
+		end
+	end
+	setAnchored(item)
+end
+
 function Task:pause()
 	for thread, _ in pairs(self.threads) do
 		thread:Pause() --thread:pause()
+	end
+	for item, _ in pairs(self.trackingItems) do
+		self:_setItemAnchored(item, true)
 	end
 	if main.isServer then
 		self:pauseAllClients()
@@ -432,6 +481,9 @@ end
 function Task:resume()
 	for thread, _ in pairs(self.threads) do
 		thread:Play() --thread:resume()
+	end
+	for item, _ in pairs(self.trackingItems) do
+		self:_setItemAnchored(item, false)
 	end
 	if main.isServer then
 		self:resumeAllClients()
@@ -477,6 +529,52 @@ function Task:give(item)
 		main.modules.Thread.spawn(function()
 			self.maid:clear()
 		end)
+	end
+	local function trackInstance(instance)
+		self.trackingItems[instance] = true
+		if instance:IsA("Tool") then
+			-- It's important to unequp the humanoid and delay the destroyal of tools to give enough
+			-- time for the gears effects to reset (as tools often contain Scripts and LocalScripts directly inside)
+			self.maid:give(function()
+				local humanoid = instance.Parent and instance.Parent:FindFirstChild("Humanoid")
+				if humanoid then
+					humanoid:UnequipTools()
+					for _ = 1, 4 do
+						main.RunService.Heartbeat:Wait()
+					end
+				end
+				instance:Destroy()
+			end)
+			return
+		end
+		self.maid:give(function()
+			self.trackingItems[instance] = nil
+		end)
+	end
+	local itemType = typeof(item)
+	-- trackInstance() tracks all relavent instances so that they can be Anchored/Unanchored when a task is paused/resumed
+	if itemType == "Instance" then
+		trackInstance(item)
+	elseif itemType == "table" then
+		-- This is to track custom objects like 'Clone' which contain the model within the table
+		local MAX_DEPTH = 2
+		local function trackSurfaceLevelInstances(object, depth)
+			depth = depth or 0
+			depth += 1
+			if depth > MAX_DEPTH then
+				return
+			end
+			local objectType = typeof(object)
+			if objectType == "Instance" then
+				trackInstance(object)
+				return
+			elseif objectType == "table" then
+				for _, value in pairs(object) do
+					trackSurfaceLevelInstances(value, depth)
+				end
+			end
+		end
+		trackSurfaceLevelInstances(item)
 	end
 	return self.maid:give(item)
 end
@@ -566,6 +664,15 @@ function Task:clearBuffs()
 	self.buffs = {}
 end
 
+function Task:getOriginalArg(argNameOrIndex)
+	local index = tonumber(argNameOrIndex)
+	if index then
+		return self.originalArgReturnValuesFromIndex[index]
+	end
+	local argItem = main.modules.Parser.Args.get(argNameOrIndex)
+	local originalValue = self.originalArgReturnValues[argItem.name]
+	return originalValue
+end
 
 
 -- SERVER NETWORKING METHODS

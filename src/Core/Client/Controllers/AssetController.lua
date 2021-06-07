@@ -84,7 +84,7 @@ function AssetController._getAssets(remote, commandName, ...)
         end
     end
     if cachedCount == #assetNamesArray then
-        return main.modules.Promise.new(function(resolve)
+        return main.modules.Promise.defer(function(resolve)
             local assets = {}
             for _, assetName in pairs(assetNamesArray) do
                 local asset = cachedAssets[assetName]:Clone()
@@ -96,7 +96,7 @@ function AssetController._getAssets(remote, commandName, ...)
     local finalArgsToPass = (commandName and {commandName, assetNamesArray}) or {assetNamesArray}
     return remote:invokeServer(unpack(finalArgsToPass))
         :andThen(function(success, assetsOrWarning, locations)
-            return main.modules.Promise.new(function(resolve, reject)
+            return main.modules.Promise.defer(function(resolve, reject)
                 if success then
                     AssetController.cacheAssets(assetsOrWarning, locations)
                     resolve(assetsOrWarning)

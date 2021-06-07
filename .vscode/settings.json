@@ -1,5 +1,8 @@
 {
     "Lua.diagnostics.globals": [
         "remodel"
+    ],
+    "Lua.diagnostics.disable": [
+        "unused-function"
     ]
 }

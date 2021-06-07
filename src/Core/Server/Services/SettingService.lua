@@ -1,19 +1,44 @@
 -- LOCAL
 local main = require(game.Nanoblox)
 local System = main.modules.System
-local SettingsService = System.new("Settings")
+local SettingService = System.new("Settings")
 
 
 
 -- EVENTS
-SettingsService.recordChanged:Connect(function(groupName, statName, value)
+SettingService.recordChanged:Connect(function(groupName, statName, value)
 	
 end)
 
 
 
+-- LOADED
+function SettingService.loaded()
+	--local colorsTable = SettingService.records.System.colors
+	SettingService.records.System.colors:setTable("lowerCaseColorNames", function()
+		local dictionary = {}
+		--!!!print("Update colors dictionary...")
+		for colorName, colorValue in pairs(SettingService.records.System.colors) do
+			dictionary[colorName:lower()] = colorValue
+		end
+		return dictionary
+	end)
+	--[[
+	spawn(function()
+		wait(7)
+		print("ADD MELON COLOR")
+		--SettingService.records.System.colors:set("Ayyy (1)", Color3.fromRGB(0, 250, 21))
+		SettingService.updateSystemSetting("colors", {
+			A0005 = Color3.fromRGB(0, 250, 21)
+		})
+	end)
+	--]]
+end
+
+
+
 -- METHODS
-function SettingsService.generateRecord(key)
+function SettingService.generateRecord(key)
 	local defaultRecords = {
 		---------------------------
 		["Player"] = {
@@ -32,24 +57,25 @@ function SettingsService.generateRecord(key)
 			
 			theme = "",
 			backgroundTransparency 	= 0.1,
-			--]]
 		},
 		
 		
 		---------------------------
 		["System"] = {
 			
-			libraryIDs = { -- Gear, Sounds, Images, etc
-				denylist = {},
-				allowlist = {},
-			},
-			catalogIDs = { -- Accessories, Faces, etc
-				denylist = {},
-				allowlist = {},
-			},
-			bundleIDs = { -- Bundles
-				denylist = {},
-				allowlist = {},
+			restrictedIDs = {
+				library = { -- Sounds, Images, Models, etc
+					denylist = {["0000"] = true,},
+					allowlist = {},
+				},
+				catalog = { -- Gear, Accessories, Faces, etc
+					denylist = {},
+					allowlist = {},
+				},
+				bundle = { -- Bundles
+					denylist = {},
+					allowlist = {},
+				},
 			},
 
 			-- Commands
@@ -65,6 +91,28 @@ function SettingsService.generateRecord(key)
 			globalBanUsers = true,
 			warnsToGlobalBan = 5,
 			globalBanTime = 172800, -- 2 days
+
+			-- Colors to be used for the Color arg
+			colors = {
+				["Red"]	= Color3.fromRGB(255, 0, 0),
+				["Orange"] = Color3.fromRGB(250, 100, 0),
+				["Yellow"] = Color3.fromRGB(255, 255, 0),
+				["Green"] = Color3.fromRGB(0, 255, 0),
+				["DarkGreen"] = Color3.fromRGB(0, 125, 0),
+				["Blue"] = Color3.fromRGB(0, 255, 255),
+				["DarkBlue"] = Color3.fromRGB(0, 50, 255),
+				["Purple"] = Color3.fromRGB(150, 0, 255),
+				["Pink"] = Color3.fromRGB(255, 85, 185),
+				["Black"] = Color3.fromRGB(0, 0, 0),
+				["White"] = Color3.fromRGB(255, 255, 255),
+			},
+
+			-- Environments
+			createPrivateEnvironmentIfA = {
+				privateServer = true,
+				reservedServer = true,
+				normalServer = true,
+			},
 		}
 		
 		
@@ -73,11 +121,12 @@ function SettingsService.generateRecord(key)
 	return defaultRecords[key]
 end
 
-function SettingsService.getPlayerSetting(settingName, optionalUser)
-	local group = SettingsService.getGroup("Player")
+function SettingService.getPlayerSetting(settingName, optionalUser)
+	local group = SettingService.getGroup("Player")
 	local settingValue
 	if optionalUser then
-		settingValue = optionalUser.perm.playerSettings:get(settingName)
+		local playerSettings = optionalUser.perm:getOrSetup("playerSettings")
+		settingValue = playerSettings:get(settingName)
 	end
 	if settingValue == nil then
 		settingValue = group[settingName]
@@ -85,43 +134,73 @@ function SettingsService.getPlayerSetting(settingName, optionalUser)
 	return settingValue
 end
 
-function SettingsService.updatePlayerSetting(settingName, settingValue, optionalUser)
+function SettingService.updatePlayerSetting(settingName, settingValue, optionalUser)
 	if optionalUser ~= nil then
-		optionalUser.perm.playerSettings:set(settingName, settingValue)
+		local playerSettings = optionalUser.perm:getOrSetup("playerSettings")
+		playerSettings:set(settingName, settingValue)
 	else
-		SettingsService.updateGroup("Player", {
+		SettingService.updateGroup("Player", {
 			[settingName] = settingValue
 		})
 	end
 end
 
-function SettingsService.getSystemSetting(settingName)
-	local group = SettingsService.getGroup("System")
+function SettingService.getSystemSetting(settingName)
+	local group = SettingService.getGroup("System")
 	local settingValue = group[settingName]
 	return settingValue
 end
 
-function SettingsService.updateSystemSetting(settingName, settingValue)
-	SettingsService.updateGroup("System", {
+function SettingService.updateSystemSetting(settingName, settingValue)
+	SettingService.updateGroup("System", {
 		[settingName] = settingValue
 	})
 end
 
-function SettingsService.getGroup(groupName)
-	return SettingsService:getRecord(groupName)
+function SettingService.getGroup(groupName)
+	return SettingService:getRecord(groupName)
 end
 
-function SettingsService.getGroups()
-	return SettingsService:getRecords()
+function SettingService.getGroups()
+	return SettingService:getRecords()
 end
 
-function SettingsService.updateGroup(groupName, propertiesToUpdate)
+function SettingService.updateGroup(groupName, propertiesToUpdate)
 	local key = tostring(groupName)
 	--propertiesToUpdate["_global"] = true
-	SettingsService:updateRecord(key, propertiesToUpdate)
+	SettingService:updateRecord(key, propertiesToUpdate)
 	return true
 end
 
+function SettingService.verifyCanUseRestrictedID(user, groupName, ID)
+	-- Check group exists
+	local groupNameLower = tostring(groupName):lower()
+	local restrictedIDs = SettingService.getSystemSetting("restrictedIDs")
+	local group = restrictedIDs[groupNameLower]
+	if not group then
+		error(("Attempt to check for a non-existent group '%s'"):format(tostring(groupName)))
+	end
+	local stringID = tostring(ID)
+	local groupNameUpper = groupNameLower:sub(1,1):upper()..groupNameLower:sub(2)
+	-- Check if denylisted
+	if main.services.RoleService.verifySettings(user, "limit.denylistedIDs").areAll(true) then
+		if group.denylist[stringID] then
+			return false, string.format("'%s' is a denied %sID!", stringID, groupNameUpper)
+		end
+	end
+	-- Check if allowlisted
+	if main.services.RoleService.verifySettings(user, "limit.toAllowlistedIDs").areAll(true) then
+		if not group.allowlist[stringID] then
+			return false, string.format("'%s' is not an allowed %sID!", stringID, groupNameUpper)
+		end
+	end
+	return true
+end
+
+function SettingService.getLowerCaseColors()
+	return SettingService.records.System.colors:getTable("lowerCaseColorNames")
+end
 
 
-return SettingsService
+
+return SettingService

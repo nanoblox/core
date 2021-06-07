@@ -111,7 +111,7 @@ function Parser.getPlayersFromString(playerString, optionalUser)
 	local selectedPlayers = {}
 	local utilityModule = MAIN.modules.Parser.Utility
 	local settingService = MAIN.services.SettingService
-	local playerSearchEnums = MAIN.enums.PlayerSearch
+	local playerSearchEnums = MAIN.enum.PlayerSearch
 	local players = game:GetService("Players"):GetPlayers()
 
 	local playerIdentifier = settingService.getPlayerSetting("playerIdentifier", optionalUser)
