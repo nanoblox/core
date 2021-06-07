@@ -138,10 +138,6 @@ function Parser.getPlayersFromString(playerString, optionalUser)
 		playerUndefinedSearch == playerSearchEnums.UserNameAndDisplayName
 	)
 
-	print("isUserNameSearch = ", isUserNameSearch)
-	print("isDisplayNameSearch = ", isDisplayNameSearch)
-	print("isUserNameAndDisplayNameSearch = ", isUserNameAndDisplayNameSearch)
-
 	if isUserNameSearch or isUserNameAndDisplayNameSearch then
 		for _, player in pairs(players) do
 			if (string.find(player.Name, playerStringWithoutIdentifier) == 1) then
