@@ -8,7 +8,7 @@ local INVALID_ANY_SERVER_ASSET = "Nanoblox: '%s' is not a valid command asset (o
 local INVALID_CLIENT_ASSET = "Nanoblox: '%s' is not a valid client or shared asset!"
 local INVALID_CLIENT_COMMAND_ASSET = "Nanoblox: '%s' is not a valid client asset of command '%s'!"
 local INVALID_CLIENT_ASSET_OR_CLIENT_COMMAND_ASSET = "Nanoblox: '%s' is not a valid client command asset (of command '%s'), client asset ot shared asset!"
-local INCORRECT_ARRAY = "Nanoblox: 'assetNamesArray' must be an array of string!"
+local INCORRECT_ARRAY = "Nanoblox: 'assetNamesArray' must be an array of strings!"
 local INVALID_COMMAND = "Nanoblox: '%s' is not a valid command!"
 
 local main = require(game.Nanoblox)

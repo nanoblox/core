@@ -27,6 +27,7 @@ function Task.new(properties)
 	end
 	
 	self.command = (main.isServer and main.services.CommandService.getCommand(self.commandName)) or main.modules.ClientCommands.get(self.commandName)
+	self.commandName = (main.isServer and self.command.name) or self.commandName
 	self.threads = {}
 	self.isPaused = false
 	self.isDead = false
@@ -255,11 +256,17 @@ function Task:execute()
 				parsedArgs = {}
 				additional[1] = parsedArgs
 			end
+			local firstAlreadyParsedArg = parsedArgs[1]
 			local i = #parsedArgs + 1
-			for _, argString in pairs(self.args) do
+			for _, _ in pairs(command.args) do
 				local iNow = i
 				local argName = command.args[iNow]
 				local argItem = main.modules.Parser.Args.get(argName)
+				if not argItem then
+					break
+				end
+				local argStringIndex = (firstAlreadyParsedArg and iNow - 1) or iNow
+				local argString = self.args[argStringIndex] or ""
 				if argItem.playerArg then
 					argString = {
 						[argString] = {}
@@ -267,21 +274,24 @@ function Task:execute()
 				end
 				local promise = main.modules.Promise.defer(function(resolve)
 					local returnValue = argItem:parse(argString, self.callerUserId, self.targetUserId)
-					self.originalArgReturnValues[argItem.name] = returnValue
-					self.originalArgReturnValuesFromIndex[iNow] = returnValue
-					if returnValue == nil then
-						returnValue = argItem.defaultValue
-					end
 					resolve(returnValue)
 				end)
 				table.insert(promises, promise
-					:andThen(function(parsedArg)
-						parsedArgs[iNow] = parsedArg
+					:andThen(function(returnValue)
+						return returnValue
+					end)
+					:catch(warn)
+					:andThen(function(returnValue)
+						self.originalArgReturnValues[argItem.name] = returnValue
+						self.originalArgReturnValuesFromIndex[iNow] = returnValue
+						if returnValue == nil then
+							returnValue = argItem.defaultValue
+						end
+						parsedArgs[iNow] = returnValue
 					end)
 				)
 				i += 1
 			end
-			--parsedArgs["n"] = #self.command.args
 		end
 		main.modules.Promise.all(promises)
 			:finally(function()
@@ -522,6 +532,21 @@ function Task:give(item)
 	end
 	local function trackInstance(instance)
 		self.trackingItems[instance] = true
+		if instance:IsA("Tool") then
+			-- It's important to unequp the humanoid and delay the destroyal of tools to give enough
+			-- time for the gears effects to reset (as tools often contain Scripts and LocalScripts directly inside)
+			self.maid:give(function()
+				local humanoid = instance.Parent and instance.Parent:FindFirstChild("Humanoid")
+				if humanoid then
+					humanoid:UnequipTools()
+					for _ = 1, 4 do
+						main.RunService.Heartbeat:Wait()
+					end
+				end
+				instance:Destroy()
+			end)
+			return
+		end
 		self.maid:give(function()
 			self.trackingItems[instance] = nil
 		end)

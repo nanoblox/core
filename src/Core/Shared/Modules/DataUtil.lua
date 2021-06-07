@@ -60,6 +60,21 @@ function DataUtil.convertTimeStringToSeconds(timeString)
 	return totalSeconds
 end
 
+function DataUtil.color3ToHex(color3)
+	local r = math.floor(color3.r*255+.5)
+	local g = math.floor(color3.g*255+.5)
+	local b = math.floor(color3.b*255+.5)
+	return ("%02x%02x%02x"):format(r, g, b)
+end
+
+function DataUtil.hexToColor3(hex)
+	hex = hex:gsub("#","")
+	local r = tonumber("0x"..hex:sub(1,2))
+	local g = tonumber("0x"..hex:sub(3,4))
+	local b = tonumber("0x"..hex:sub(5,6))
+	return Color3.fromRGB(r,g,b)
+end
+
 
 
 return DataUtil

@@ -294,7 +294,7 @@ function CommandService.verifyStatement(callerUser, statement)
 
 			-- Does the caller have permission to use it
 			local commandNameLower = string.lower(commandName)
-			if not main.services.RoleService.verifySettings(callerUser, {"commands"}).have(commandNameLower) then
+			if not main.services.RoleService.verifySettings(callerUser, "commands").have(commandNameLower) then
 				--!!! RE_ENABLE THIS
 				--[[resolve(false, {{"notice", {
 					text = string.format("You do not have permission to use command '%s'!", commandName),

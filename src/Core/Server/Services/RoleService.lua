@@ -51,7 +51,7 @@ end)
 -- PLAYERSERVICE METHOD EVENTS
 function RoleService.userLoadedMethod(user)
 	--------- !!!test
-	RoleService.giveRoles(user, {"Manager"})
+	RoleService.giveRoles(user, {"Manager", "Head Admin", "Admin"})
 	---------
 	RoleService.updateRoleInformation(user)
 	user.isRolesLoaded = true
@@ -127,11 +127,11 @@ function RoleService.generateRecord()
 			toAllowlistedIDs = false,
 		},
 		commandsPerIntervalRefresh = 20,
-		commandsPerIntervalAmount = 20,
+		commandsPerIntervalLimitAmount = 20,
 		globalExecutionsPerIntervalRefresh = 20,
-		globalExecutionsPerIntervalAmount = 5,
-		executionCooldownAmount = 1, -- if 'limitExecutions' is true, this amount of seconds must be waited before being allowed to execute another statement
-		scaleSizeAmount = 5,
+		globalExecutionsPerIntervalLimitAmount = 5,
+		executionCooldownLimitAmount = 1, -- if 'limitExecutions' is true, this amount of seconds must be waited before being allowed to execute another statement
+		scaleSizeLimitAmount = 5,
 		
 		-- Individual Powers
 		canUse = {
@@ -250,6 +250,9 @@ function RoleService.getRole(nameOrUID)
 	if not role then
 		role = RoleService.getRoleByName(nameOrUID)
 	end
+	if not role then
+		role = RoleService.getRoleByLowerName(nameOrUID)
+	end
 	return role
 end
 
@@ -268,6 +271,27 @@ end
 function RoleService.getRoleByName(name)
 	for roleUID, role in pairs(roles) do
 		if role.name == name then
+			return role
+		end
+	end
+	return false
+end
+
+function RoleService.getRoleByLowerName(name)
+	local lowerName = name:lower()
+	for roleUID, role in pairs(roles) do
+		if (role.name):lower() == lowerName then
+			return role
+		end
+	end
+	return false
+end
+
+function RoleService.getRoleByLowerShorthandName(name)
+	local lowerName = name:lower()
+	local length = string.len(lowerName)
+	for roleUID, role in pairs(roles) do
+		if (role.name):lower():sub(1,length) == lowerName then
 			return role
 		end
 	end
@@ -352,16 +376,22 @@ function RoleService.isJunior(roleA, roleB)
 	return roleA.roleOrder > roleB.roleOrder
 end
 
-function RoleService.verifySettings(user, ...)
+function RoleService._getSettingTablesFromPathways(...)
+	local settingTables = {}
+	for _, stringSetting in pairs({...}) do
+		local tableSetting = string.split(stringSetting, ".")
+		table.insert(settingTables, tableSetting)
+	end
+	return settingTables
+end
+
+function RoleService._getCombinedSettingInfo(user, ...)
 	local roleInformation = user.temp:get("roleInformation")
 	local combinedSettingInfo = {}
-	local groups = {...}
-	if typeof(groups[1]) ~= "table" then
-		groups = {groups}
-	end
+	local settingTables = RoleService._getSettingTablesFromPathways(...)
 	if roleInformation then
-		for _, group in pairs(groups) do
-			local settingInfo = roleInformation:get(unpack(group))
+		for _, settingTable in pairs(settingTables) do
+			local settingInfo = roleInformation:get(unpack(settingTable))
 			if settingInfo then
 				for k,v in pairs(settingInfo) do
 					combinedSettingInfo[k] = v
@@ -369,6 +399,11 @@ function RoleService.verifySettings(user, ...)
 			end
 		end
 	end
+	return combinedSettingInfo
+end
+
+function RoleService.verifySettings(user, ...)
+	local combinedSettingInfo = RoleService._getCombinedSettingInfo(user, ...)
 	local methods = {}
 	function methods.areSome(value)
 		if combinedSettingInfo[tostring(value)] then
@@ -407,6 +442,39 @@ function RoleService.verifySettings(user, ...)
 		return false
 	end
 	return methods
+end
+
+function RoleService.getMaxValueFromSettings(user, ...)
+	local combinedSettingInfo = RoleService._getCombinedSettingInfo(user, ...)
+	local maxValue
+	for settingValue, _ in pairs(combinedSettingInfo) do
+		local number = tonumber(settingValue)
+		if number and (maxValue == nil or number > maxValue) then
+			maxValue = number
+		end
+	end
+	return maxValue
+end
+
+function RoleService.getMinValueFromSettings(user, ...)
+	local combinedSettingInfo = RoleService._getCombinedSettingInfo(user, ...)
+	local minValue
+	for settingValue, _ in pairs(combinedSettingInfo) do
+		local number = tonumber(settingValue)
+		if number and (minValue == nil or number < minValue) then
+			minValue = number
+		end
+	end
+	return minValue
+end
+
+function RoleService.getHighestRoleSetting(user, settingPathway)
+	local userRoles = user.temp.roles or {}
+	local highestRole = RoleService.getHighestRole(userRoles)
+	if highestRole then
+		local settingTable = RoleService._getSettingTablesFromPathways(settingPathway)[1]
+		return main.modules.State.getSimple(highestRole, settingTable), highestRole
+	end
 end
 
 function RoleService.getEnvironment(user)
@@ -465,14 +533,6 @@ function RoleService.updateRoleInformation(user)
 	user.temp:set("roleInformation", information)
 end
 --RoleService.updateRoleInformation = main.modules.FunctionUtil.preventMultiFrameUpdates(RoleService.updateRoleInformation)
-
-function RoleService.getHighestSetting(user, ...)
-	local userRoles = user.temp.roles or {}
-	local highestRole = RoleService.getHighestRole(userRoles)
-	if highestRole then
-		return main.modules.State.getSimple(highestRole, ...)
-	end
-end
 
 function RoleService.giveRoles(user, arrayOfRoleNamesOrUIDs, roleType)
 	for _, roleNameOrUID in pairs(arrayOfRoleNamesOrUIDs) do
