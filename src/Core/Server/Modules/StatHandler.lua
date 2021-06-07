@@ -8,9 +8,20 @@ local StatHandler = {}
 
 -- METHODS
 function StatHandler.get(player, statName)
-	print("statName = ", statName)
 	local leaderstats = player:FindFirstChild("leaderstats")
-	local stat = leaderstats and leaderstats:FindFirstChild(statName)
+	if not leaderstats then
+		return
+	end
+	local stat = leaderstats:FindFirstChild(statName)
+	if not stat then
+		local lowercaseStatName = string.lower(statName)
+		for _, childStat in pairs(leaderstats:GetChildren()) do
+			if string.lower(childStat.Name) == lowercaseStatName then
+				stat = childStat
+				break
+			end
+		end
+	end
 	return stat
 end
 

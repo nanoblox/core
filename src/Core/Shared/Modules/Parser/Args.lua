@@ -162,8 +162,25 @@ Args.array = {
 
 	-----------------------------------
 	{
+		name = "textOrNumber",
+		aliases = {"statValue"},
+		description = "Accepts a number or string, where only strings are filtered, and returns a string.",
+		defaultValue = "",
+		endlessArg = true,
+		parse = function(self, textToFilter, callerUserId, targetUserId)
+			local numberValue = tonumber(textToFilter)
+			if numberValue then
+				return tostring(numberValue)
+			end
+			local _, value = main.modules.ChatUtil.filterText(callerUserId, targetUserId, textToFilter):await()
+			return value
+		end,
+	},
+
+	-----------------------------------
+	{
 		name = "singletext",
-		aliases = {"singlestring", "statname"},
+		aliases = {"singlestring"},
 		description = "Accepts a non-endless string (i.e. a string with no whitespace gaps) and filters it based upon the caller and target.",
 		defaultValue = "",
 		endlessArg = false,
