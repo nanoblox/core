@@ -111,7 +111,7 @@ function Parser.getPlayersFromString(playerString, optionalUser)
 	local selectedPlayers = {}
 	local utilityModule = MAIN.modules.Parser.Utility
 	local settingService = MAIN.services.SettingService
-	local playerSearchEnums = MAIN.enums.PlayerSearch
+	local playerSearchEnums = MAIN.enum.PlayerSearch
 	local players = game:GetService("Players"):GetPlayers()
 
 	local playerIdentifier = settingService.getPlayerSetting("playerIdentifier", optionalUser)
@@ -137,6 +137,10 @@ function Parser.getPlayersFromString(playerString, optionalUser)
 		playerDefinedSearch == playerSearchEnums.UserNameAndDisplayName,
 		playerUndefinedSearch == playerSearchEnums.UserNameAndDisplayName
 	)
+
+	print("isUserNameSearch = ", isUserNameSearch)
+	print("isDisplayNameSearch = ", isDisplayNameSearch)
+	print("isUserNameAndDisplayNameSearch = ", isUserNameAndDisplayNameSearch)
 
 	if isUserNameSearch or isUserNameAndDisplayNameSearch then
 		for _, player in pairs(players) do

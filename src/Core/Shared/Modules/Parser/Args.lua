@@ -1,3 +1,5 @@
+-- It's important to note that the values returned within Arg.parse can be and may be asynchronous
+
 local main = require(game.Nanoblox)
 local Args = {}
 
@@ -154,7 +156,6 @@ Args.array = {
 		defaultValue = "",
 		endlessArg = true,
 		parse = function(self, textToFilter, callerUserId, targetUserId)
-			-- This is asynchronous
 			local _, value = main.modules.ChatUtil.filterText(callerUserId, targetUserId, textToFilter):await()
 			return value
 		end,
@@ -455,7 +456,6 @@ Args.array = {
 		parse = function(self, stringToParse, _, targetUserId)
 			local targetPlayer = main.Players:GetPlayerByUserId(targetUserId)
 			local stat = (targetPlayer and main.modules.StatHandler.get(targetPlayer, stringToParse))
-			print("targetPlayer, stat = ", targetPlayer, stat)
 			return stat
 		end,
 	},
@@ -467,8 +467,23 @@ Args.array = {
 		displayName = "userNameOrId",
 		description = "Accepts an @userName, displayName or userId and returns a userId.",
 		defaultValue = 0,
-		parse = function(self, stringToParse)
-
+		parse = function(self, stringToParse, callerUserId)
+			local userId = tonumber(stringToParse)
+			if userId then
+				return userId
+			end
+			local callerUser = main.modules.PlayerStore:getUser(callerUserId)
+			local playersInServer = main.modules.Parser.getPlayersFromString(stringToParse, callerUser)
+			local player = playersInServer[1]
+			if player then
+				return player.UserId
+			end
+			local playerIdentifier = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
+			local username = stringToParse:gsub(playerIdentifier, "")
+			local success, finalUserId = main.modules.PlayerUtil.getUserIdFromName(username):await()
+			if success then
+				return finalUserId
+			end
 		end,
 	},
 
