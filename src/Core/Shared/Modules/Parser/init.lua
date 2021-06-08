@@ -86,7 +86,7 @@ end
 
 
 ]]
-function Parser.hasTextArgument(commandName)
+function Parser.hasEndlessArgument(commandName)
 	local argsDictionary = MAIN.modules.Parser.Args.dictionary
 	local commandArgs =
 		MAIN.services.CommandService.getTable("lowerCaseNameAndAliasToCommandDictionary")[commandName].args
@@ -94,12 +94,9 @@ function Parser.hasTextArgument(commandName)
 		return false
 	end
 	local lastArgName = commandArgs[#commandArgs]:lower()
+	local lastArg = argsDictionary[lastArgName]
 
-	if argsDictionary[lastArgName] == argsDictionary["text"] then
-		return true
-	end
-
-	return false
+	return lastArg.endlessArg == true
 end
 
 --[[

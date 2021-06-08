@@ -23,6 +23,70 @@ function Utility.getMatches(source, pattern)
 	return matches
 end
 
+--// getCaptures Helper Functions //--
+function Utility.getCapsuleRanges(source)
+	local capsuleRanges = {}
+
+	local searchIndex = 0
+	while searchIndex ~= nil do
+		local open = string.find(source, "%(", searchIndex)
+		if open then
+			searchIndex = open
+			local close = string.find(source, "%)", searchIndex)
+			if close then
+				searchIndex = close
+				table.insert(capsuleRanges, { lower = open, upper = close })
+			else
+				return nil
+			end
+		else
+			break
+		end
+	end
+
+	return capsuleRanges
+end
+
+local function isIndexInCapsule(index, capsuleRanges)
+	for _, range in pairs(capsuleRanges) do
+		if index > range.lower and index < range.upper then
+			return true
+		end
+	end
+	return false
+end
+
+local function removeRangesFromString(source, ranges)
+	local charactersRemoved = 0
+	for _, range in pairs(ranges) do
+		local lower = range.lower - charactersRemoved
+		local upper = range.upper - charactersRemoved
+		source = string.sub(source, 0, lower - 1) .. string.sub(source, upper + 1)
+		charactersRemoved = charactersRemoved + (upper - lower) + 1
+	end
+	return source
+end
+
+local function captureKeywordsOutsideCapsules(source, keyword)
+	local captured = false
+	local capsuleRanges = Utility.getCapsuleRanges(source)
+	local startIndex, endIndex = 0, 0
+	local rangesToRemove = {}
+	while startIndex do
+		startIndex, endIndex = string.find(source, keyword, endIndex + 1)
+		if startIndex == nil then
+			break
+		end
+		if not (isIndexInCapsule(startIndex, capsuleRanges)) then
+			captured = true
+			table.insert(rangesToRemove, { lower = startIndex, upper = endIndex })
+		end
+	end
+	return captured, removeRangesFromString(source, rangesToRemove)
+end
+
+--////--
+
 --[[
 
 A Capture is found in a source by a table of possible captures and it
@@ -46,34 +110,49 @@ function Utility.getCaptures(source, sortedKeywords)
 	--// keywords so we solve the issue of large keywords made of smaller ones
 	for counter = 1, #sortedKeywords do
 		--// If the source became empty or whitespace then continue
-		if (string.match(source, "^%s*$") ~= nil) then
+		if string.match(source, "^%s*$") ~= nil then
 			break
 		end
 
 		--// If the keyword is empty or whitespace (maybe default value?) then continue
 		--// to the next iteration
 		local keyword = sortedKeywords[counter]:lower()
-		if (string.match(keyword, "^%s*$") ~= nil) then
+		if string.match(keyword, "^%s*$") ~= nil then
 			continue
 		end
 		keyword = Utility.escapeSpecialCharacters(keyword)
 
+		--// Used to prevent parsing duplicates
+		local alreadyFound = false
+
 		--// Captures with argument capsules are stripped away from the source
-		source =
-			string.gsub(source, string.format("(%s)%s", keyword, parserModule.patterns.capsuleFromKeyword), function(keyword, arguments)
+		source = string.gsub(
+			source,
+			string.format("(%s)%s", keyword, parserModule.patterns.capsuleFromKeyword),
+			function(keyword, arguments)
 				--// Arguments need to be separated as they are the literal string
 				--// in the capsule at this point
-				local separatedArguments =
-					Utility.getMatches(arguments, parserModule.patterns.argumentsFromCollection)
-				table.insert(captures, { [keyword] = separatedArguments })
+				if not alreadyFound then
+					local separatedArguments = Utility.getMatches(
+						arguments,
+						parserModule.patterns.argumentsFromCollection
+					)
+					table.insert(captures, { [keyword] = separatedArguments })
+				end
+				alreadyFound = true
 				return ""
-			end)
-		--// Only captures without argument capsules are left in the source and are
-		--// collected at this point
-		source = string.gsub(source, string.format("(%s)", keyword), function(keyword)
-			table.insert(captures, { [keyword] = {} })
-			return ""
-		end)
+			end
+		)
+
+		local captured, residue = captureKeywordsOutsideCapsules(source, keyword)
+		if captured then
+			if not alreadyFound then
+				table.insert(captures, { [keyword] = {} })
+			end
+			alreadyFound = true
+		end
+
+		source = residue
 	end
 
 	return captures, source

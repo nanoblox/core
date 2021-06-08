@@ -30,7 +30,7 @@ function ParsedData.generateEmptyParsedData()
 		commandDescriptionResdiue = nil,
 
 		requiresQualifier = false,
-		hasTextArgument = false,
+		hasEndlessArgument = false,
 
 		isValid = true,
 		parserRejection = nil,
@@ -124,18 +124,18 @@ end
 
 
 ]]
-function ParsedData.parsedDataSetHasTextArgumentFlag(parsedData)
+function ParsedData.parsedDataSetHasEndlessArgumentFlag(parsedData)
 	local parserModule = MAIN.modules.Parser
 
 	for _, capture in pairs(parsedData.commandCaptures) do
 		for commandName, _ in pairs(capture) do
-			if parserModule.hasTextArgument(commandName) then
-				parsedData.hasTextArgument = true
+			if parserModule.hasEndlessArgument(commandName) then
+				parsedData.hasEndlessArgument = true
 				return
 			end
 		end
 	end
-	parsedData.hasTextArgument = false
+	parsedData.hasEndlessArgument = false
 end
 
 --[[
@@ -147,10 +147,19 @@ function ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejection)
 	if not parsedData.isValid then
 		return
 	end
+	local utilityModule = MAIN.modules.Parser.Utility
 	local parserRejectionEnum = MAIN.enum.ParserRejection
 
 	if parserRejection == parserRejectionEnum.MissingCommandDescription then
 		if parsedData.commandDescription == "" then
+			parsedData.isValid = false
+		end
+	elseif parserRejection == parserRejectionEnum.UnbalancedCapsulesInCommandDescription then
+		if utilityModule.getCapsuleRanges(parsedData.commandDescription) == nil then
+			parsedData.isValid = false
+		end
+	elseif parserRejection == parserRejectionEnum.UnbalancedCapsulesInQualifierDescription then
+		if utilityModule.getCapsuleRanges(parsedData.qualifierDescription) == nil then
 			parsedData.isValid = false
 		end
 	elseif parserRejection == parserRejectionEnum.MissingCommands then
@@ -229,6 +238,8 @@ function ParsedData.parseCommandStatement(parsedData)
 	parsedData.extraArgumentDescription = descriptions[3]
 
 	ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejectionEnum.MissingCommandDescription)
+	ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejectionEnum.UnbalancedCapsulesInCommandDescription)
+	ParsedData.parsedDataUpdateIsValidFlag(parsedData, parserRejectionEnum.UnbalancedCapsulesInQualifierDescription)
 end
 
 --[[
@@ -259,7 +270,7 @@ function ParsedData.parseCommandDescriptionAndSetFlags(parsedData, optionalUser)
 	ParsedData.parseCommandDescription(parsedData)
 	if parsedData.isValid then
 		ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalUser)
-		ParsedData.parsedDataSetHasTextArgumentFlag(parsedData)
+		ParsedData.parsedDataSetHasEndlessArgumentFlag(parsedData)
 	end
 end
 
@@ -291,7 +302,7 @@ end
 
 ]]
 function ParsedData.parseExtraArgumentDescription(parsedData, allParsedDatas, originalMessage)
-	if not parsedData.hasTextArgument then
+	if not parsedData.hasEndlessArgument then
 		if not parsedData.requiresQualifier then
 			table.insert(parsedData.extraArgumentDescription, parsedData.qualifierDescription)
 			parsedData.qualifierDescription = nil
@@ -317,9 +328,52 @@ function ParsedData.parseExtraArgumentDescription(parsedData, allParsedDatas, or
 			foundIndex = select(2, string.find(originalMessage, parsedData.qualifierDescription, foundIndex, true)) + 2
 		end
 
-		local extraArgument = string.sub(originalMessage, foundIndex)
+		local extraArgumentsBeforeText = math.huge
+		for _, capture in pairs(parsedData.commandCaptures) do
+			for commandName, arguments in pairs(capture) do
+				local argumentsDictionary = MAIN.modules.Parser.Args.dictionary
+				local commandArgumentNames =
+					MAIN.services.CommandService.getTable("lowerCaseNameAndAliasToCommandDictionary")[commandName].args
+
+				local firstArgumentName = commandArgumentNames[1]:lower()
+				local firstArgument = argumentsDictionary[firstArgumentName]
+				local isPlayerArgument = firstArgument.playerArg == true
+
+				local lastArgumentName = commandArgumentNames[#commandArgumentNames]:lower()
+				local lastArgument = argumentsDictionary[lastArgumentName]
+				local hasEndlessArgument = lastArgument.endlessArg == true
+
+				local commandArguments = #commandArgumentNames
+				local capsuleArguments = #arguments
+
+				local commandArgumentsInExtraArguments = commandArguments
+					- capsuleArguments
+					- (isPlayerArgument and 1 or 0)
+
+				if hasEndlessArgument then
+					extraArgumentsBeforeText = math.min(extraArgumentsBeforeText, commandArgumentsInExtraArguments - 1)
+				end
+			end
+		end
+		if extraArgumentsBeforeText == math.huge then
+			extraArgumentsBeforeText = 0
+		end
+
+		for counter = 1, extraArgumentsBeforeText do
+			foundIndex = select(2, string.find(originalMessage, " ", foundIndex + 1))
+			if foundIndex then
+				foundIndex = foundIndex + 1
+			else
+				break
+			end
+		end
+
+		local extraArgument = foundIndex and string.sub(originalMessage, foundIndex) or nil
 		for _, capture in pairs(parsedData.commandCaptures) do
 			for _, arguments in pairs(capture) do
+				for counter = 1, extraArgumentsBeforeText do
+					table.insert(arguments, parsedData.extraArgumentDescription[counter])
+				end
 				table.insert(arguments, extraArgument)
 			end
 		end
