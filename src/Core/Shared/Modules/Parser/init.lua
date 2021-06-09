@@ -70,7 +70,7 @@ function Parser.requiresQualifier(commandName)
 	local firstArgName = commandArgs[1]:lower()
 	local firstArg = MAIN.modules.Parser.Args.get(firstArgName)
 
-	if firstArg.playerArg ~= true then
+	if firstArg == nil or firstArg.playerArg ~= true then
 		return qualifierRequiredEnum.Never
 	else
 		if firstArg.hidden ~= true then
@@ -116,6 +116,7 @@ function Parser.getPlayersFromString(playerString, optionalUser)
 	local playerUndefinedSearch = settingService.getPlayerSetting("playerUndefinedSearch", optionalUser)
 
 	local hasPlayerIdentifier = (playerString:sub(1, 1) == playerIdentifier)
+	playerString = playerString:lower()
 	local playerStringWithoutIdentifier = utilityModule.ternary(
 		hasPlayerIdentifier,
 		playerString:sub(2, #playerString),
@@ -137,10 +138,10 @@ function Parser.getPlayersFromString(playerString, optionalUser)
 		playerDefinedSearch == playerSearchEnums.UserNameAndDisplayName,
 		playerUndefinedSearch == playerSearchEnums.UserNameAndDisplayName
 	)
-	
+
 	if isUserNameSearch or isUserNameAndDisplayNameSearch then
 		for _, player in pairs(players) do
-			if string.find(player.Name, playerStringWithoutIdentifier) == 1 then
+			if string.find(player.Name:lower(), playerStringWithoutIdentifier) == 1 then
 				if table.find(selectedPlayers, player) == nil then
 					table.insert(selectedPlayers, player)
 				end
@@ -150,7 +151,7 @@ function Parser.getPlayersFromString(playerString, optionalUser)
 
 	if isDisplayNameSearch or isUserNameAndDisplayNameSearch then
 		for _, player in pairs(players) do
-			if string.find(player.DisplayName, playerStringWithoutIdentifier) == 1 then
+			if string.find(player.DisplayName:lower(), playerStringWithoutIdentifier) == 1 then
 				if table.find(selectedPlayers, player) == nil then
 					table.insert(selectedPlayers, player)
 				end
