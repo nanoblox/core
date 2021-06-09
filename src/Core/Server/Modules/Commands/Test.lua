@@ -4,7 +4,7 @@ local Command =	{}
 
 
 Command.name = script.Name
-Command.aliases	= {"PraiseTheMelonLord", "Mel"}
+Command.aliases	= {}
 Command.description = ""
 Command.contributors = {}
 Command.opposites = {}
@@ -16,12 +16,12 @@ Command.autoPreview = false
 Command.requiresRig = main.enum.HumanoidRigType.None
 Command.preventRepeats = main.enum.TriStateSetting.Default
 Command.revokeRepeats = false
-Command.persistence = main.enum.Persistence.UntilPlayerDies
-Command.args = {"Player"}
+Command.persistence = main.enum.Persistence.None
+Command.args = {"Username"}
 
 function Command.invoke(task, args)
-    local player = unpack(args)
-	task:invokeAllAndFutureClients(player)
+	local username = unpack(args)
+    print("USERNAME = ", username)
 end
 
 function Command.revoke(task)

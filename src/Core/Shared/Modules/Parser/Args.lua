@@ -468,15 +468,15 @@ Args.array = {
 		description = "Accepts an @userName, displayName or userId and returns a userId.",
 		defaultValue = false,
 		parse = function(self, stringToParse, callerUserId)
-			local userId = tonumber(stringToParse)
-			if userId then
-				return userId
-			end
 			local callerUser = main.modules.PlayerStore:getUser(callerUserId)
 			local playersInServer = main.modules.Parser.getPlayersFromString(stringToParse, callerUser)
 			local player = playersInServer[1]
 			if player then
 				return player.UserId
+			end
+			local userId = tonumber(stringToParse)
+			if userId then
+				return userId
 			end
 			local playerIdentifier = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
 			local username = stringToParse:gsub(playerIdentifier, "")
@@ -500,6 +500,13 @@ Args.array = {
 			local player = playersInServer[1]
 			if player then
 				return player.Name
+			end
+			local userId = tonumber(stringToParse)
+			if userId then
+				local success, finalUsername = main.modules.PlayerUtil.getNameFromUserId(userId):await()
+				if success then
+					return finalUsername
+				end
 			end
 			local playerIdentifier = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
 			local username = stringToParse:gsub(playerIdentifier, "")
@@ -591,7 +598,7 @@ Args.array = {
 				return
 			end
 			local playerInServer = main.Players:GetPlayerByUserId(userId)
-			if playerInServer then
+			if playerInServer and tonumber(callerUserId) ~= tonumber(userId) then
 				local playerInServerDescription = main.modules.MorphUtil.getDescriptionFromPlayer(playerInServer)
 				if playerInServerDescription then
 					return playerInServerDescription

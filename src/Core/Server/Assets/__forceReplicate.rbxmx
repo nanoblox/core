@@ -18,7 +18,8 @@
           <null>
           </null>
         </Content>
-        <BinaryString name="ScriptGuid"><![CDATA[ezIzQjFFNjJFLTA1MTgtNDlBMC04MDkwLTBEMDg5RjM0NDlDNn0=]]></BinaryString>
+        <BinaryString name="ScriptGuid">
+        </BinaryString>
         <string name="Source"><![CDATA[-- Im getting PTSD just reading through the character script so for my own mental well being im simply going
 -- to copy and paste this into the clones and hopefully never touch this monstrosity again.
 

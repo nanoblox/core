@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="HumanoidDescription" referent="RBXB6C57C7E048141A3A7314EB5CDF264C4">
+	<Item class="HumanoidDescription" referent="RBX2CDFE1F6161C4756B02DA4A65787F010">
 		<Properties>
 			<string name="AccessoryBlob"></string>
 			<BinaryString name="AttributesSerialize"></BinaryString>

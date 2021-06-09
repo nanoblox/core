@@ -17,7 +17,7 @@
           <null>
           </null>
         </Content>
-        <BinaryString name="ScriptGuid"><![CDATA[e0ZBMkE4MzUwLTBCRjktNEQyNy04NDBDLTRDNEY3NEU1NkRBMn0=]]></BinaryString>
+        <BinaryString name="ScriptGuid"><![CDATA[e0E2MkY5MzZDLUM2NjUtNEQzQy1BMzBDLUU0NEQ5MDE5MTQ3Nn0=]]></BinaryString>
         <string name="Source">local nanoblox = game:GetService("ReplicatedStorage").Nanoblox
 local mainFramework = nanoblox.Shared.Modules.MainFramework
 local main = require(mainFramework)
@@ -93,7 +93,7 @@ return main</string>
             <bool name="BreakJointsOnDeath">true</bool>
             <token name="CollisionType">0</token>
             <token name="DisplayDistanceType">0</token>
-            <string name="DisplayName">Clone</string>
+            <string name="DisplayName"></string>
             <float name="HealthDisplayDistance">100</float>
             <token name="HealthDisplayType">0</token>
             <float name="Health_XML">100</float>
@@ -155,7 +155,7 @@ return main</string>
             <PhysicalProperties name="CustomPhysicalProperties">
               <CustomPhysics>false</CustomPhysics>
             </PhysicalProperties>
-            <token name="formFactorRaw">0</token>
+            <token name="formFactorRaw">1</token>
             <float name="FrontParamA">-0.5</float>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
@@ -405,7 +405,7 @@ return main</string>
             <PhysicalProperties name="CustomPhysicalProperties">
               <CustomPhysics>false</CustomPhysics>
             </PhysicalProperties>
-            <token name="formFactorRaw">0</token>
+            <token name="formFactorRaw">1</token>
             <float name="FrontParamA">-0.5</float>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
@@ -774,7 +774,7 @@ return main</string>
             <PhysicalProperties name="CustomPhysicalProperties">
               <CustomPhysics>false</CustomPhysics>
             </PhysicalProperties>
-            <token name="formFactorRaw">0</token>
+            <token name="formFactorRaw">1</token>
             <float name="FrontParamA">-0.5</float>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
@@ -918,7 +918,7 @@ return main</string>
             <PhysicalProperties name="CustomPhysicalProperties">
               <CustomPhysics>false</CustomPhysics>
             </PhysicalProperties>
-            <token name="formFactorRaw">0</token>
+            <token name="formFactorRaw">1</token>
             <float name="FrontParamA">-0.5</float>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
@@ -1037,7 +1037,7 @@ return main</string>
             <PhysicalProperties name="CustomPhysicalProperties">
               <CustomPhysics>false</CustomPhysics>
             </PhysicalProperties>
-            <token name="formFactorRaw">0</token>
+            <token name="formFactorRaw">1</token>
             <float name="FrontParamA">-0.5</float>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
@@ -1181,7 +1181,7 @@ return main</string>
             <PhysicalProperties name="CustomPhysicalProperties">
               <CustomPhysics>false</CustomPhysics>
             </PhysicalProperties>
-            <token name="formFactorRaw">0</token>
+            <token name="formFactorRaw">1</token>
             <float name="FrontParamA">-0.5</float>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
@@ -1300,7 +1300,7 @@ return main</string>
             <PhysicalProperties name="CustomPhysicalProperties">
               <CustomPhysics>false</CustomPhysics>
             </PhysicalProperties>
-            <token name="formFactorRaw">0</token>
+            <token name="formFactorRaw">1</token>
             <float name="FrontParamA">-0.5</float>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
@@ -1882,17 +1882,17 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>2</X>
-              <Y>1.6000342</Y>
-              <Z>1.0000004</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
-              <X>-0.000000059604645</X>
-              <Y>-0.7999857</Y>
-              <Z>0.00000011920929</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
             </BinaryString>
@@ -1904,10 +1904,12 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>http://www.roblox.com/asset/?id=1699715593</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>http://www.roblox.com/asset/?id=1699715593</url>
+              <null>
+              </null>
             </Content>
             <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
@@ -2421,17 +2423,17 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>0.99999976</X>
-              <Y>1.051918</Y>
-              <Z>1</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
-              <X>0.00000011920929</X>
-              <Y>0.2585795</Y>
-              <Z>0.000000000000000000076446255</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
             </BinaryString>
@@ -2443,10 +2445,12 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>http://www.roblox.com/asset/?id=1699715562</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>http://www.roblox.com/asset/?id=1699715562</url>
+              <null>
+              </null>
             </Content>
             <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
@@ -3036,17 +3040,17 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>0.99999994</X>
-              <Y>1.1930928</Y>
-              <Z>1.0000001</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
               <X>0</X>
-              <Y>0.3791743</Y>
-              <Z>0.000025553607</Z>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
             </BinaryString>
@@ -3058,10 +3062,12 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>http://www.roblox.com/asset/?id=1699715632</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>http://www.roblox.com/asset/?id=1699715632</url>
+              <null>
+              </null>
             </Content>
             <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
@@ -3295,17 +3301,17 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>0.99999964</X>
-              <Y>1.1686707</Y>
-              <Z>0.99999994</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
-              <X>-0.5000007</X>
-              <Y>0.3943267</Y>
-              <Z>0.00000008940697</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
             </BinaryString>
@@ -3317,10 +3323,12 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>http://www.roblox.com/asset/?id=1699715576</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>http://www.roblox.com/asset/?id=1699715576</url>
+              <null>
+              </null>
             </Content>
             <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
@@ -3594,17 +3602,17 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>1.0000005</X>
-              <Y>1.2165686</Y>
-              <Z>0.99996686</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
               <X>0</X>
-              <Y>0.42078227</Y>
-              <Z>-0.00006673006</Z>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
             </BinaryString>
@@ -3616,10 +3624,12 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>http://www.roblox.com/asset/?id=1699715641</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>http://www.roblox.com/asset/?id=1699715641</url>
+              <null>
+              </null>
             </Content>
             <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
@@ -3853,17 +3863,17 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>1.197849</X>
-              <Y>1.2024246</Y>
-              <Z>1.197849</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
               <X>0</X>
-              <Y>-0.5000001</Y>
-              <Z>-0.00027224422</Z>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
             </BinaryString>
@@ -3875,12 +3885,14 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>rbxasset://avatar/heads/head.mesh</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>rbxasset://avatar/heads/head.mesh</url>
+              <null>
+              </null>
             </Content>
-            <SharedString name="PhysicalConfigData">jMO+3ujG8WZbCV+FbCLE5Q==</SharedString>
+            <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
             </BinaryString>
             <CoordinateFrame name="PivotOffset">
@@ -4252,17 +4264,17 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>1</X>
-              <Y>0.3000002</Y>
-              <Z>1</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
-              <X>-0.00000017881393</X>
-              <Y>0.1019397</Y>
-              <Z>-0.0000017222776</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
             </BinaryString>
@@ -4274,10 +4286,12 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>http://www.roblox.com/asset/?id=1699715602</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>http://www.roblox.com/asset/?id=1699715602</url>
+              <null>
+              </null>
             </Content>
             <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
@@ -4471,17 +4485,17 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>0.99999976</X>
-              <Y>0.30003068</Y>
-              <Z>0.9999999</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
-              <X>0.00047898293</X>
-              <Y>0.1250454</Y>
-              <Z>0.000000059604645</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
             </BinaryString>
@@ -4493,10 +4507,12 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>http://www.roblox.com/asset/?id=1699715537</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>http://www.roblox.com/asset/?id=1699715537</url>
+              <null>
+              </null>
             </Content>
             <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
@@ -4730,17 +4746,17 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>0.99999964</X>
-              <Y>1.051918</Y>
-              <Z>1</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
-              <X>0.0004786253</X>
-              <Y>0.2586882</Y>
-              <Z>0.000000000000000000076446255</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
             </BinaryString>
@@ -4752,10 +4768,12 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>http://www.roblox.com/asset/?id=1699715541</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>http://www.roblox.com/asset/?id=1699715541</url>
+              <null>
+              </null>
             </Content>
             <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
@@ -4989,17 +5007,17 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>0.99999994</X>
-              <Y>1.1930927</Y>
-              <Z>0.9999995</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
-              <X>0.000000029802322</X>
-              <Y>0.37901852</Y>
-              <Z>-0.0000001608606</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
             </BinaryString>
@@ -5011,10 +5029,12 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>http://www.roblox.com/asset/?id=1699715610</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>http://www.roblox.com/asset/?id=1699715610</url>
+              <null>
+              </null>
             </Content>
             <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
@@ -5248,17 +5268,17 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>0.99999976</X>
-              <Y>1.1686707</Y>
-              <Z>0.99999994</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
-              <X>0.50000036</X>
-              <Y>0.3943267</Y>
-              <Z>0.00000008940697</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
             </BinaryString>
@@ -5270,10 +5290,12 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>http://www.roblox.com/asset/?id=1699715550</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>http://www.roblox.com/asset/?id=1699715550</url>
+              <null>
+              </null>
             </Content>
             <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
@@ -5547,17 +5569,17 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>1.0000004</X>
-              <Y>1.2165686</Y>
-              <Z>0.9999999</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
-              <X>0.000000059604645</X>
-              <Y>0.42078224</Y>
-              <Z>-0.00000016391277</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
             </BinaryString>
@@ -5569,10 +5591,12 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>http://www.roblox.com/asset/?id=1699715616</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>http://www.roblox.com/asset/?id=1699715616</url>
+              <null>
+              </null>
             </Content>
             <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
@@ -5806,16 +5830,16 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>1.9999998</X>
-              <Y>0.40005544</Y>
-              <Z>1.0000001</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
-              <X>-0.00000011920929</X>
-              <Y>-0.19997226</Y>
+              <X>0</X>
+              <Y>0</Y>
               <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
@@ -5828,10 +5852,12 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>http://www.roblox.com/asset/?id=1699715652</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>http://www.roblox.com/asset/?id=1699715652</url>
+              <null>
+              </null>
             </Content>
             <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
@@ -6265,17 +6291,17 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>0.99999994</X>
-              <Y>0.3000002</Y>
-              <Z>1</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
               <X>0</X>
-              <Y>0.10193956</Y>
-              <Z>0.000076447795</Z>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
             </BinaryString>
@@ -6287,10 +6313,12 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>http://www.roblox.com/asset/?id=1699715627</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>http://www.roblox.com/asset/?id=1699715627</url>
+              <null>
+              </null>
             </Content>
             <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
@@ -6484,17 +6512,17 @@ return main</string>
             <float name="FrontParamB">0.5</float>
             <token name="FrontSurface">0</token>
             <token name="FrontSurfaceInput">0</token>
-            <bool name="HasJointOffset">true</bool>
+            <bool name="HasJointOffset">false</bool>
             <bool name="HasSkinnedMesh">false</bool>
             <Vector3 name="InitialSize">
-              <X>0.9999999</X>
-              <Y>0.30003068</Y>
-              <Z>0.9999999</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <Vector3 name="JointOffset">
-              <X>0.00000035762787</X>
-              <Y>0.1250454</Y>
-              <Z>0.000000059604645</Z>
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
             </Vector3>
             <BinaryString name="LODData">
             </BinaryString>
@@ -6506,10 +6534,12 @@ return main</string>
             <bool name="Massless">false</bool>
             <token name="Material">256</token>
             <Content name="MeshID">
-              <url>http://www.roblox.com/asset/?id=1699715557</url>
+              <null>
+              </null>
             </Content>
             <Content name="MeshId">
-              <url>http://www.roblox.com/asset/?id=1699715557</url>
+              <null>
+              </null>
             </Content>
             <SharedString name="PhysicalConfigData">rxNJufX5oaagQE3qNtzJSQ==</SharedString>
             <BinaryString name="PhysicsData">
@@ -6713,7 +6743,7 @@ return main</string>
             <bool name="BreakJointsOnDeath">true</bool>
             <token name="CollisionType">0</token>
             <token name="DisplayDistanceType">0</token>
-            <string name="DisplayName">Clone</string>
+            <string name="DisplayName"></string>
             <float name="HealthDisplayDistance">100</float>
             <token name="HealthDisplayType">0</token>
             <float name="Health_XML">100</float>
@@ -6751,7 +6781,7 @@ return main</string>
           <null>
           </null>
         </Content>
-        <BinaryString name="ScriptGuid"><![CDATA[ezkzRjI1M0EyLUQ5MzUtNDU2My05OTU3LUU3QjhEMDgwM0I2NX0=]]></BinaryString>
+        <BinaryString name="ScriptGuid"><![CDATA[ezU4QjlEN0EwLUQ2RTQtNEJGNi1BQzdGLTNGMDMxQUQwQjhFQX0=]]></BinaryString>
         <string name="Source"><![CDATA[local Character = script.CloneCharacter.Value
 local animateContainer = Instance.new("Folder")
 animateContainer.Name = "Animate"
@@ -8295,6 +8325,5 @@ end
   </Item>
   <SharedStrings>
     <SharedString md5="rxNJufX5oaagQE3qNtzJSQ=="></SharedString>
-    <SharedString md5="jMO+3ujG8WZbCV+FbCLE5Q==">Q1NHUEhTAAAAAEJMT0NL</SharedString>
   </SharedStrings>
 </roblox>
