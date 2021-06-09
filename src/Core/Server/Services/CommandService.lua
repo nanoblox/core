@@ -277,7 +277,7 @@ function CommandService.verifyStatement(callerUser, statement)
 	-- argItem.verifyCanUse can sometimes be asynchronous therefore we return and resolve a Promise
 	return Promise.defer(function(resolve, reject)
 		if not statementCommands then
-			resolve(false, {})
+			return resolve(false, {})
 		end
 
 		-- This verifies the caller can use the given commands and associated arguments
@@ -286,7 +286,7 @@ function CommandService.verifyStatement(callerUser, statement)
 			-- Does the command exist
 			local command = main.services.CommandService.getCommand(commandName)
 			if not command then
-				resolve(false, {{"notice", {
+				return resolve(false, {{"notice", {
 					text = string.format("'%s' is an invalid command name!", commandName),
 					error = true,
 				}}})
@@ -296,10 +296,11 @@ function CommandService.verifyStatement(callerUser, statement)
 			local commandNameLower = string.lower(commandName)
 			if not main.services.RoleService.verifySettings(callerUser, "commands").have(commandNameLower) then
 				--!!! RE_ENABLE THIS
-				--[[resolve(false, {{"notice", {
+				--[[return resolve(false, {{"notice", {
 					text = string.format("You do not have permission to use command '%s'!", commandName),
 					error = true,
-				}}})--]]
+				}}})
+				return--]]
 			end
 
 			-- Does the caller have permission to use the associated arguments of the command
@@ -314,7 +315,7 @@ function CommandService.verifyStatement(callerUser, statement)
 				if argItem.verifyCanUse then
 					local canUseArg, deniedReason = argItem:verifyCanUse(callerUser, argString)
 					if not canUseArg then
-						resolve(false, {{"notice", {
+						return resolve(false, {{"notice", {
 							text = deniedReason,
 							error = true,
 						}}})

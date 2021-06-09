@@ -33,11 +33,19 @@ end
 
 
 -- METHODS
+function Buff:_changeValue(value)
+    local newValue = value
+    if typeof(value) == "BrickColor" then
+        newValue = Color3.new(value.r, value.g, value.b)
+    end
+    return newValue
+end
+
 function Buff:set(value, optionalTweenInfo)
     self.previousIncremental = self.incremental
     self.incremental = false
     self.tweenInfo = optionalTweenInfo
-    self.value = value
+    self.value = self:_changeValue(value)
     self.timeUpdated = os.clock()
     self.updated:Fire(self.effect, self.additional)
     return self
@@ -48,7 +56,7 @@ function Buff:increment(value, optionalTweenInfo)
     self.previousIncremental = self.incremental
     self.incremental = true
     self.tweenInfo = optionalTweenInfo
-    self.value = value
+    self.value = self:_changeValue(value)
     self.timeUpdated = os.clock()
     self.updated:Fire(self.effect, self.additional)
     return self

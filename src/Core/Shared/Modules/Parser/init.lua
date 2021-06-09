@@ -137,7 +137,7 @@ function Parser.getPlayersFromString(playerString, optionalUser)
 		playerDefinedSearch == playerSearchEnums.UserNameAndDisplayName,
 		playerUndefinedSearch == playerSearchEnums.UserNameAndDisplayName
 	)
-
+	
 	if isUserNameSearch or isUserNameAndDisplayNameSearch then
 		for _, player in pairs(players) do
 			if (string.find(player.Name, playerStringWithoutIdentifier) == 1) then

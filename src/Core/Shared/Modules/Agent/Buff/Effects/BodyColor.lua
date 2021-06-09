@@ -8,15 +8,21 @@ return function(player, additional)
     local desc = humanoid and humanoid:FindFirstChildOfClass("HumanoidDescription")
     if desc then
         if isClient then
-            for _, basePart in pairs(character:GetDescendants()) do
-                if basePart:IsA("BasePart") then
-                    table.insert(instancesAndProps, {basePart, "Color"})
-                end
+            local parts = BodyUtil.getPartsByBodyGroup(player, additional)
+            for _, basePart in pairs(parts) do
+                table.insert(instancesAndProps, {basePart, "Color"})
             end
         else
-            for groupName, group in pairs(BodyUtil.bodyGroups) do
-                if group.R15 and group.R6 then
-                    table.insert(instancesAndProps, {desc, groupName.."Color"})
+            if tostring(additional) ~= "nil" then
+                local group = BodyUtil.bodyGroups[additional]
+                if group and group.R15 and group.R6 then
+                    table.insert(instancesAndProps, {desc, additional.."Color"})
+                end
+            else
+                for groupName, group in pairs(BodyUtil.bodyGroups) do
+                    if group.R15 and group.R6 then
+                        table.insert(instancesAndProps, {desc, groupName.."Color"})
+                    end
                 end
             end
         end

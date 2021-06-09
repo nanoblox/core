@@ -130,10 +130,11 @@ function Agent:_getDefaultGroup(effect, instance)
 		-- HDs constantly change therefore we reference the Humanoid instead to remember the values
 		instance = self.player.Character.Humanoid
 	end
-	local defaultGroup = defaultParentGroup[instance]
+	local key = instance.Name --instance
+	local defaultGroup = defaultParentGroup[key]
 	if defaultGroup == nil then
 		defaultGroup = {}
-		defaultParentGroup[instance] = defaultGroup
+		defaultParentGroup[key] = defaultGroup
 	end
 	return defaultGroup
 end
@@ -230,6 +231,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 				local propertyValue = forcedBaseValue or (isAHumanoidDescription and humanoidDescription and humanoidDescription[propertyName]) or instance[propertyName]
 				local finalValue = propertyValue
 				local activeAppliedTables = {}
+				local isPriorityValue = false
 
 				if not isNumerical then
 					-- For nonnumerical items we simply 'remember' the original value if the first time setting
@@ -242,6 +244,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 						defaultValue = propertyValue
 					end
 					if bossBuff.isDestroyed then
+						isPriorityValue = true
 						finalValue = defaultValue
 						defaultGroup[defaultAdditionalString] = nil
 						self.buffs[bossBuff.buffId] = nil
@@ -327,10 +330,9 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 							end
 						end
 					end
-
 					if not finalValueTweenInfo then
 						if isAHumanoidDescription then
-							self:modifyHumanoidDescription(propertyName, finalValue)
+							self:modifyHumanoidDescription(propertyName, finalValue, isPriorityValue)
 						else
 							
 							instance[propertyName] = finalValue
@@ -370,30 +372,41 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 	end
 end
 
-function Agent:modifyHumanoidDescription(propertyName, value)
+function Agent:modifyHumanoidDescription(propertyName, value, isPriorityValue)
 	-- humanoidDescriptionInstances do this weird thing where they don't always apply, especially when applying as soon as a player respawns
-	-- or right after applying another description. The following code is designed to prevent this.
+	-- or right after applying another description. The following code is designed to overcome this.
 	self.humanoidDescriptionCount += 1
 	local myCount = self.humanoidDescriptionCount
 	local humanoid = self.player.Character.Humanoid
 	if not self.humanoidDescription then
 		self.humanoidDescription = humanoid:GetAppliedDescription()
 	end
-	self.humanoidDescription[propertyName] = value
+	self.humanoidDescriptionPriorities = self.humanoidDescriptionPriorities or {}
+	if not self.humanoidDescriptionPriorities[propertyName] then
+		self.humanoidDescription[propertyName] = value
+		if isPriorityValue then
+			self.humanoidDescriptionPriorities[propertyName] = true
+		end
+	end
 	main.modules.Thread.spawn(function()
 		if self.humanoidDescriptionCount == myCount and not self.applyingHumanoidDescription then
 			local iterations = 0
 			self.applyingHumanoidDescription = true
 			local appliedDesc
 			local currentDesc = humanoid and humanoid:FindFirstChildOfClass("HumanoidDescription")
-			local headlessHorsemanPresentOnRemoval = currentDesc and tostring(currentDesc.Head) == "134082579"
+			local facelessHeads = {
+				["134082579"] = true,
+				["2499611582"] = true,
+			}
+			local playerHead = self.player.Character:FindFirstChild("Head")
+			local facelessHeadPresentOnRemoval = playerHead and playerHead:FindFirstChild("face") == nil
 			repeat
 				main.RunService.Heartbeat:Wait()
 				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
 				iterations += 1
 				appliedDesc = humanoid and humanoid:GetAppliedDescription()
 			until (appliedDesc and self.humanoidDescription and appliedDesc[propertyName] == self.humanoidDescription[propertyName]) or iterations == 10
-			if headlessHorsemanPresentOnRemoval then
+			if facelessHeadPresentOnRemoval then
 				-- Yes this is ugly, but there's a really frustrating bug with HumanoidDescriptions that breaks the face when a Headless Horseman Head is removed
 				local originalFace = self.humanoidDescription.Face
 				self.humanoidDescription.Face = 0
@@ -401,11 +414,31 @@ function Agent:modifyHumanoidDescription(propertyName, value)
 				self.humanoidDescription.Face = originalFace
 				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
 			end
+			self.humanoidDescriptionPriorities = nil
 			self.applyingHumanoidDescription = false
 			self.humanoidDescription = nil
 		end
 	end)
 end
+--[[
+local FACE_ID = "616381207"
+local HEAD_ID = "134082579" -- Headless Horseman, also breaks for other faceless Heads such as '2499611582'
+local player = game:GetService("Players").ForeverHD
+local humanoid = player.Character.Humanoid
+
+local description = humanoid:GetAppliedDescription()
+description.Face = FACE_ID
+description.Head = HEAD_ID
+humanoid:ApplyDescription(description)
+
+wait(7)
+
+local description = humanoid:GetAppliedDescription()
+description.Face = FACE_ID
+description.Head = ""
+humanoid:ApplyDescription(description)
+
+--]]
 
 function Agent:clearBuffs()
 	for buffId, buff in pairs(self.buffs) do

@@ -119,15 +119,15 @@ function RoleService.generateRecord()
 		
 		-- Limit Abuse
 		limit = {
-			commandsPerInterval = true,
+			requestsPerInterval = true, -- I may have set this up in tasks already. Instead, make sure this goes into VERIFY and increases for every command within there
 			globalExecutionsPerInterval = true,
 			executionCooldown = false,
 			scaleSize = true,
 			denylistedIDs = true,
 			toAllowlistedIDs = false,
 		},
-		commandsPerIntervalRefresh = 20,
-		commandsPerIntervalLimitAmount = 20,
+		requestsPerIntervalRefresh = 20,
+		requestsPerIntervalLimitAmount = 20,
 		globalExecutionsPerIntervalRefresh = 20,
 		globalExecutionsPerIntervalLimitAmount = 5,
 		executionCooldownLimitAmount = 1, -- if 'limitExecutions' is true, this amount of seconds must be waited before being allowed to execute another statement

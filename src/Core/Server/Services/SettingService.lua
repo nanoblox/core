@@ -50,8 +50,8 @@ function SettingService.generateRecord(key)
 			batchSeparator = " ",
 			
 			playerIdentifier = "@",
-			playerUndefinedSearch = main.enum.PlayerSearch.UserName, -- 'Undefined' means *without* the 'playerIdentifier' (e.g. ";kill Ben)
-			playerDefinedSearch = main.enum.PlayerSearch.DisplayName, -- 'Defined' means *with* the 'playerIdentifier' (e.g. ";kill @ForeverHD)
+			playerUndefinedSearch = main.enum.PlayerSearch.DisplayName, -- 'Undefined' means *without* the 'playerIdentifier' (e.g. ";kill Ben)
+			playerDefinedSearch = main.enum.PlayerSearch.UserName, -- 'Defined' means *with* the 'playerIdentifier' (e.g. ";kill @ForeverHD)
 
 			previewIncompleteCommands = false,
 			

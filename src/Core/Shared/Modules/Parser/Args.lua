@@ -451,7 +451,7 @@ Args.array = {
 	{
 		name = "stat",
 		aliases = {"statName"},
-		description = "Accepts a valid stat name and returns the stat (defined in Server/Modules/StatHandler).",
+		description = "Accepts a valid stat name and returns the stat (defined in Server/Modules/StatHandler). This requires the 'player' arg as the first argument to work.",
 		defaultValue = false,
 		parse = function(self, stringToParse, _, targetUserId)
 			local targetPlayer = main.Players:GetPlayerByUserId(targetUserId)
@@ -466,7 +466,7 @@ Args.array = {
 		aliases = {},
 		displayName = "userNameOrId",
 		description = "Accepts an @userName, displayName or userId and returns a userId.",
-		defaultValue = 0,
+		defaultValue = false,
 		parse = function(self, stringToParse, callerUserId)
 			local userId = tonumber(stringToParse)
 			if userId then
@@ -489,11 +489,11 @@ Args.array = {
 
 	-----------------------------------
 	{
-		name = "username", -- returns a string instead of a player instance - it fist looks for a player in the server otherwise defaults to the given string
+		name = "username",
 		aliases = {"playerOrUser"},
 		displayName = "userNameOrId",
 		description = "Accepts an @userName, displayName or userId and returns a username. It first checks the players of that server for a matching shorthand name and returns their userName if present.",
-		defaultValue = "",
+		defaultValue = false,
 		parse = function(self, stringToParse)
 		end,
 	},
@@ -507,10 +507,12 @@ Args.array = {
 		defaultValue = false,
 		parse = function(self, stringToParse)
 			local stringToParseLower = string.lower(stringToParse)
-			for _,team in pairs(main.Teams:GetChildren()) do
-				local teamName = string.lower(team.Name)
-				if string.sub(teamName, 1, #stringToParseLower) == stringToParseLower then
-					return team
+			if string.len(stringToParseLower) > 0 then
+				for _,team in pairs(main.Teams:GetChildren()) do
+					local teamName = string.lower(team.Name)
+					if string.sub(teamName, 1, #stringToParseLower) == stringToParseLower then
+						return team
+					end
 				end
 			end
 		end,
@@ -521,15 +523,12 @@ Args.array = {
 		name = "teamcolor",
 		displayName = "teamName",
 		aliases = {},
-		description = "Accepts a valid team name and returns the teams TeamColor.",
+		description = "Accepts a valid team name and returns the teams TeamColor (a BrickColor).",
 		defaultValue = false,
-		parse = function(self, stringToParse)
-			local stringToParseLower = string.lower(stringToParse)
-			for _,team in pairs(main.Teams:GetChildren()) do
-				local teamName = string.lower(team.Name)
-				if string.sub(teamName, 1, #stringToParseLower) == stringToParseLower then
-					return team.TeamColor
-				end
+		parse = function(...)
+			local team = Args.get("team").parse(...)
+			if team then
+				return team.TeamColor
 			end
 		end,
 	},
@@ -543,7 +542,68 @@ Args.array = {
 		parse = function(self, stringToParse)
 			local enumName = stringToParse:sub(1,1):upper()..stringToParse:sub(2):lower()
 			local success, enum = pcall(function() return Enum.Material[enumName] end)
-			return (success and enum)
+			if success then
+				return enum
+			end
+		end,
+	},
+
+	-----------------------------------
+	{
+		name = "bundleDescription",
+		aliases = {},
+		displayname = "bundleId",
+		description = "Accepts a bundleId and returns a HumanoidDescription associated with that bundle.",
+		defaultValue = false,
+		parse = function(self, stringToParse, _, targetUserId)
+			local humanoid = main.modules.PlayerUtil.getHumanoid(targetUserId)
+			local success, description = main.modules.MorphUtil.getDescriptionFromBundleId(stringToParse, humanoid):await()
+			if not success then
+				return
+			end
+			return description
+		end,
+		verifyCanUse = function(self, callerUser, valueToParse)
+			local success, warning = main.modules.MorphUtil.loadBundleId(valueToParse):await()
+			return success, warning
+		end,
+	},
+
+	-----------------------------------
+	{
+		name = "userDescription",
+		aliases = {},
+		displayname = "userNameOrId",
+		description = "Accepts an @userName, displayName or userId and returns a HumanoidDescription.",
+		defaultValue = false,
+		parse = function(self, stringToParse, callerUserId, targetUserId)
+			local userId = Args.get("userId").parse(self, stringToParse, callerUserId, targetUserId)
+			if not userId then
+				return
+			end
+			local playerInServer = main.Players:GetPlayerByUserId(userId)
+			if playerInServer then
+				local playerInServerDescription = main.modules.MorphUtil.getDescriptionFromPlayer(playerInServer)
+				if playerInServerDescription then
+					return playerInServerDescription
+				end
+			end
+			local success, description = main.modules.MorphUtil.getDescriptionFromUserId(userId):await()
+			if not success then
+				return
+			end
+			return description
+		end,
+		verifyCanUse = function(self, callerUser, valueToParse)
+			local userId = Args.get("userId").parse(self, valueToParse, callerUser.userId)
+			if not userId then
+				return false, ("'%s' is an invalid UserId, DisplayName or UserName!"):format(tostring(valueToParse))
+			end
+			local success, description = main.modules.MorphUtil.getDescriptionFromUserId(userId):await()
+			if not success then
+				return false, ("Failed to load description as userId '%s' is invalid!"):format(userId)
+			end
+			return true
 		end,
 	},
 
@@ -559,9 +619,11 @@ Args.array = {
 			--[[
 			local toolName = argToProcess
 			argToProcess = {}
-			for i,v in pairs(main.listOfTools) do
-				if toolName == "all" or string.lower(string.sub(v.Name, 1, #toolName)) == toolName then
-					table.insert(argToProcess, v)
+			if string.len(stringToParseLower) > 0 then
+				for i,v in pairs(main.listOfTools) do
+					if toolName == "all" or string.lower(string.sub(v.Name, 1, #toolName)) == toolName then
+						table.insert(argToProcess, v)
+					end
 				end
 			end
 			--]]

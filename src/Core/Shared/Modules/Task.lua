@@ -301,7 +301,11 @@ function Task:execute()
 		local finishedInvokingCommand = false
 		self:track(main.modules.Thread.delayUntil(function() return finishedInvokingCommand == true end))
 		self:track(main.modules.Thread.delayUntil(function() return filteredAllArguments == true end, function()
-			command.invoke(self, unpack(additional))
+			local success, errorMessage = pcall(command.invoke, self, unpack(additional))
+			if not success then
+				self:kill()
+				warn(debug.traceback(("Nanoblox command error: %s"):format(tostring(errorMessage))))
+			end
 			finishedInvokingCommand = true
 		end))
 	end
