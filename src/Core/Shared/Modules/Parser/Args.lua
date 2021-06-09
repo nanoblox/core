@@ -492,9 +492,18 @@ Args.array = {
 		name = "username",
 		aliases = {"playerOrUser"},
 		displayName = "userNameOrId",
-		description = "Accepts an @userName, displayName or userId and returns a username. It first checks the players of that server for a matching shorthand name and returns their userName if present.",
+		description = "Accepts an @userName, displayName or userId and returns a username.",
 		defaultValue = false,
-		parse = function(self, stringToParse)
+		parse = function(self, stringToParse, callerUserId)
+			local callerUser = main.modules.PlayerStore:getUser(callerUserId)
+			local playersInServer = main.modules.Parser.getPlayersFromString(stringToParse, callerUser)
+			local player = playersInServer[1]
+			if player then
+				return player.Name
+			end
+			local playerIdentifier = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
+			local username = stringToParse:gsub(playerIdentifier, "")
+			return username
 		end,
 	},
 
@@ -595,7 +604,7 @@ Args.array = {
 			return description
 		end,
 		verifyCanUse = function(self, callerUser, valueToParse)
-			local userId = Args.get("userId").parse(self, valueToParse, callerUser.userId)
+			local userId = Args.get("userId").parse(self, tostring(valueToParse), callerUser.userId)
 			if not userId then
 				return false, ("'%s' is an invalid UserId, DisplayName or UserName!"):format(tostring(valueToParse))
 			end

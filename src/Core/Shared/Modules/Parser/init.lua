@@ -68,7 +68,7 @@ function Parser.requiresQualifier(commandName)
 		return qualifierRequiredEnum.Never
 	end
 	local firstArgName = commandArgs[1]:lower()
-	local firstArg = MAIN.modules.Parser.Args.dictionary[firstArgName]
+	local firstArg = MAIN.modules.Parser.Args.get(firstArgName)
 
 	if firstArg.playerArg ~= true then
 		return qualifierRequiredEnum.Never
@@ -96,7 +96,7 @@ function Parser.hasEndlessArgument(commandName)
 	local lastArgName = commandArgs[#commandArgs]:lower()
 	local lastArg = argsDictionary[lastArgName]
 
-	return lastArg.endlessArg == true
+	return lastArg and lastArg.endlessArg == true
 end
 
 --[[
