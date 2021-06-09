@@ -57,8 +57,9 @@ function MorphUtil.getDescriptionFromBundleId(bundleIdToParse, humanoid)
 			description = humanoid:GetAppliedDescription()
 			local defaultDescription = Instance.new("HumanoidDescription")
 			for _, property in next, {"BackAccessory", "BodyTypeScale", "ClimbAnimation", "DepthScale", "Face", "FaceAccessory", "FallAnimation", "FrontAccessory", "GraphicTShirt", "HairAccessory", "HatAccessory", "Head", "HeadColor", "HeadScale", "HeightScale", "IdleAnimation", "JumpAnimation", "LeftArm", "LeftArmColor", "LeftLeg", "LeftLegColor", "NeckAccessory", "Pants", "ProportionScale", "RightArm", "RightArmColor", "RightLeg", "RightLegColor", "RunAnimation", "Shirt", "ShouldersAccessory", "SwimAnimation", "Torso", "TorsoColor", "WaistAccessory", "WalkAnimation", "WidthScale"} do
-				if cachedDescription[property] ~= defaultDescription[property] then -- property is not the default value
-					description[property] = cachedDescription[property]
+				local cachedProperty = cachedDescription[property]
+				if cachedProperty ~= defaultDescription[property] and cachedProperty ~= Color3.fromRGB(163, 162, 165) then -- property is not the default value
+					description[property] = cachedProperty
 				end
 			end
 			defaultDescription:Destroy()
