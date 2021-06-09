@@ -649,10 +649,28 @@ function Task:getAssets(...)
 end
 
 -- An abstraction of ``task.agent:buff(...)``
-function Task:buff(effect, property, weight)
+function Task:buffPlayer(effect, property, weight)
 	local agent = self.agent
 	if not agent then
 		error("Cannot create buff as the task has no associated player!")
+	end
+	local buff = agent:buff(effect, property, weight)
+	table.insert(self.buffs, buff)
+	return buff
+end
+
+-- An abstraction of ``task.agent:buff(...)``
+function Task:buffCaller(effect, property, weight)
+	local agent = self.agent
+	if not agent then
+		-- The caller is not always in the server (for instance, for a global broadcast) so silently do nothing
+		local fakeTable = {}
+		setmetatable(fakeTable, {
+			__index = function(table, index)
+				return function() end
+			end
+		})
+		return fakeTable
 	end
 	local buff = agent:buff(effect, property, weight)
 	table.insert(self.buffs, buff)

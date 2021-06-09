@@ -391,7 +391,10 @@ function CommandService.executeStatement(callerUserId, statement)
 		end
 		if not splitIntoUsers then
 			properties.qualifiers = statement.qualifiers or properties.qualifiers
-			table.insert(tasks, main.services.TaskService.createTask(addToPerm, properties))
+			local task = main.services.TaskService.createTask(addToPerm, properties)
+			if task then
+				table.insert(tasks, task)
+			end
 		else
 			table.insert(promises, Promise.defer(function(resolve)
 				local targets = Args.get("player"):parse(statement.qualifiers, callerUserId)

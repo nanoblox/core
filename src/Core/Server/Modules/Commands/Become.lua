@@ -20,9 +20,10 @@ Command.persistence = main.enum.Persistence.UntilPlayerRespawns -- when set to '
 Command.args = {"UserDescription"} -- the arguments to be processed and passed through the the command; see the 'Args' module for a list of all arguments
 
 function Command.invoke(task, args)
-	local _, stat, value = unpack(args)
-	if stat then
-		main.modules.StatHandler.set(stat, value)
+	local description = unpack(args)
+	print("description = ", description)
+	if description then
+		task:buffCaller("HumanoidDescription"):set(description)
 	end
 end
 
