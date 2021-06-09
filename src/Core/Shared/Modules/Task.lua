@@ -61,43 +61,51 @@ function Task.new(properties)
 	end
 
 	-- This handles the killing of tasks depending upon the command.persistence enum
-	local targetPlayer = self.targetUserId and main.Players:GetPlayerByUserId(self.targetUserId)
-	self.targetPlayer = targetPlayer
-	if main.isServer then
-		local validPlayerLeavingEnums = {
-			[tostring(main.enum.Persistence.UntilPlayerDies)] = true,
-			[tostring(main.enum.Persistence.UntilPlayerRespawns)] = true,
-			[tostring(main.enum.Persistence.UntilPlayerLeaves)] = true,
-			[tostring(main.enum.Persistence.UntilPlayerOrCallerLeave)] = true,
-		}
-		local validCallerLeavingEnums = {
-			[tostring(main.enum.Persistence.UntilCallerLeaves)] = true,
-			[tostring(main.enum.Persistence.UntilPlayerOrCallerLeave)] = true,
-		}
-		local function playerOrCallerRemoving(userId, leftFromThisServer)
-			local persistence = tostring(self.persistence)
-			local playerLeft = (userId == self.targetUserId and validPlayerLeavingEnums[persistence])
-			local callerLeft = (userId == self.callerUserId and validCallerLeavingEnums[persistence])
-			if playerLeft or callerLeft then
-				if callerLeft and leftFromThisServer and self.modifiers.wasGlobal then
-					-- We fire to other servers if the task was global so that the other globa tasks know the caller (based in this server) has left
-					main.services.TaskService.callerLeftSender:fireOtherServers(userId)
-				end
-				self:kill()
+	self.player = self.player or (self.playerUserId and main.Players:GetPlayerByUserId(self.playerUserId))
+	self.caller = self.caller or (self.callerUserId and main.Players:GetPlayerByUserId(self.callerUserId))
+
+	local validPlayerLeavingEnums = {
+		[tostring(main.enum.Persistence.UntilPlayerDies)] = true,
+		[tostring(main.enum.Persistence.UntilPlayerRespawns)] = true,
+		[tostring(main.enum.Persistence.UntilPlayerLeaves)] = true,
+		[tostring(main.enum.Persistence.UntilPlayerOrCallerLeave)] = true,
+	}
+	local validCallerLeavingEnums = {
+		[tostring(main.enum.Persistence.UntilCallerDies)] = true,
+		[tostring(main.enum.Persistence.UntilCallerRespawns)] = true,
+		[tostring(main.enum.Persistence.UntilCallerLeaves)] = true,
+		[tostring(main.enum.Persistence.UntilPlayerOrCallerLeave)] = true,
+	}
+	local function playerOrCallerRemoving(userId, leftFromThisServer)
+		local persistence = tostring(self.persistence)
+		local playerLeft = (userId == self.playerUserId and validPlayerLeavingEnums[persistence])
+		local callerLeft = (userId == self.callerUserId and validCallerLeavingEnums[persistence])
+		if playerLeft or callerLeft then
+			if callerLeft and leftFromThisServer and self.modifiers.wasGlobal then
+				-- We fire to other servers if the task was global so that the other globa tasks know the caller (based in this server) has left
+				main.services.TaskService.callerLeftSender:fireOtherServers(userId)
 			end
+			self:kill()
 		end
-		maid:give(main.Players.PlayerRemoving:Connect(function(plr)
-			local userId = plr.UserId
-			playerOrCallerRemoving(userId, true)
-		end))
-		maid:give(self.callerLeft:Connect(function()
-			playerOrCallerRemoving(self.callerUserId)
-		end))
+	end
+	maid:give(main.Players.PlayerRemoving:Connect(function(plr)
+		local userId = plr.UserId
+		playerOrCallerRemoving(userId, true)
+	end))
+	maid:give(self.callerLeft:Connect(function()
+		playerOrCallerRemoving(self.callerUserId)
+	end))
+
+	local function setupPersistenceEnum(playerInstance, playerType)
+		if not main.isServer or not playerInstance then
+			return
+		end
 		local function registerCharacter(char)
 			if char then
 				local humanoid = char:FindFirstChild("Humanoid") or char:WaitForChild("Humanoid")
 				local function died()
-					if self.persistence == main.enum.Persistence.UntilPlayerDies then
+					local enumItemName = ("Until%sDies"):format(playerType)
+					if self.persistence == main.enum.Persistence[enumItemName] then
 						self:kill()
 					end
 				end
@@ -110,38 +118,48 @@ function Task.new(properties)
 				end
 			end
 		end
-		if targetPlayer then
-			maid:give(targetPlayer.CharacterAdded:Connect(function(char)
-				if self.persistence == main.enum.Persistence.UntilPlayerRespawns then
+		if playerInstance then
+			maid:give(playerInstance.CharacterAdded:Connect(function(char)
+				local enumItemName = ("Until%sRespawns"):format(playerType)
+				if self.persistence == main.enum.Persistence[enumItemName] then
 					self:kill()
 					return
 				end
 				registerCharacter(char)
 			end))
-			main.modules.Thread.spawn(registerCharacter, targetPlayer.Character)
+			main.modules.Thread.spawn(registerCharacter, playerInstance.Character)
 		end
 	end
+	setupPersistenceEnum(self.player, "Player")
+	setupPersistenceEnum(self.caller, "Caller")
 
 	-- This retrieves the agent
-	if main.isServer then
-		-- This determines the tasks agent when the player arg is present as the first arg
-		local user = main.modules.PlayerStore:getUser(self.targetPlayer)
-		if user then
-			self.agent = user.agent
+	local function setupAgent(agentPlayer, propertyName)
+		if not agentPlayer then
+			return
 		end
-	else
-		-- This dynamically creates agents for client commands
-		local agentDetail = main.clientCommandAgents[self.targetPlayer]
-		if not agentDetail then
-			agentDetail = {
-				agent = main.modules.Agent.new(self.targetPlayer, true),
-				activeAreas = 0,
-			}
-			main.clientCommandAgents[self.targetPlayer] = agentDetail
+		if main.isServer then
+			-- This determines the tasks agent when the player arg is present as the first arg
+			local agentUser = main.modules.PlayerStore:getUser(agentPlayer)
+			if agentUser then
+				self[propertyName] = agentUser.agent
+			end
+		else
+			-- This dynamically creates agents for client commands
+			local agentDetail = main.clientCommandAgents[agentPlayer]
+			if not agentDetail then
+				agentDetail = {
+					agent = main.modules.Agent.new(agentPlayer, true),
+					activeAreas = 0,
+				}
+				main.clientCommandAgents[agentPlayer] = agentDetail
+			end
+			agentDetail.activeAreas +=1
+			self[propertyName] = agentDetail.agent
 		end
-		agentDetail.activeAreas +=1
-		self.agent = agentDetail.agent
 	end
+	setupAgent(self.player, "playerAgent")
+	setupAgent(self.caller, "callerAgent")
 
 	return self
 end
@@ -273,7 +291,7 @@ function Task:execute()
 					}
 				end
 				local promise = main.modules.Promise.defer(function(resolve)
-					local returnValue = argItem:parse(argString, self.callerUserId, self.targetUserId)
+					local returnValue = argItem:parse(argString, self.callerUserId, self.playerUserId)
 					resolve(returnValue)
 				end)
 				table.insert(promises, promise
@@ -318,8 +336,8 @@ function Task:execute()
 		end
 
 		-- If the task is player-specific (such as in ;kill foreverhd, ;kill all) find the associated player and execute the command on them
-		if self.targetPlayer then
-			return invokeCommand(true, {self.targetPlayer})
+		if self.player then
+			return invokeCommand(true, {self.player})
 		end
 		
 		-- If the task has no associated player or qualifiers (such as in ;music <musicId>) then simply execute right away
@@ -328,22 +346,22 @@ function Task:execute()
 		end
 
 		-- If the task has no associated player *but* does contain qualifiers (such as in ;globalKill all)
-		local targets = firstArgItem:parse(self.qualifiers, self.callerUserId)
+		local targetPlayers = firstArgItem:parse(self.qualifiers, self.callerUserId)
 		if firstArgItem.executeForEachPlayer then -- If the firstArg has executeForEachPlayer, convert the task into subtasks for each player returned by the qualifiers
-			for i, plr in pairs(targets) do
+			for i, plr in pairs(targetPlayers) do
 				--self:track(main.modules.Thread.delayUntil(function() return self.filteredAllArguments == true end, function()
 					local TaskService = main.services.TaskService
 					local properties = TaskService.generateRecord()
 					properties.callerUserId = self.callerUserId
 					properties.commandName = self.commandName
 					properties.args = self.args
-					properties.targetUserId = plr.targetUserId
+					properties.playerUserId = plr.playerUserId
 					local subtask = TaskService.createTask(false, properties)
 					subtask:begin()
 				--end))
 			end
 		else
-			invokeCommand(true, {targets})
+			invokeCommand(true, {targetPlayers})
 		end
 
 	end)
@@ -352,10 +370,10 @@ function Task:execute()
 		main.RunService.Heartbeat:Wait()
 		if invokedCommand then
 			self.executionThreadsCompleted:Wait()
-			local humanoid = main.modules.PlayerUtil.getHumanoid(self.targetPlayer)
+			local humanoid = main.modules.PlayerUtil.getHumanoid(self.player)
 			if humanoid and humanoid.Health == 0 then
 				local promise = Promise.new(function(charResolve)
-					self.targetPlayer.CharacterAdded:Wait()
+					self.player.CharacterAdded:Wait()
 					charResolve()
 				end)
 				promise:timeout(5)
@@ -514,14 +532,21 @@ function Task:kill()
 		end
 	else
 		-- This dynamically removes agents for client commands
-		local agentDetail = main.clientCommandAgents[self.targetPlayer]
-		if agentDetail then
-			agentDetail.activeAreas -=1
-			if agentDetail.activeAreas <= 0 then
-				agentDetail.agent:destroy()
-				main.clientCommandAgents[self.targetPlayer] = nil
+		local function removeClientAgent(agentPlayer)
+			if not agentPlayer then
+				return
+			end
+			local agentDetail = main.clientCommandAgents[agentPlayer]
+			if agentDetail then
+				agentDetail.activeAreas -=1
+				if agentDetail.activeAreas <= 0 then
+					agentDetail.agent:destroy()
+					main.clientCommandAgents[agentPlayer] = nil
+				end
 			end
 		end
+		removeClientAgent(self.player)
+		removeClientAgent(self.caller)
 	end
 end
 Task.destroy = Task.kill
@@ -650,7 +675,7 @@ end
 
 -- An abstraction of ``task.agent:buff(...)``
 function Task:buffPlayer(effect, property, weight)
-	local agent = self.agent
+	local agent = self.playerAgent
 	if not agent then
 		error("Cannot create buff as the task has no associated player!")
 	end
@@ -661,7 +686,7 @@ end
 
 -- An abstraction of ``task.agent:buff(...)``
 function Task:buffCaller(effect, property, weight)
-	local agent = self.agent
+	local agent = self.callerAgent
 	if not agent then
 		-- The caller is not always in the server (for instance, for a global broadcast) so silently do nothing
 		local fakeTable = {}
@@ -725,9 +750,10 @@ function Task:_invoke(playersArray, ...)
 			commandName = self.commandName,
 			killAfterExecution = killAfterExecution,
 			clientArgs = table.pack(...),
-			targetUserId = self.targetUserId,
-			targetPlayer = self.targetPlayer,
+			playerUserId = self.playerUserId,
+			player = self.player,
 			callerUserId = self.callerUserId,
+			caller = self.caller
 		}
 		table.insert(promises, main.services.TaskService.remotes.invokeClientCommand:invokeClient(player, clientTaskProperties)
 			:timeout(timeoutValue)

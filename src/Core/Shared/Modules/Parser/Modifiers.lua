@@ -95,7 +95,7 @@ Modifiers.array = {
 					local firstArgItem = Args.get(firstCommandArg)
 					if firstArgItem.playerArg then
 						for _, plr in pairs(targets) do
-							main.services.TaskService.removeTasksWithCommandNameAndTargetUserId(commandName, plr.UserId)
+							main.services.TaskService.removeTasksWithCommandNameAndPlayerUserId(commandName, plr.UserId)
 						end
 					else
 						main.services.TaskService.removeTasksWithCommandName(commandName)

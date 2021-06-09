@@ -155,8 +155,8 @@ Args.array = {
 		description = "Accepts a string and filters it based upon the caller and target.",
 		defaultValue = "",
 		endlessArg = true,
-		parse = function(self, textToFilter, callerUserId, targetUserId)
-			local _, value = main.modules.ChatUtil.filterText(callerUserId, targetUserId, textToFilter):await()
+		parse = function(self, textToFilter, callerUserId, playerUserId)
+			local _, value = main.modules.ChatUtil.filterText(callerUserId, playerUserId, textToFilter):await()
 			return value
 		end,
 	},
@@ -168,12 +168,12 @@ Args.array = {
 		description = "Accepts a number or string, where only strings are filtered, and returns a string.",
 		defaultValue = "",
 		endlessArg = true,
-		parse = function(self, textToFilter, callerUserId, targetUserId)
+		parse = function(self, textToFilter, callerUserId, playerUserId)
 			local numberValue = tonumber(textToFilter)
 			if numberValue then
 				return tostring(numberValue)
 			end
-			local _, value = main.modules.ChatUtil.filterText(callerUserId, targetUserId, textToFilter):await()
+			local _, value = main.modules.ChatUtil.filterText(callerUserId, playerUserId, textToFilter):await()
 			return value
 		end,
 	},
@@ -453,8 +453,8 @@ Args.array = {
 		aliases = {"statName"},
 		description = "Accepts a valid stat name and returns the stat (defined in Server/Modules/StatHandler). This requires the 'player' arg as the first argument to work.",
 		defaultValue = false,
-		parse = function(self, stringToParse, _, targetUserId)
-			local targetPlayer = main.Players:GetPlayerByUserId(targetUserId)
+		parse = function(self, stringToParse, _, playerUserId)
+			local targetPlayer = main.Players:GetPlayerByUserId(playerUserId)
 			local stat = (targetPlayer and main.modules.StatHandler.get(targetPlayer, stringToParse))
 			return stat
 		end,
@@ -564,8 +564,8 @@ Args.array = {
 		displayname = "bundleId",
 		description = "Accepts a bundleId and returns a HumanoidDescription associated with that bundle.",
 		defaultValue = false,
-		parse = function(self, stringToParse, _, targetUserId)
-			local humanoid = main.modules.PlayerUtil.getHumanoid(targetUserId)
+		parse = function(self, stringToParse, _, playerUserId)
+			local humanoid = main.modules.PlayerUtil.getHumanoid(playerUserId)
 			local success, description = main.modules.MorphUtil.getDescriptionFromBundleId(stringToParse, humanoid):await()
 			if not success then
 				return
@@ -585,8 +585,8 @@ Args.array = {
 		displayname = "userNameOrId",
 		description = "Accepts an @userName, displayName or userId and returns a HumanoidDescription.",
 		defaultValue = false,
-		parse = function(self, stringToParse, callerUserId, targetUserId)
-			local userId = Args.get("userId").parse(self, stringToParse, callerUserId, targetUserId)
+		parse = function(self, stringToParse, callerUserId, playerUserId)
+			local userId = Args.get("userId").parse(self, stringToParse, callerUserId, playerUserId)
 			if not userId then
 				return
 			end

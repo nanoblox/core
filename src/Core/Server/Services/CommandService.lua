@@ -372,9 +372,9 @@ function CommandService.executeStatement(callerUserId, statement)
 		-- Its important to split commands into specific users for most cases so that the command can
 		-- be easily reapplied if the player rejoins (for ones where the perm modifier is present)
 		-- The one exception for this is when a global modifier is present. In this scenerio, don't save
-		-- specific targets, simply use the qualifiers instead to select a general audience relevant for
+		-- specific targetPlayers, simply use the qualifiers instead to select a general audience relevant for
 		-- the particular server at time of exection.
-		-- e.g. ``;permLoopKillAll`` will save each specific target within that server and permanetly loop kill them
+		-- e.g. ``;permLoopKillAll`` will save each specific targetPlayer within that server and permanetly loop kill them
 		-- while ``;globalLoopKillAll`` will permanently save the loop kill action and execute this within all
 		-- servers repeatidly
 		local addToPerm = false
@@ -397,9 +397,9 @@ function CommandService.executeStatement(callerUserId, statement)
 			end
 		else
 			table.insert(promises, Promise.defer(function(resolve)
-				local targets = Args.get("player"):parse(statement.qualifiers, callerUserId)
-				for _, plr in pairs(targets) do
-					properties.targetUserId = plr.UserId
+				local targetPlayers = Args.get("player"):parse(statement.qualifiers, callerUserId)
+				for _, plr in pairs(targetPlayers) do
+					properties.playerUserId = plr.UserId
 					local task = main.services.TaskService.createTask(addToPerm, properties)
 					if task then
 						table.insert(tasks, task)

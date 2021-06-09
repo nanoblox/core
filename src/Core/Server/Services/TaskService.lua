@@ -98,7 +98,7 @@ end
 
 -- EVENTS
 local commandNameToTask = main.modules.State.new() -- This allows for super quick retrieval of a group of tasks with the same commandName
-local targetUserIdToTaskGroup = main.modules.State.new() -- This allows for super quick retrieval of a group of tasks with the same targetUserId
+local playerUserIdToTaskGroup = main.modules.State.new() -- This allows for super quick retrieval of a group of tasks with the same playerUserId
 
 TaskService.taskAdded = Signal.new()
 TaskService.taskChanged = Signal.new()
@@ -110,8 +110,8 @@ TaskService.recordAdded:Connect(function(UID, record)
 	task.UID = UID
 	tasks[UID] = task
 	task:begin()
-	if task.targetUserId then
-		targetUserIdToTaskGroup:getOrSetup(task.targetUserId, task.commandNameLower):set(UID, task)  -- This allows for super quick retrieval of a group of tasks with the same targetUserId
+	if task.playerUserId then
+		playerUserIdToTaskGroup:getOrSetup(task.playerUserId, task.commandNameLower):set(UID, task)  -- This allows for super quick retrieval of a group of tasks with the same playerUserId
 	end
 	commandNameToTask:getOrSetup(task.commandNameLower):set(UID, task)
 	TaskService.taskAdded:Fire(task)
@@ -124,7 +124,7 @@ TaskService.recordRemoved:Connect(function(UID)
 		task:destroy()
 		task[UID] = nil
 	end
-	local userTaskCommandGroup = targetUserIdToTaskGroup:find(task.targetUserId, task.commandNameLower)
+	local userTaskCommandGroup = playerUserIdToTaskGroup:find(task.playerUserId, task.commandNameLower)
 	if userTaskCommandGroup then
 		userTaskCommandGroup:set(UID, nil)
 	end
@@ -155,7 +155,7 @@ function TaskService.generateRecord(key)
 		commandName = "",
 		args = {},
 		qualifiers = {},
-		targetUserId = nil,
+		playerUserId = nil,
 	}
 end
 
@@ -169,7 +169,7 @@ function TaskService.createTask(isGlobal, properties)
 	end
 	local commandNameLower = string.lower(properties.commandName)
 	properties.commandNameLower = commandNameLower
-	local runningTasks = TaskService.getTasksWithCommandNameAndOptionalTargetUserId(commandNameLower, properties.targetUserId)
+	local runningTasks = TaskService.getTasksWithCommandNameAndOptionalPlayerUserId(commandNameLower, properties.playerUserId)
 	if command.revokeRepeats then
 		for _, task in pairs(runningTasks) do
 			task:kill()
@@ -217,9 +217,9 @@ function TaskService.getTasksWithCommandName(commandName)
 	return tasksArray
 end
 
-function TaskService.getTasksWithTargetUserId(targetUserId)
+function TaskService.getTasksWithPlayerUserId(playerUserId)
 	local tasksArray = {}
-	local userTaskCommandGroups = targetUserIdToTaskGroup:find(targetUserId)
+	local userTaskCommandGroups = playerUserIdToTaskGroup:find(playerUserId)
 	if userTaskCommandGroups then
 		for _, groupOfTasks in pairs(userTaskCommandGroups) do
 			for _, task in pairs(groupOfTasks) do
@@ -230,9 +230,9 @@ function TaskService.getTasksWithTargetUserId(targetUserId)
 	return tasksArray
 end
 
-function TaskService.getTasksWithCommandNameAndTargetUserId(commandName, targetUserId)
+function TaskService.getTasksWithCommandNameAndPlayerUserId(commandName, playerUserId)
 	local tasksArray = {}
-	local userTaskCommandGroup = targetUserIdToTaskGroup:find(targetUserId, commandName)
+	local userTaskCommandGroup = playerUserIdToTaskGroup:find(playerUserId, commandName)
 	if userTaskCommandGroup then
 		for _, task in pairs(userTaskCommandGroup) do
 			table.insert(tasksArray, task)
@@ -241,8 +241,8 @@ function TaskService.getTasksWithCommandNameAndTargetUserId(commandName, targetU
 	return tasksArray
 end
 
-function TaskService.getTasksWithCommandNameAndOptionalTargetUserId(commandName, optionalTargetUserId)
-	local tasksArray = (optionalTargetUserId and TaskService.getTasksWithCommandNameAndTargetUserId(commandName, optionalTargetUserId)) or TaskService.getTasksWithCommandName(commandName)
+function TaskService.getTasksWithCommandNameAndOptionalPlayerUserId(commandName, optionalPlayerUserId)
+	local tasksArray = (optionalPlayerUserId and TaskService.getTasksWithCommandNameAndPlayerUserId(commandName, optionalPlayerUserId)) or TaskService.getTasksWithCommandName(commandName)
 	return tasksArray
 end
 
@@ -267,22 +267,22 @@ function TaskService.removeTasksWithCommandName(commandName)
 	end
 end
 
-function TaskService.removeTasksWithTargetUserId(targetUserId)
-	local tasksArray = TaskService.getTasksWithTargetUserId(targetUserId)
+function TaskService.removeTasksWithPlayerUserId(playerUserId)
+	local tasksArray = TaskService.getTasksWithPlayerUserId(playerUserId)
 	for _, task in pairs(tasksArray) do
 		TaskService.removeTask(task.UID)
 	end
 end
 
-function TaskService.removeTasksWithCommandNameAndTargetUserId(commandName, targetUserId)
-	local tasksArray = TaskService.getTasksWithCommandNameAndTargetUserId(commandName, targetUserId)
+function TaskService.removeTasksWithCommandNameAndPlayerUserId(commandName, playerUserId)
+	local tasksArray = TaskService.getTasksWithCommandNameAndPlayerUserId(commandName, playerUserId)
 	for _, task in pairs(tasksArray) do
 		TaskService.removeTask(task.UID)
 	end
 end
 
-function TaskService.removeTasksWithCommandNameAndOptionalTargetUserId(commandName, optionalTargetUserId)
-	local tasksArray = TaskService.getTasksWithCommandNameAndOptionalTargetUserId(commandName, optionalTargetUserId)
+function TaskService.removeTasksWithCommandNameAndOptionalPlayerUserId(commandName, optionalPlayerUserId)
+	local tasksArray = TaskService.getTasksWithCommandNameAndOptionalPlayerUserId(commandName, optionalPlayerUserId)
 	for _, task in pairs(tasksArray) do
 		TaskService.removeTask(task.UID)
 	end
