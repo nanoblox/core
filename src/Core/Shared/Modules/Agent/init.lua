@@ -46,6 +46,7 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 	self.humanoidDescriptionCount = 0
 	self.humanoidDescription = nil
 	self.applyingHumanoidDescription = false
+	self.remainingHumanoidDescriptionBuffs = 0
 	self.destroyed = false
 
 	maid:give(player.CharacterAdded:Connect(function(char)
@@ -103,11 +104,13 @@ end
 function Agent:updateBuffGroups()
 	-- This organises buffs into groups by effect and additonal value
 	local groupedBuffs = {}
+	self.remainingHumanoidDescriptionBuffs = 0
 	for buffId, buff in pairs(self.buffs) do
-		local group = groupedBuffs[buff.effect]
+		local effect = buff.effect
+		local group = groupedBuffs[effect]
 		if not group then
 			group = {}
-			groupedBuffs[buff.effect] = group
+			groupedBuffs[effect] = group
 		end
 		local additionalString = tostring(buff.additional)
 		local additionalTable = group[additionalString]
@@ -116,6 +119,22 @@ function Agent:updateBuffGroups()
 			group[additionalString] = additionalTable
 		end
 		table.insert(additionalTable, buff)
+
+		-----------------------------
+		local effectModule = effects[effect]
+		local effectData = (effectModule and require(effectModule))
+		local instancesAndProperties = effectData and effectData(self.player, additionalString)
+		if instancesAndProperties then
+			for _, group in pairs(instancesAndProperties) do
+				local instance = group[1]
+				local isAHumanoidDescription = instance.ClassName == "HumanoidDescription"
+				if isAHumanoidDescription then
+					self.remainingHumanoidDescriptionBuffs += 1
+				end
+				break
+			end
+		end
+		-----------------------------
 	end
 	self.groupedBuffs = groupedBuffs
 end
@@ -155,8 +174,7 @@ end
 function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 	self:updateBuffGroups()
 	local humanoidDescription
-	local humanoidDescriptionInstance
-	local changedDescProperty
+
 	for effect, additionalTable in pairs(self.groupedBuffs) do
 		if not(specificEffect == nil or effect == specificEffect) then
 			continue
@@ -226,7 +244,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 				local propertyValue = forcedBaseValue or (isAHumanoidDescription and humanoidDescription and humanoidDescription[propertyName]) or instance[propertyName]
 				local finalValue = propertyValue
 				local activeAppliedTables = {}
-				local isPriorityValue = false
+				local isFinalDestroyedDescBuff = false
 
 				-- We do this as HumanoidDescription properties arent responsive (they are read-only and cant be tweened)
 				if isAHumanoidDescription then
@@ -244,12 +262,16 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 						defaultGroup[defaultAdditionalString] = propertyValue
 						defaultValue = propertyValue
 					end
-					if bossBuff.isDestroyed then
-						--isPriorityValue = true
+					if bossBuff.isDestroyed then -- if this is the very last buff of that group
+						if isAHumanoidDescription then
+							if self.remainingHumanoidDescriptionBuffs <= 1 then
+								isFinalDestroyedDescBuff = true
+							end
+						else
+							defaultGroup[defaultAdditionalString] = nil
+						end
 						finalValue = defaultValue
-						defaultGroup[defaultAdditionalString] = nil
 						self.buffs[bossBuff.buffId] = nil
-						--
 						local BodyUtil = require(bodyUtilPathway)
 						BodyUtil.clearFakeBodyParts(self.player, effect, additionalString)
 						--
@@ -333,7 +355,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 					end
 					if not finalValueTweenInfo then
 						if isAHumanoidDescription then
-							self:modifyHumanoidDescription(propertyName, finalValue, isPriorityValue)
+							self:modifyHumanoidDescription(propertyName, finalValue, isFinalDestroyedDescBuff)
 						else
 							
 							instance[propertyName] = finalValue
@@ -368,12 +390,13 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 				end
 				
 			end
+			self.destroyingFinalDescBuff = nil
 
 		end
 	end
 end
 
-function Agent:modifyHumanoidDescription(propertyName, value, isPriorityValue)
+function Agent:modifyHumanoidDescription(propertyName, value, isFinalDestroyedDescBuff)
 	-- humanoidDescriptionInstances do this weird thing where they don't always apply, especially when applying as soon as a player respawns
 	-- or right after applying another description. The following code is designed to overcome this.
 	self.humanoidDescriptionCount += 1
@@ -382,11 +405,12 @@ function Agent:modifyHumanoidDescription(propertyName, value, isPriorityValue)
 	if not self.humanoidDescription then
 		self.humanoidDescription = humanoid:GetAppliedDescription()
 	end
-	self.humanoidDescriptionPriorities = self.humanoidDescriptionPriorities or {}
-	if not self.humanoidDescriptionPriorities[propertyName] then
-		self.humanoidDescription[propertyName] = value
-		if isPriorityValue then
-			self.humanoidDescriptionPriorities[propertyName] = true
+	self.humanoidDescription[propertyName] = value
+	if isFinalDestroyedDescBuff and not self.destroyingFinalDescBuff then
+		self.destroyingFinalDescBuff = true
+		local defaultGroup = self:_getDefaultGroup("HumanoidDescription", self.humanoidDescription)
+		for key, defaultValue in pairs(defaultGroup) do
+			self.humanoidDescription[key] = defaultValue
 		end
 	end
 	main.modules.Thread.spawn(function()
@@ -415,7 +439,6 @@ function Agent:modifyHumanoidDescription(propertyName, value, isPriorityValue)
 				self.humanoidDescription.Face = originalFace
 				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
 			end
-			self.humanoidDescriptionPriorities = nil
 			self.applyingHumanoidDescription = false
 			self.humanoidDescription = nil
 		end

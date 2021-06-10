@@ -4,8 +4,8 @@ local Command =	{}
 
 
 Command.name = script.Name
-Command.aliases	= {"Trans"}
-Command.description = "Changes the transparency of the players body parts"
+Command.aliases	= {}
+Command.description = "Changes the material of the players body"
 Command.contributors = {82347291}
 Command.opposites = {}
 Command.prefixes = {}
@@ -17,12 +17,13 @@ Command.requiresRig = main.enum.HumanoidRigType.None
 Command.preventRepeats = main.enum.TriStateSetting.False
 Command.revokeRepeats = true
 Command.persistence = main.enum.Persistence.UntilPlayerRespawns
-Command.args = {"Player", "Number"}
+Command.args = {"Player", "Material"}
 
 function Command.invoke(task, args)
-	local _, number = unpack(args)
-	if number then
-		task:buffPlayer("BodyTransparency"):set(number)
+	local _, color = unpack(args)
+	if color then
+		print("Hello previously!")
+		--task:buffPlayer("BodyMaterial"):set(color)
 	end
 end
 

@@ -11,6 +11,27 @@ function CommandService.start()
 
     local previewCommand = main.modules.Remote.new("previewCommand")
     CommandService.remotes.previewCommand = previewCommand
+
+	local CLIENT_REQUEST_LIMIT = 10
+	local REFRESH_INTERVAL = 5
+
+	local requestBatch = main.modules.Remote.new("requestBatch", CLIENT_REQUEST_LIMIT, REFRESH_INTERVAL)
+    CommandService.remotes.requestBatch = requestBatch
+	requestBatch.onServerInvoke = function(player, ...)
+		
+	end
+
+	local requestStatement = main.modules.Remote.new("requestStatement", CLIENT_REQUEST_LIMIT, REFRESH_INTERVAL)
+    CommandService.remotes.requestStatement = requestStatement
+	requestStatement.onServerInvoke = function(player, ...)
+		
+	end
+
+	local requestChat = main.modules.Remote.new("requestChat", CLIENT_REQUEST_LIMIT, REFRESH_INTERVAL)
+    CommandService.remotes.requestChat = requestChat
+	requestChat.onServerInvoke = function(player, ...)
+		
+	end
     
 end
 
@@ -281,7 +302,7 @@ function CommandService.verifyAndExecuteStatement(callerUser, statement)
 	CommandService.verifyStatement(callerUser, statement)
 		:andThen(function(approved, noticeDetails)
 			if approved then
-				CommandService.executeStatement(callerUserId, statement)
+				return CommandService.executeStatement(callerUserId, statement)
 			end
 			if callerPlayer then
 				for _, detail in pairs(noticeDetails) do
@@ -388,12 +409,27 @@ function CommandService.verifyStatement(callerUser, statement)
 end
 
 function CommandService.executeStatement(callerUserId, statement)
-	----
 	statement.commands = statement.commands or {}
 	statement.modifiers = statement.modifiers or {}
 	statement.qualifiers = statement.qualifiers or {}
-	----
 	local tasks = {}
+
+	-- This enables the preview modifier if command.autoPreview is true
+	-- or bypasses the preview modifier entirely if the request is from the client
+	if statement.fromClient then
+		statement.modifiers.preview = nil
+	else
+		for commandName, arguments in pairs(statement.commands) do
+			local command = CommandService.getCommand(commandName)
+			if command.autoPreview then
+				statement.modifiers.preview = statement.modifiers.preview or true
+				break
+			end
+		end
+	end
+
+	-- This handles any present modifiers
+	-- If the modifier preAction value returns false then cancel the execution
 	local Modifiers = main.modules.Parser.Modifiers
 	for modifierName, _ in pairs(statement.modifiers) do
 		local modifierItem = Modifiers.get(modifierName)
@@ -404,12 +440,14 @@ function CommandService.executeStatement(callerUserId, statement)
 			end
 		end
 	end
+
 	local Args = main.modules.Parser.Args
 	local Promise = main.modules.Promise
 	local promises = {}
 	local isPermModifier = statement.modifiers.perm
 	local isGlobalModifier = statement.modifiers.wasGlobal
 	for commandName, arguments in pairs(statement.commands) do
+		
 		local command = CommandService.getCommand(commandName)
 		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(command.args[1])]
 		local TaskService = main.services.TaskService
@@ -418,6 +456,7 @@ function CommandService.executeStatement(callerUserId, statement)
 		properties.commandName = commandName
 		properties.args = arguments or properties.args
 		properties.modifiers = statement.modifiers
+
 		-- Its important to split commands into specific users for most cases so that the command can
 		-- be easily reapplied if the player rejoins (for ones where the perm modifier is present)
 		-- The one exception for this is when a global modifier is present. In this scenerio, don't save
