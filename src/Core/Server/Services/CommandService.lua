@@ -246,21 +246,27 @@ function CommandService.chatCommand(callerUser, message)
 	print(callerUser.name, "chatted: ", message, batch)
 	if type(batch) == "table" then
 		for _, statement in pairs(batch) do
-			CommandService.verifyStatement(callerUser, statement)
-				:andThen(function(approved, noticeDetails)
-					if approved then
-						CommandService.executeStatement(callerUserId, statement)
-					end
-					if callerPlayer then
-						for _, detail in pairs(noticeDetails) do
-							local method = main.services.MessageService[detail[1]]
-							method(callerPlayer, detail[2])
-						end
-					end
-				end)
-				:catch()
+			CommandService.verifyAndExecuteStatement(callerUser, statement)
 		end
 	end
+end
+
+function CommandService.verifyAndExecuteStatement(callerUser, statement)
+	local callerUserId = callerUser.userId
+	local callerPlayer = callerUser.player
+	CommandService.verifyStatement(callerUser, statement)
+		:andThen(function(approved, noticeDetails)
+			if approved then
+				CommandService.executeStatement(callerUserId, statement)
+			end
+			if callerPlayer then
+				for _, detail in pairs(noticeDetails) do
+					local method = main.services.MessageService[detail[1]]
+					method(callerPlayer, detail[2])
+				end
+			end
+		end)
+		:catch()
 end
 
 function CommandService.verifyStatement(callerUser, statement)

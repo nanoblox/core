@@ -23,19 +23,9 @@ Qualifiers.array = {
 		hidden = true,
 		multi = false,
 		description	= "Default action, returns players with matching shorthand names.",
-		getTargets = function(callerUserId, shorthandString, useDisplayName)
-			local targets = {}
-			for i, plr in pairs(main.Players:GetPlayers()) do
-				local nameToUse = (useDisplayName and plr.DisplayName) or plr.Name
-				local plrName = nameToUse:lower()
-				if string.sub(plrName, 1, #shorthandString) == shorthandString:lower() then
-					table.insert(targets, plr)
-				end
-			end
-			--!!! IF CALLER HAS MULTI DISABLED, ONLY RETURN 1 (this is a setting I believe in roles)
-			if callerUserId and callerUserCanOnlyUseOnOne and #targets > 1 then
-				return {targets[1]}
-			end
+		getTargets = function(callerUserId, stringToParse, useDisplayName)
+			local callerUser = main.modules.PlayerStore:getUser(callerUserId)
+			local targets = main.modules.Parser.getPlayersFromString(stringToParse, callerUser)
 			return targets
 		end,
 	},
