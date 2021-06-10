@@ -4,8 +4,8 @@ local Command =	{}
 
 
 Command.name = script.Name
-Command.aliases	= {}
-Command.description = "Changes the stat to 0"
+Command.aliases	= {"SetStat"}
+Command.description = "Changes the stat to the given value"
 Command.contributors = {82347291}
 Command.opposites = {}
 Command.prefixes = {}
@@ -17,12 +17,12 @@ Command.requiresRig = main.enum.HumanoidRigType.None
 Command.preventRepeats = main.enum.TriStateSetting.Default
 Command.revokeRepeats = false
 Command.persistence = main.enum.Persistence.None
-Command.args = {"Player", "Stat", "StatValue"}
+Command.args = {"Player", "Stat", "Text"}
 
 function Command.invoke(task, args)
 	local _, stat, value = unpack(args)
 	if stat then
-		main.modules.StatHandler.reset(stat, value)
+		main.modules.StatHandler.change(stat, value)
 	end
 end
 

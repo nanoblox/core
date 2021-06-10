@@ -4,25 +4,25 @@ local Command =	{}
 
 
 Command.name = script.Name
-Command.aliases	= {}
-Command.description = "Changes the stat to 0"
+Command.aliases	= {"Trans"}
+Command.description = "Changes the transparency of the players body parts"
 Command.contributors = {82347291}
 Command.opposites = {}
 Command.prefixes = {}
-Command.tags = {"Stat"}
+Command.tags = {"Appearance"}
 Command.blockPeers = false
 Command.blockJuniors = false
 Command.autoPreview = false
 Command.requiresRig = main.enum.HumanoidRigType.None
-Command.preventRepeats = main.enum.TriStateSetting.Default
+Command.preventRepeats = main.enum.TriStateSetting.False
 Command.revokeRepeats = false
-Command.persistence = main.enum.Persistence.None
-Command.args = {"Player", "Stat", "StatValue"}
+Command.persistence = main.enum.Persistence.UntilPlayerRespawns
+Command.args = {"Player", "Number"}
 
 function Command.invoke(task, args)
-	local _, stat, value = unpack(args)
-	if stat then
-		main.modules.StatHandler.reset(stat, value)
+	local _, number = unpack(args)
+	if number then
+		task:buffPlayer("BodyTransparency"):set(number)
 	end
 end
 

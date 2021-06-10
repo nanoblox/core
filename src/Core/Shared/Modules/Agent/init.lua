@@ -121,14 +121,15 @@ function Agent:updateBuffGroups()
 end
 
 function Agent:_getDefaultGroup(effect, instance)
+	if instance.ClassName == "HumanoidDescription" then
+		-- HDs constantly change therefore we reference the Humanoid instead to remember the values
+		effect = "HumanoidDescription"
+		instance = self.player.Character.Humanoid
+	end
 	local defaultParentGroup = self.defaultValues[effect]
 	if defaultParentGroup == nil then
 		defaultParentGroup = {}
 		self.defaultValues[effect] = defaultParentGroup
-	end
-	if instance.ClassName == "HumanoidDescription" then
-		-- HDs constantly change therefore we reference the Humanoid instead to remember the values
-		instance = self.player.Character.Humanoid
 	end
 	local key = instance.Name --instance
 	local defaultGroup = defaultParentGroup[key]
@@ -205,12 +206,6 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 				reduceTweenMaid = self._maid:give(Maid.new())
 				self.reduceMaids[tweenReference] = reduceTweenMaid
 			end
-			
-			-- We do this as HumanoidDescription properties arent responsive (they are read-only and cant be tweened)
-			if effect == "HumanoidDescription" then
-				isNumerical = false
-				isIncremental = false
-			end
 
 			-- This retrieves the associated instances then calculates and applies a final value
 			-- The default value should only be for only remembering non-numerical values (such as colors, materials, etc)
@@ -233,6 +228,12 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 				local activeAppliedTables = {}
 				local isPriorityValue = false
 
+				-- We do this as HumanoidDescription properties arent responsive (they are read-only and cant be tweened)
+				if isAHumanoidDescription then
+					isNumerical = false
+					isIncremental = false
+				end
+
 				if not isNumerical then
 					-- For nonnumerical items we simply 'remember' the original value if the first time setting
 					-- This original value is then reapplied when all buffs are removed
@@ -244,7 +245,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 						defaultValue = propertyValue
 					end
 					if bossBuff.isDestroyed then
-						isPriorityValue = true
+						--isPriorityValue = true
 						finalValue = defaultValue
 						defaultGroup[defaultAdditionalString] = nil
 						self.buffs[bossBuff.buffId] = nil
@@ -420,25 +421,6 @@ function Agent:modifyHumanoidDescription(propertyName, value, isPriorityValue)
 		end
 	end)
 end
---[[
-local FACE_ID = "616381207"
-local HEAD_ID = "134082579" -- Headless Horseman, also breaks for other faceless Heads such as '2499611582'
-local player = game:GetService("Players").ForeverHD
-local humanoid = player.Character.Humanoid
-
-local description = humanoid:GetAppliedDescription()
-description.Face = FACE_ID
-description.Head = HEAD_ID
-humanoid:ApplyDescription(description)
-
-wait(7)
-
-local description = humanoid:GetAppliedDescription()
-description.Face = FACE_ID
-description.Head = ""
-humanoid:ApplyDescription(description)
-
---]]
 
 function Agent:clearBuffs()
 	for buffId, buff in pairs(self.buffs) do

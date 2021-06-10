@@ -117,7 +117,7 @@ function BodyUtil.getOrSetupFakeBodyParts(player, parts, effect, additional)
             additionalTag.Name = additionalString
             additionalTag.Parent = effectTag
             table.insert(connections, effectTag.ChildRemoved:Connect(function(child)
-                if child.Name == additionalString then
+                if child.Name == additionalString and connections then
                     for _, connection in pairs(connections) do
                         connection:Disconnect()
                     end
@@ -162,7 +162,8 @@ function BodyUtil.getOrSetupFakeBodyParts(player, parts, effect, additional)
                         fakePart = part:Clone()
                         fakePart:ClearAllChildren()
                         updateSize = function()
-                            fakePart.Size = part.Size + Vector3.new(0.001, 0.001, 0.001)
+                            local ADDITIONAL_SIZE = 0.02 --0.01
+                            fakePart.Size = part.Size + Vector3.new(ADDITIONAL_SIZE, ADDITIONAL_SIZE, ADDITIONAL_SIZE)
                         end
                     end
                     if isAHead then

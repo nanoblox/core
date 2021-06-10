@@ -125,6 +125,7 @@ function RoleService.generateRecord()
 			scaleSize = true,
 			denylistedIDs = true,
 			toAllowlistedIDs = false,
+			qualifierTargets = false,
 		},
 		requestsPerIntervalRefresh = 20,
 		requestsPerIntervalLimitAmount = 20,
@@ -132,13 +133,13 @@ function RoleService.generateRecord()
 		globalExecutionsPerIntervalLimitAmount = 5,
 		executionCooldownLimitAmount = 1, -- if 'limitExecutions' is true, this amount of seconds must be waited before being allowed to execute another statement
 		scaleSizeLimitAmount = 5,
+		qualifierTargetsLimitAmount = 1,
 		
 		-- Individual Powers
 		canUse = {
 			all = false,
 			commandsOnOthers = true,
 			commandsOnFriends = true,
-			multiQualifiers = true, -- Qualifiers which impact more than 1 person at a time (e.g. 'all', 'others'). This will also prevent multiple people being selected in a single execution
 			cmdbar1 = false,
 			cmdbar2 = false,
 		},

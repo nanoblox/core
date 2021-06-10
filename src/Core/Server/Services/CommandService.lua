@@ -240,12 +240,10 @@ function CommandService.createFakeUser(userId)
 end
 
 function CommandService.chatCommand(callerUser, message)
-	local callerUserId = callerUser.userId
-	local callerPlayer = callerUser.player
 	local batch = main.modules.Parser.parseMessage(message, callerUser)
-	print(callerUser.name, "chatted: ", message, batch)
 	if type(batch) == "table" then
 		for _, statement in pairs(batch) do
+			statement.message = message
 			CommandService.verifyAndExecuteStatement(callerUser, statement)
 		end
 	end
@@ -254,6 +252,32 @@ end
 function CommandService.verifyAndExecuteStatement(callerUser, statement)
 	local callerUserId = callerUser.userId
 	local callerPlayer = callerUser.player
+	
+	-- We modify the statement to convert all aliases into the actual names for commands and modifiers
+	local tablesToConvertToRealNames = {
+		["commands"] = {CommandService, "getCommand"},
+		["modifiers"] = {main.modules.Parser.Modifiers, "get"},
+	}
+	for tableName, getMethodDetail in pairs(tablesToConvertToRealNames) do
+		local table = statement[tableName]
+		if table then
+			local getTable = getMethodDetail[1]
+			local getMethod = getTable[getMethodDetail[2]]
+			local newTable = {}
+			local originalTableName = "original"..tableName:sub(1,1):upper()..tableName:sub(2)
+			for name, value in pairs(table) do
+				local returnValue = getMethod(name)
+				local realName = returnValue and returnValue.name
+				if realName then
+					newTable[string.lower(realName)] = value
+				end
+			end
+			statement[originalTableName] = table
+			statement[tableName] = newTable
+		end
+	end
+	print(callerUser.name, "requested statement: ", statement)
+
 	CommandService.verifyStatement(callerUser, statement)
 		:andThen(function(approved, noticeDetails)
 			if approved then
@@ -273,8 +297,10 @@ function CommandService.verifyStatement(callerUser, statement)
 	local approved = true
 	local details = {}
 	local Promise = main.modules.Promise
-	local promises = {}
-
+	local RoleService = main.services.RoleService
+	local Args = main.modules.Parser.Args
+	local callerUserId = callerUser.userId
+	
 	local jobId = statement.jobId
 	local statementCommands = statement.commands
 	local modifiers = statement.modifiers
@@ -300,7 +326,7 @@ function CommandService.verifyStatement(callerUser, statement)
 
 			-- Does the caller have permission to use it
 			local commandNameLower = string.lower(commandName)
-			if not main.services.RoleService.verifySettings(callerUser, "commands").have(commandNameLower) then
+			if not RoleService.verifySettings(callerUser, "commands").have(commandNameLower) then
 				--!!! RE_ENABLE THIS
 				--[[return resolve(false, {{"notice", {
 					text = string.format("You do not have permission to use command '%s'!", commandName),
@@ -309,16 +335,34 @@ function CommandService.verifyStatement(callerUser, statement)
 				return--]]
 			end
 
+			-- Does the caller have permission to target multiple players
+			local targetPlayers = Args.get("player"):parse(statement.qualifiers, callerUserId)
+			if RoleService.verifySettings(callerUser, "limit.qualifierTargets").areAll(true) then
+				local limitAmount = RoleService.getMaxValueFromSettings(callerUser, "qualifierTargetsLimitAmount")
+				if #targetPlayers > limitAmount then
+					local finalMessage
+					if limitAmount == 1 then
+						finalMessage = ("1 player")
+					else
+						finalMessage = string.format("%s players", limitAmount)
+					end
+					return resolve(false, {{"notice", {
+						text = string.format("You're only permitted to target %s per statement!", finalMessage),
+						error = true,
+					}}})
+				end
+			end
+
 			-- Does the caller have permission to use the associated arguments of the command
 			local argStringIndex = 0
 			for _, argNameOrAlias in pairs(command.args) do
-				local argItem = main.modules.Parser.Args.get(argNameOrAlias)
+				local argItem = Args.get(argNameOrAlias)
 				if argStringIndex == 0 and argItem.playerArg then
 					continue
 				end
 				argStringIndex += 1
 				local argString = arguments[argStringIndex]
-				if argItem.verifyCanUse then
+				if argItem.verifyCanUse and not modifiers.undo then
 					local canUseArg, deniedReason = argItem:verifyCanUse(callerUser, argString)
 					if not canUseArg then
 						return resolve(false, {{"notice", {
@@ -367,7 +411,6 @@ function CommandService.executeStatement(callerUserId, statement)
 	local isGlobalModifier = statement.modifiers.wasGlobal
 	for commandName, arguments in pairs(statement.commands) do
 		local command = CommandService.getCommand(commandName)
-		print("command = ", commandName, command)
 		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(command.args[1])]
 		local TaskService = main.services.TaskService
 		local properties = TaskService.generateRecord()
@@ -405,8 +448,9 @@ function CommandService.executeStatement(callerUserId, statement)
 			table.insert(promises, Promise.defer(function(resolve)
 				local targetPlayers = Args.get("player"):parse(statement.qualifiers, callerUserId)
 				for _, plr in pairs(targetPlayers) do
-					properties.playerUserId = plr.UserId
-					local task = main.services.TaskService.createTask(addToPerm, properties)
+					local newProperties = main.modules.TableUtil.copy(properties)
+					newProperties.playerUserId = plr.UserId
+					local task = main.services.TaskService.createTask(addToPerm, newProperties)
 					if task then
 						table.insert(tasks, task)
 					end

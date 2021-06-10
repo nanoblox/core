@@ -5,24 +5,24 @@ local Command =	{}
 
 Command.name = script.Name
 Command.aliases	= {}
-Command.description = "Changes the stat to 0"
+Command.description = "Changes the color of the players body"
 Command.contributors = {82347291}
 Command.opposites = {}
 Command.prefixes = {}
-Command.tags = {"Stat"}
+Command.tags = {"Appearance"}
 Command.blockPeers = false
 Command.blockJuniors = false
 Command.autoPreview = false
 Command.requiresRig = main.enum.HumanoidRigType.None
-Command.preventRepeats = main.enum.TriStateSetting.Default
+Command.preventRepeats = main.enum.TriStateSetting.False
 Command.revokeRepeats = false
-Command.persistence = main.enum.Persistence.None
-Command.args = {"Player", "Stat", "StatValue"}
+Command.persistence = main.enum.Persistence.UntilPlayerRespawns
+Command.args = {"Player", "Color"}
 
 function Command.invoke(task, args)
-	local _, stat, value = unpack(args)
-	if stat then
-		main.modules.StatHandler.reset(stat, value)
+	local _, color = unpack(args)
+	if color then
+		task:buffPlayer("BodyColor"):set(color)
 	end
 end
 

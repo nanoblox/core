@@ -2,6 +2,7 @@ local main = require(game.Nanoblox)
 local httpService = game:GetService("HttpService")
 local Maid = main.modules.Maid
 local Signal = main.modules.Signal
+local Effects = require(script.Effects)
 local Buff = {}
 Buff.__index = Buff
 
@@ -11,7 +12,12 @@ Buff.__index = Buff
 function Buff.new(effect, property, weight)
     local self = {}
 	setmetatable(self, Buff)
-	
+
+	local effectModule = Effects[effect]
+    if not effectModule then
+        error(("'%s' is not a valid Buff Effect!"):format(tostring(effect)))
+    end
+
     local buffId = httpService:GenerateGUID(true)
     self.buffId = buffId
     self.timeUpdated = os.clock()

@@ -25,7 +25,7 @@ function StatHandler.get(player, statName)
 	return stat
 end
 
-function StatHandler.set(stat, value)
+function StatHandler.change(stat, value)
 	if stat then
 		stat.Value = value
 	end
