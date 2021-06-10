@@ -47,46 +47,6 @@ function Utility.getCapsuleRanges(source)
 	return capsuleRanges
 end
 
-local function isIndexInCapsule(index, capsuleRanges)
-	for _, range in pairs(capsuleRanges) do
-		if index > range.lower and index < range.upper then
-			return true
-		end
-	end
-	return false
-end
-
-local function removeRangesFromString(source, ranges)
-	local charactersRemoved = 0
-	for _, range in pairs(ranges) do
-		local lower = range.lower - charactersRemoved
-		local upper = range.upper - charactersRemoved
-		source = string.sub(source, 0, lower - 1) .. string.sub(source, upper + 1)
-		charactersRemoved = charactersRemoved + (upper - lower) + 1
-	end
-	return source
-end
-
-local function captureKeywordsOutsideCapsules(source, keyword)
-	local captured = false
-	local capsuleRanges = Utility.getCapsuleRanges(source)
-	local startIndex, endIndex = 0, 0
-	local rangesToRemove = {}
-	while startIndex do
-		startIndex, endIndex = string.find(source, keyword, endIndex + 1)
-		if startIndex == nil then
-			break
-		end
-		if not (isIndexInCapsule(startIndex, capsuleRanges)) then
-			captured = true
-			table.insert(rangesToRemove, { lower = startIndex, upper = endIndex })
-		end
-	end
-	return captured, removeRangesFromString(source, rangesToRemove)
-end
-
---////--
-
 --[[
 
 A Capture is found in a source by a table of possible captures and it
@@ -100,7 +60,7 @@ also returns residue (anything left behind in the source after extracting
 captures).
 
 ]]
-function Utility.getCaptures(source, sortedKeywords)
+function Utility.getCapsuleCaptures(source, sortedKeywords)
 	local parserModule = MAIN.modules.Parser
 
 	source = source:lower()
@@ -109,7 +69,7 @@ function Utility.getCaptures(source, sortedKeywords)
 	--// We need sorted table so that larger keywords get captured before smaller
 	--// keywords so we solve the issue of large keywords made of smaller ones
 	for counter = 1, #sortedKeywords do
-		--// If the source became empty or whitespace then continue
+		--// If the source became empty or whitespace then break
 		if string.match(source, "^%s*$") ~= nil then
 			break
 		end
@@ -143,19 +103,67 @@ function Utility.getCaptures(source, sortedKeywords)
 				return ""
 			end
 		)
+	end
 
-		local captured, residue = captureKeywordsOutsideCapsules(source, keyword)
-		if captured then
+	return captures, source
+end
+
+--[[
+
+]]
+function Utility.getPlainCaptures(source, sortedKeywords)
+	source = source:lower()
+
+	local captures = {}
+
+	for counter = 1, #sortedKeywords do
+		--// If the source became empty or whitespace then break
+		if string.match(source, "^%s*$") ~= nil then
+			break
+		end
+
+		--// If the keyword is empty or whitespace (maybe default value?) then continue
+		--// to the next iteration
+		local keyword = sortedKeywords[counter]:lower()
+		if string.match(keyword, "^%s*$") ~= nil then
+			continue
+		end
+		keyword = Utility.escapeSpecialCharacters(keyword)
+
+		--// Used to prevent parsing duplicates
+		local alreadyFound = false
+
+		source = string.gsub(source, keyword, function(keyword, arguments)
+			--// Arguments need to be separated as they are the literal string
+			--// in the capsule at this point
 			if not alreadyFound then
 				table.insert(captures, { [keyword] = {} })
 			end
 			alreadyFound = true
-		end
-
-		source = residue
+			return ""
+		end)
 	end
 
 	return captures, source
+end
+
+--[[
+
+]]
+function Utility.combineCaptures(firstCaptures, secondCaptures)
+	local combinedCaptures = {}
+
+	for keyword, arguments in pairs(firstCaptures) do
+		combinedCaptures[keyword] = arguments
+	end
+
+	for keyword, arguments in pairs(secondCaptures) do
+		if combinedCaptures[keyword] == nil then
+			combinedCaptures[keyword] = arguments
+		end
+	end
+
+	return combinedCaptures
 end
 
 --[[

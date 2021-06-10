@@ -56,14 +56,25 @@ end
 function Algorithm.parseCommandDescription(commandDescription)
 	local utilityModule = MAIN.modules.Parser.Utility
 
-	local commandCaptures, commandDescriptionResidue = utilityModule.getCaptures(
+	local commandCapsuleCaptures, commandDescriptionResidue = utilityModule.getCapsuleCaptures(
 		commandDescription,
 		MAIN.services.CommandService.getTable("sortedNameAndAliasLengthArray")
 	)
-	local modifierCaptures, commandDescriptionResidue = utilityModule.getCaptures(
+	local commandPlainCaptures, commandDescriptionResidue = utilityModule.getPlainCaptures(
+		commandDescriptionResidue,
+		MAIN.services.CommandService.getTable("sortedNameAndAliasLengthArray")
+	)
+	local commandCaptures = utilityModule.combineCaptures(commandCapsuleCaptures, commandPlainCaptures)
+
+	local modifierCapsuleCaptures, commandDescriptionResidue = utilityModule.getCapsuleCaptures(
 		commandDescriptionResidue,
 		MAIN.modules.Parser.Modifiers.sortedNameAndAliasLengthArray
 	)
+	local modifierPlainCaptures, commandDescriptionResidue = utilityModule.getPlainCaptures(
+		commandDescriptionResidue,
+		MAIN.services.CommandService.getTable("sortedNameAndAliasLengthArray")
+	)
+	local modifierCaptures = utilityModule.combineCaptures(modifierCapsuleCaptures, modifierPlainCaptures)
 
 	return {
 		commandCaptures,
@@ -81,18 +92,23 @@ function Algorithm.parseQualifierDescription(qualifierDescription)
 	local parserModule = MAIN.modules.Parser
 	local utilityModule = MAIN.modules.Parser.Utility
 
-	local qualifierCaptures, qualifierDescriptionResidue = utilityModule.getCaptures(
+	local qualifierCaptures, qualifierDescriptionResidue = utilityModule.getCapsuleCaptures(
 		qualifierDescription,
 		MAIN.modules.Parser.Qualifiers.sortedNameAndAliasLengthArray
 	)
 
-	local unrecognizedQualifiers = utilityModule.getMatches(
+	local qualifiers = utilityModule.getMatches(
 		qualifierDescriptionResidue,
 		parserModule.patterns.argumentsFromCollection
 	)
+	local unrecognizedQualifiers = {}
 
-	for _, match in pairs(unrecognizedQualifiers) do
+	local qualifierDictionary = MAIN.modules.Parser.Qualifiers.lowerCaseNameAndAliasToArgDictionary
+	for _, match in pairs(qualifiers) do
 		if match ~= "" then
+			if not qualifierDictionary[match:lower()] then
+				table.insert(unrecognizedQualifiers, match)
+			end
 			table.insert(qualifierCaptures, { [match] = {} })
 		end
 	end
