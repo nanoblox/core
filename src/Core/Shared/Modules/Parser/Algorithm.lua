@@ -72,7 +72,8 @@ function Algorithm.parseCommandDescription(commandDescription)
 	)
 	local modifierPlainCaptures, commandDescriptionResidue = utilityModule.getPlainCaptures(
 		commandDescriptionResidue,
-		MAIN.services.CommandService.getTable("sortedNameAndAliasLengthArray")
+		MAIN.modules.Parser.Modifiers.sortedNameAndAliasLengthArray
+
 	)
 	local modifierCaptures = utilityModule.combineCaptures(modifierCapsuleCaptures, modifierPlainCaptures)
 
