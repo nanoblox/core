@@ -406,23 +406,25 @@ function Agent:modifyHumanoidDescription(propertyName, value, isFinalDestroyedDe
 		self.humanoidDescription = humanoid:GetAppliedDescription()
 	end
 	self.humanoidDescription[propertyName] = value
-	if isFinalDestroyedDescBuff and not self.destroyingFinalDescBuff then
-		self.destroyingFinalDescBuff = true
-		local defaultGroup = self:_getDefaultGroup("HumanoidDescription", self.humanoidDescription)
-		for key, defaultValue in pairs(defaultGroup) do
-			self.humanoidDescription[key] = defaultValue
-		end
+	local delayAmount = 0
+	if isFinalDestroyedDescBuff then
+		-- Tasks are often destroyed before the next one is executed, meaning
+		-- the appearance will reset then immidately update again.
+		-- We do this to prevent that snapping-jagged feel.
+		delayAmount = 0.4
 	end
-	main.modules.Thread.spawn(function()
-		if self.humanoidDescriptionCount == myCount and not self.applyingHumanoidDescription then
-			local iterations = 0
-			self.applyingHumanoidDescription = true
+	main.modules.Thread.delay(delayAmount, function()
+		if self.humanoidDescriptionCount ~= myCount then
+			return
+		end
+		if self.applyingHumanoidDescription then
+			self.reapplyHumanoidDescription = true
+			return
+		end
+		local iterations = 0
+		self.applyingHumanoidDescription = true
+		local function applyHumanoidDescription()
 			local appliedDesc
-			local currentDesc = humanoid and humanoid:FindFirstChildOfClass("HumanoidDescription")
-			local facelessHeads = {
-				["134082579"] = true,
-				["2499611582"] = true,
-			}
 			local playerHead = self.player.Character:FindFirstChild("Head")
 			local facelessHeadPresentOnRemoval = playerHead and playerHead:FindFirstChild("face") == nil
 			repeat
@@ -439,9 +441,29 @@ function Agent:modifyHumanoidDescription(propertyName, value, isFinalDestroyedDe
 				self.humanoidDescription.Face = originalFace
 				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
 			end
-			self.applyingHumanoidDescription = false
-			self.humanoidDescription = nil
+			if self.reapplyHumanoidDescription then
+				self.reapplyHumanoidDescription = nil
+				applyHumanoidDescription()
+			end
 		end
+		applyHumanoidDescription()
+		----------
+		--[[
+		if isFinalDestroyedDescBuff then --and not self.destroyingFinalDescBuff then
+			self:updateBuffGroups()
+			--self.destroyingFinalDescBuff = true
+			if self.remainingHumanoidDescriptionBuffs == 0 then
+				local defaultGroup = self:_getDefaultGroup("HumanoidDescription", self.humanoidDescription)
+				for key, defaultValue in pairs(defaultGroup) do
+					self.humanoidDescription[key] = defaultValue
+					defaultGroup[key] = nil
+				end
+				applyHumanoidDescription()
+			end
+		end--]]
+		-----------
+		self.applyingHumanoidDescription = false
+		self.humanoidDescription = nil
 	end)
 end
 

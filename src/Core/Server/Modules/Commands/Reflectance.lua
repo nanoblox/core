@@ -4,8 +4,8 @@ local Command =	{}
 
 
 Command.name = script.Name
-Command.aliases	= {"Scale"}
-Command.description = "Changes the size of the players body"
+Command.aliases	= {"ref"}
+Command.description = "Changes the reflectance of the players body"
 Command.contributors = {82347291}
 Command.opposites = {}
 Command.prefixes = {}
@@ -17,12 +17,12 @@ Command.requiresRig = main.enum.HumanoidRigType.None
 Command.preventRepeats = main.enum.TriStateSetting.False
 Command.revokeRepeats = true
 Command.persistence = main.enum.Persistence.UntilPlayerRespawns
-Command.args = {"Player", "Scale"}
+Command.args = {"Player", "Number"}
 
 function Command.invoke(task, args)
-	local _, scale = unpack(args)
-	if scale then
-		task:buffPlayer("BodyScale"):set(scale)
+	local _, number = unpack(args)
+	if number then
+		task:buffPlayer("BodyReflectance"):set(number)
 	end
 end
 

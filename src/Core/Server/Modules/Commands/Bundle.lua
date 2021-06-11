@@ -22,6 +22,9 @@ Command.args = {"Player", "BundleDescription"}
 function Command.invoke(task, args)
 	local _, description = unpack(args)
 	if description then
+		local descClone = task:give(description:Clone())
+		descClone.Name = descClone.Name.." CLONE"
+		descClone.Parent = workspace
 		task:buffPlayer("HumanoidDescription"):set(description)
 	end
 end

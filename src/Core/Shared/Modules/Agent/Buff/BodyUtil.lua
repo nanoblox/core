@@ -150,64 +150,92 @@ function BodyUtil.getOrSetupFakeBodyParts(player, parts, effect, additional)
             if not ignoreParts[part.Name] then
                 local fakePart = fakeFolder:FindFirstChild(part.Name)
                 if not fakePart then
-                    local updateSize
+                    local function setupFakePart(partToCopy, forcedProperties)
+                        local updateSize
+                        local isAHead = partToCopy.Name == "Head"
+                        if isAHead and not partToCopy:IsA("MeshPart") then
+                            fakePart = main.shared.Assets.FakeHead:Clone()
+                            updateSize = function()
+                                fakePart.Size = Vector3.new(partToCopy.Size.X/2, partToCopy.Size.Y, partToCopy.Size.Z)*1.2
+                            end
+                        else
+                            fakePart = partToCopy:Clone()
+                            fakePart:ClearAllChildren()
+                            updateSize = function()
+                                local ADDITIONAL_SIZE = 0.02 --0.01
+                                fakePart.Size = partToCopy.Size + Vector3.new(ADDITIONAL_SIZE, ADDITIONAL_SIZE, ADDITIONAL_SIZE)
+                            end
+                        end
+                        if isAHead then
+                            local face = partToCopy:FindFirstChild("face") or partToCopy:FindFirstChildOfClass("Decal")
+                            if face then
+                                local fakeFace = face:Clone()
+                                fakeFace.Parent = fakePart
+                                table.insert(connections, face:GetPropertyChangedSignal("Texture"):Connect(function()
+                                    fakeFace.Texture = face.Texture
+                                end))
+                                table.insert(connections, face:GetPropertyChangedSignal("Transparency"):Connect(function()
+                                    fakeFace.Transparency = face.Transparency
+                                end))
+                            end
+                        end
 
-                    local isAHead = part.Name == "Head"
-                    if isAHead and not part:IsA("MeshPart") then
-                        fakePart = main.shared.Assets.FakeHead:Clone()
-                        updateSize = function()
-                            fakePart.Size = Vector3.new(part.Size.X/2, part.Size.Y, part.Size.Z)*1.2
+                        fakePart.CFrame = partToCopy.CFrame
+                        fakePart.Name = partToCopy.Name
+                        fakePart.CanCollide = false
+                        fakePart.Material = partToCopy.Material
+                        fakePart.Color = partToCopy.Color
+                        fakePart.Transparency = partToCopy.Transparency
+                        fakePart.Reflectance = partToCopy.Reflectance
+                        if forcedProperties then
+                            for propertName, value in pairs(forcedProperties) do
+                                fakePart[propertName] = value
+                            end
                         end
-                    else
-                        fakePart = part:Clone()
-                        fakePart:ClearAllChildren()
-                        updateSize = function()
-                            local ADDITIONAL_SIZE = 0.02 --0.01
-                            fakePart.Size = part.Size + Vector3.new(ADDITIONAL_SIZE, ADDITIONAL_SIZE, ADDITIONAL_SIZE)
-                        end
-                    end
-                    if isAHead then
-                        local face = part:FindFirstChild("face") or part:FindFirstChildOfClass("Decal")
-                        if face then
-                            local fakeFace = face:Clone()
-                            fakeFace.Parent = fakePart
-                            table.insert(connections, face:GetPropertyChangedSignal("Texture"):Connect(function()
-                                fakeFace.Texture = face.Texture
-                            end))
-                            table.insert(connections, face:GetPropertyChangedSignal("Transparency"):Connect(function()
-                                fakeFace.Transparency = face.Transparency
-                            end))
-                        end
-                    end
-
-                    fakePart.CFrame = part.CFrame
-                    fakePart.Name = part.Name
-                    fakePart.CanCollide = false
-                    fakePart.Material = part.Material
-                    fakePart.Color = part.Color
-                    fakePart.Transparency = part.Transparency
-                    updateSize()
-                    --
-                    local weld = Instance.new("Weld")
-                    weld.Part0 = part
-                    weld.Part1 = fakePart
-                    weld.C0 = part.CFrame:Inverse()
-                    weld.C1 = fakePart.CFrame:Inverse()
-                    weld.Parent = fakePart
-                    --
-                    table.insert(connections, part:GetPropertyChangedSignal("Material"):Connect(function()
-                        fakePart.Material = part.Material
-                    end))
-                    table.insert(connections, part:GetPropertyChangedSignal("Color"):Connect(function()
-                        fakePart.Color = part.Color
-                    end))
-                    table.insert(connections, part:GetPropertyChangedSignal("Transparency"):Connect(function()
-                        fakePart.Transparency = part.Transparency
-                    end))
-                    table.insert(connections, part:GetPropertyChangedSignal("Size"):Connect(function()
                         updateSize()
-                    end))
-                    fakePart.Parent = fakeFolder
+                        --
+                        local weld = Instance.new("Weld")
+                        weld.Part0 = partToCopy
+                        weld.Part1 = fakePart
+                        weld.C0 = partToCopy.CFrame:Inverse()
+                        weld.C1 = fakePart.CFrame:Inverse()
+                        weld.Parent = partToCopy
+                        --
+                        table.insert(connections, partToCopy:GetPropertyChangedSignal("Material"):Connect(function()
+                            fakePart.Material = partToCopy.Material
+                        end))
+                        table.insert(connections, partToCopy:GetPropertyChangedSignal("Color"):Connect(function()
+                            fakePart.Color = partToCopy.Color
+                        end))
+                        table.insert(connections, partToCopy:GetPropertyChangedSignal("Transparency"):Connect(function()
+                            fakePart.Transparency = partToCopy.Transparency
+                        end))
+                        table.insert(connections, partToCopy:GetPropertyChangedSignal("Reflectance"):Connect(function()
+                            fakePart.Reflectance = partToCopy.Reflectance
+                        end))
+                        table.insert(connections, partToCopy:GetPropertyChangedSignal("Size"):Connect(function()
+                            updateSize()
+                        end))
+                        table.insert(connections, partToCopy:GetPropertyChangedSignal("Parent"):Connect(function()
+                            main.RunService.Heartbeat:Wait()
+                            if partToCopy.Parent == nil and fakeFolder.Parent ~= nil and fakePart.Parent ~= nil then
+                                fakePart:Destroy()
+                            end
+                        end))
+                        table.insert(connections, fakePart:GetPropertyChangedSignal("Parent"):Connect(function()
+                            if fakePart.Parent == nil and fakeFolder.Parent ~= nil then
+                                local correspondingPart = character:FindFirstChild(part.Name)
+                                if correspondingPart then
+                                    setupFakePart(correspondingPart, {
+                                        Material = fakePart.Material,
+                                        Reflectance = fakePart.Reflectance,
+                                    })
+                                end
+                            end
+                        end))
+                        fakePart.Parent = fakeFolder
+                    end
+                    setupFakePart(part)
                 end
                 if firstTimeApplying then
                     local appliedCount = fakePart:GetAttribute("AppliedCount") or 0
