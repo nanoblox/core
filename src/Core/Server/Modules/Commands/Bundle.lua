@@ -4,7 +4,7 @@ local Command =	{}
 
 
 Command.name = script.Name
-Command.aliases	= {}
+Command.aliases	= {"Bund"}
 Command.description = "Morphs you into that bundle"
 Command.contributors = {82347291}
 Command.opposites = {}
