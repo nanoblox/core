@@ -2,6 +2,7 @@
 local main = require(game.Nanoblox)
 local System = main.modules.System
 local CommandService = System.new("Commands")
+local defaultCommands = {}
 CommandService.remotes = {}
 
 
@@ -9,6 +10,60 @@ CommandService.remotes = {}
 -- START
 function CommandService.start()
 
+	-- This retrieves all commands present on server start, applies tags/other details accoridngly and adds them to 'defaultCommands'
+	local checkedAliases = {}
+	local checkedCommandNames = {}
+	local DUPLICATE_COMMAND_WARNING = "Duplicate command names are not permitted! Rename '%s' to something different."
+	local DUPLICTE_ALIAS_WARNING = "Duplicate command aliases are not permitted! Rename '%s' to something different."
+	local DUPLICTE_BOTH_WARNING = "Duplicate command names/aliases are not permitted! Rename '%s' to something different."
+	local function setupCommands(group, tags)
+		local groupClass = group.ClassName
+		local thisTag = (groupClass == "Folder" or groupClass == "Configuration") and group.Name:lower()
+		local newTags = tags and {unpack(tags)} or {}
+		if thisTag then
+			table.insert(newTags, thisTag)
+		end
+		for _, instance in pairs(group:GetChildren()) do
+			if instance:IsA("ModuleScript") then
+				local command = require(instance)
+				local commandName = instance.Name
+				local commandNameLower = commandName:lower()
+				command.tags = (typeof(command.tags == "table") and command.tags) or {}
+				command.aliases = (typeof(command.aliases == "table") and command.aliases) or {}
+				command.name = commandName
+				for _, tagToAdd in pairs(newTags) do
+					table.insert(command.tags, tagToAdd)
+				end
+				for _, alias in pairs(command.aliases) do
+					local aliasName = tostring(alias)
+					local aliasLower = aliasName:lower()
+					if checkedAliases[aliasLower] or checkedCommandNames[aliasLower] then
+						error((DUPLICTE_ALIAS_WARNING):format(aliasName))
+					end
+					checkedAliases[aliasLower] = true
+				end
+				local client = instance:FindFirstChild("Client") or instance:FindFirstChild("client")
+				if client then
+					client.Name = commandNameLower
+					client.Parent = main.shared.Modules.ClientCommands
+				end
+				if checkedCommandNames[commandNameLower] then
+					error((DUPLICATE_COMMAND_WARNING):format(commandName))
+				elseif checkedAliases[commandNameLower] then
+					error((DUPLICTE_BOTH_WARNING):format(commandNameLower))
+				end
+				checkedCommandNames[commandNameLower] = true
+				defaultCommands[commandName] = command
+			else
+				setupCommands(instance, newTags)
+			end
+		end
+	end
+	setupCommands(main.server.Extensions.Commands)
+
+
+
+	-- Setup remotes
     local previewCommand = main.modules.Remote.new("previewCommand")
     CommandService.remotes.previewCommand = previewCommand
 
@@ -62,7 +117,7 @@ end
 
 
 
--- BEGIN
+-- LOADED
 function CommandService.loaded()
 	
 	-- Setup globals
@@ -72,8 +127,7 @@ function CommandService.loaded()
 		CommandService.executeStatement(callerUserId, statement)
 	end)
 
-	-- Grab default commands
-	local defaultCommands = main.modules.Commands
+	-- Convert default commands to service commands
 	for name, details in pairs(defaultCommands) do
 		CommandService.createCommand(name, details)
 	end
@@ -139,7 +193,6 @@ end)
 
 -- METHODS
 function CommandService.generateRecord(key)
-	local defaultCommands = main.modules.Commands
 	return defaultCommands[key] or {
 		name = "", -- This will be locked, command names cannot change and must always be the same
 		description = "",
@@ -392,7 +445,7 @@ function CommandService.verifyStatement(callerUser, statement)
 	local callerUserId = callerUser.userId
 
 	-- argItem.verifyCanUse can sometimes be asynchronous therefore we return and resolve a Promise
-	return Promise.defer(function(resolve, reject)
+	local promise = Promise.defer(function(resolve, reject)
 		
 		if typeof(statement) ~= "table" then
 			return resolve(false, {{"notice", {
@@ -409,7 +462,7 @@ function CommandService.verifyStatement(callerUser, statement)
 		
 		if not statementCommands then
 			return resolve(false, {{"notice", {
-				text = "Statement does not contain a command.",
+				text = "Invalid command(s)!",
 				error = true,
 			}}})
 		end
@@ -445,8 +498,8 @@ function CommandService.verifyStatement(callerUser, statement)
 
 			-- Does the caller have permission to target multiple players
 			local targetPlayers = Args.get("player"):parse(statement.qualifiers, callerUserId)
-			if RoleService.verifySettings(callerUser, "limit.qualifierTargets").areAll(true) then
-				local limitAmount = RoleService.getMaxValueFromSettings(callerUser, "qualifierTargetsLimitAmount")
+			if RoleService.verifySettings(callerUser, "limit.whenQualifierTargetCapEnabled").areAll(true) then
+				local limitAmount = RoleService.getMaxValueFromSettings(callerUser, "limit.qualifierTargetCapAmount")
 				if #targetPlayers > limitAmount then
 					local finalMessage
 					if limitAmount == 1 then
@@ -470,7 +523,7 @@ function CommandService.verifyStatement(callerUser, statement)
 				end
 				argStringIndex += 1
 				local argString = arguments[argStringIndex]
-				if argItem.verifyCanUse and not modifiers.undo then
+				if argItem.verifyCanUse and not (modifiers.undo or modifiers.preview) then
 					local canUseArg, deniedReason = argItem:verifyCanUse(callerUser, argString)
 					if not canUseArg then
 						return resolve(false, {{"notice", {
@@ -490,8 +543,20 @@ function CommandService.verifyStatement(callerUser, statement)
 				error = false,
 			}})
 		end
-
+		
 		resolve(approved, details)
+	end)
+
+	return promise:andThen(function(approved, noticeDetails)
+		-- This fires off any notifications to the caller
+		local callerPlayer = callerUser.player
+		if callerPlayer then
+			for _, detail in pairs(noticeDetails) do
+				local method = main.services.MessageService[detail[1]]
+				method(callerPlayer, detail[2])
+			end
+		end
+		return approved, noticeDetails
 	end)
 end
 

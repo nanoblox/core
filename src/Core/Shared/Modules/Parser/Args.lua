@@ -317,8 +317,8 @@ Args.array = {
 			end
 			-- Check has permission to use scale value
 			local RoleService = main.services.RoleService
-			if RoleService.verifySettings(callerUser, "limit.scaleSize").areAll(true) then
-				local scaleLimit = RoleService.getMaxValueFromSettings(callerUser, "scaleSizeLimitAmount")
+			if RoleService.verifySettings(callerUser, "limit.whenScaleCapEnabled").areAll(true) then
+				local scaleLimit = RoleService.getMaxValueFromSettings(callerUser, "limit.scaleCapAmount")
 				if scaleValue > scaleLimit then
 					return false, ("Cannot exceed scale limit of '%s'. Your value was '%s'."):format(scaleLimit, scaleValue)
 				end

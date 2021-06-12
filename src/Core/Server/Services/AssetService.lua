@@ -141,7 +141,7 @@ function AssetService.init()
             end
         end
     end
-    setupCommandAssetStorage(main.server.Modules.Commands)
+    setupCommandAssetStorage(main.server.Extensions.Commands)
 
     -- Fin
     assetStorage.Parent = main.server.Parent
