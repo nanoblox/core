@@ -90,23 +90,31 @@ function RoleService.generateRecord()
 		nonadmin = false, -- This is solely for the 'nonadmins' and 'admins' qualifiers
 
 		-- Role Givers
-		giveTo = {
-			everyone = false,
-			creator = false,
-			users = {},
-			usersWithGamepasses = {},
-			usersWithAssets = {},  -- Note: impossible to tell unless in game
-			usersOfRanksInGroup = {},  -- Note: impossible to tell unless in game
-			friendsOfUsers = {},
-			vipServerOwner = false,
-			vipServerPlayers = false,
-			premiumUsers = false,  -- Note: impossible to tell unless in game
-			starCreators = false,
-			usersWithMinimumAccountAge = 7,  -- Note: impossible to tell unless in game
-			usersWithDailyLoginStreak = 14,
+		give = {
+			toEveryone = false,
+			toCreator = false,
+			toUsers = {},
+			toUsersWithGamepasses = {},
+			toUsersWithAssets = {},  -- Note: impossible to tell unless in game
+			toUsersOfRanksInGroup = {},  -- Note: impossible to tell unless in game
+			toFriendsOfUsers = {},
+			toVipServerOwner = false,
+			toVipServerPlayers = false,
+			toPremiumUsers = false,  -- Note: impossible to tell unless in game
+			toStarCreators = false,
+			whenMinimumAccountAgeGiverEnabled = false,
+			toUsersWithMinimumAccountAge = 7,  -- Note: impossible to tell unless in game
+			whenDailyLoginStreakGiverEnabled = false,
+			toUsersWithDailyLoginStreak = 14,
+			onDeveloperProductPurchases = {},
 		},
-		enableAccountAgeGiver = false,
-		enableDailyLoginStreakGiver = false,
+		
+		-- Role takers
+		take = {
+			whenXCommandExecutionsTakerEnabled = true,
+			afterXCommandExecutions = 1,
+			afterRespawning = false,
+		},
 		
 		-- Command Inheritance
 		inheritCommands = {
@@ -119,21 +127,21 @@ function RoleService.generateRecord()
 		
 		-- Limit Abuse
 		limit = {
-			requestsPerInterval = true, -- I may have set this up in tasks already. Instead, make sure this goes into VERIFY and increases for every command within there
-			globalExecutionsPerInterval = true,
-			executionCooldown = false,
-			scaleSize = true,
+			whenRequestsPerIntervalCapEnabled = true, -- I may have set this up in tasks already. Instead, make sure this goes into VERIFY and increases for every command within there
+			requestsPerIntervalCapRefresh = 20,
+			requestsPerIntervalCapAmount = 20,
+			whenGlobalExecutionsPerIntervalCapEnabled = true,
+			globalExecutionsPerIntervalCapRefresh = 20,
+			globalExecutionsPerIntervalCapAmount = 5,
+			whenExecutionCooldownEnabled = false,
+			executionCooldownAmount = 1, -- if true, this amount of seconds must be waited before being allowed to execute another statement
+			whenScaleCapEnabled = true,
+			scaleCapAmount = 5,
 			denylistedIDs = true,
 			toAllowlistedIDs = false,
-			qualifierTargets = false,
+			whenQualifierTargetCapEnabled = false,
+			qualifierTargetCapAmount = 1,
 		},
-		requestsPerIntervalRefresh = 20,
-		requestsPerIntervalLimitAmount = 20,
-		globalExecutionsPerIntervalRefresh = 20,
-		globalExecutionsPerIntervalLimitAmount = 5,
-		executionCooldownLimitAmount = 1, -- if 'limitExecutions' is true, this amount of seconds must be waited before being allowed to execute another statement
-		scaleSizeLimitAmount = 5,
-		qualifierTargetsLimitAmount = 1,
 		
 		-- Individual Powers
 		canUse = {
