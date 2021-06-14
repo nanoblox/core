@@ -78,9 +78,6 @@ function SettingService.generateRecord(key)
 				},
 			},
 
-			-- Commands
-			preventRepeatCommands = true,
-			
 			-- Warning System
 			warnExpiryTime = 604800, -- 1 week
 			kickUsers = true,

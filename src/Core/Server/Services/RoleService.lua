@@ -19,8 +19,8 @@ RoleService.roleRemoved = Signal.new()
 RoleService.recordAdded:Connect(function(roleUID, record)
 	--warn(("ROLE '%s' ADDED!"):format(record.name))
 	local role = Role.new(record)
-	role.UID = roleUID
-	role.environment = role.environment or main.enum.Environment.Global
+	role.settings.UID = roleUID
+	role.settings.environment = role.settings.environment or main.enum.Environment.Global
 	roles[roleUID] = role
 	RoleService.roleAdded:Fire(role)
 end)
@@ -39,7 +39,7 @@ end)
 RoleService.recordChanged:Connect(function(roleUID, propertyName, propertyValue, propertyOldValue)
 	local role = roles[roleUID]
 	if role then
-		role[propertyName] = propertyValue
+		role.settings[propertyName] = propertyValue
 		role:updateUsers()
 	end
 	RoleService.roleChanged:Fire(role, propertyName, propertyValue, propertyOldValue)
@@ -87,6 +87,7 @@ function RoleService.generateRecord()
 		-- Behaviour
 		environment = main.enum.Environment.Global,
 		roleOrder = 0,
+		hidden = false,
 		nonadmin = false, -- This is solely for the 'nonadmins' and 'admins' qualifiers
 
 		-- Role Givers
@@ -135,6 +136,7 @@ function RoleService.generateRecord()
 			globalExecutionsPerIntervalCapAmount = 5,
 			whenExecutionCooldownEnabled = false,
 			executionCooldownAmount = 1, -- if true, this amount of seconds must be waited before being allowed to execute another statement
+			repeatCommands = true, -- this prevents a command from being repeated twice before finishing for users/servers. important: make sure to modify TaskService 'preventRepeatCommands'.
 			whenScaleCapEnabled = true,
 			scaleCapAmount = 5,
 			denylistedIDs = true,
@@ -279,7 +281,7 @@ end
 
 function RoleService.getRoleByName(name)
 	for roleUID, role in pairs(roles) do
-		if role.name == name then
+		if role.settings.name == name then
 			return role
 		end
 	end
@@ -289,7 +291,7 @@ end
 function RoleService.getRoleByLowerName(name)
 	local lowerName = name:lower()
 	for roleUID, role in pairs(roles) do
-		if (role.name):lower() == lowerName then
+		if (role.settings.name):lower() == lowerName then
 			return role
 		end
 	end
@@ -300,7 +302,7 @@ function RoleService.getRoleByLowerShorthandName(name)
 	local lowerName = name:lower()
 	local length = string.len(lowerName)
 	for roleUID, role in pairs(roles) do
-		if (role.name):lower():sub(1,length) == lowerName then
+		if (role.settings.name):lower():sub(1,length) == lowerName then
 			return role
 		end
 	end
@@ -318,14 +320,14 @@ end
 function RoleService.updateRole(nameOrUID, propertiesToUpdate)
 	local role = RoleService.getRole(nameOrUID)
 	assert(role, ("role '%s' not found!"):format(tostring(nameOrUID)))
-	RoleService:updateRecord(role.UID, propertiesToUpdate)
+	RoleService:updateRecord(role.settings.UID, propertiesToUpdate)
 	return true
 end
 
 function RoleService.removeRole(nameOrUID)
 	local role = RoleService.getRole(nameOrUID)
 	assert(role, ("role '%s' not found!"):format(tostring(nameOrUID)))
-	RoleService:removeRecord(role.UID)
+	RoleService:removeRecord(role.settings.UID)
 	return true
 end
 
@@ -341,8 +343,8 @@ local function sortRoles(tableOfRoleUIDsOrNames, approveRole)
 	local currentOrder, selectedRole = nil, nil
 	for _, roleUID in pairs(arrayOfRoles) do
 		local role = RoleService.getRole(roleUID)
-		if role and (selectedRole == nil or approveRole(role.roleOrder, currentOrder)) then
-			currentOrder, selectedRole = role.roleOrder, role
+		if role and (selectedRole == nil or approveRole(role.settings.roleOrder, currentOrder)) then
+			currentOrder, selectedRole = role.settings.roleOrder, role
 		end
 	end
 	if not selectedRole then
@@ -527,10 +529,10 @@ function RoleService.updateRoleInformation(user)
 		local role = RoleService.getRoleByUID(roleKey)
 		if role then
 			-- This setups up the info dictionaries for each setting
-			scanTable(role, information)
+			scanTable(role.settings, information)
 			-- This determines the environment across *all* roles
 			-- If the collection of Roles contain 'Private' *and* 'Global', then set to 'Multiple'
-			local roleEnvironment = role.environment
+			local roleEnvironment = role.settings.environment
 			local existingEnvironment = information["_collectiveEnvironment"]
 			local newEnvironment = roleEnvironment
 			if existingEnvironment and existingEnvironment ~= roleEnvironment then

@@ -6,7 +6,7 @@ local function isNonadmin(user)
 	local totalRoles = 0
 	for roleUID, roleDetails in pairs(user.roles) do
 		local role = main.services.RoleService.getRoleByUID(roleUID)
-		if role.nonadmin == true then
+		if role.settings.nonadmin == true then
 			totalNonadmins = totalNonadmins + 1
 		end
 		totalRoles = totalRoles + 1
@@ -196,8 +196,8 @@ Qualifiers.array = {
 				return {}
 			end
 			for _, role in pairs(main.services.RoleService.getRoles()) do
-				local roleName = string.lower(role.name)
-				local roleUID = role.UID
+				local roleName = string.lower(role.settings.name)
+				local roleUID = role.settings.UID
 				for _, selectedRoleName in pairs(roleNames) do
 					if
 						string.sub(roleName, 1, #selectedRoleName) == selectedRoleName
