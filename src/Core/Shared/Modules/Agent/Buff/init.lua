@@ -101,7 +101,11 @@ function Buff:destroy()
         -- We have this delay here to prevent 'appearance' commands from resetting then immidately snapping to a new buff (as there's slight frame different between killing and executing tasks).
         self.updated:Fire()
         self._maid:clean()
-        self.updated = nil
+        for k, v in pairs(self) do
+            if typeof(v) == "table" then
+                self[k] = nil
+            end
+        end
     end)
     return self
 end

@@ -851,8 +851,10 @@ function Clone:destroy()
         self._maid:clean()
         self.destroyedSignal:Fire()
         self.destroyedSignal:Destroy()
-        for k, _ in pairs(self) do
-            self[k] = nil
+        for k, v in pairs(self) do
+            if typeof(v) == "table" then
+                self[k] = nil
+            end
         end
     end
 end

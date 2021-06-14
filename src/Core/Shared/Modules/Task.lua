@@ -548,8 +548,8 @@ function Task:kill()
 		removeClientAgent(self.caller)
 	end
 	self.maid:clean()
-	for k, _ in pairs(self) do
-		if k ~= "isDead" then
+	for k, v in pairs(self) do
+		if typeof(v) == "table" then
 			self[k] = nil
 		end
 	end

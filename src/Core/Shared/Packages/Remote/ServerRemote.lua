@@ -197,8 +197,10 @@ end
 
 function Remote:destroy()
 	self._maid:clean()
-	for k, _ in pairs(self) do
-		self[k] = nil
+	for k, v in pairs(self) do
+		if typeof(v) == "table" then
+			self[k] = nil
+		end
 	end
 end
 

@@ -427,15 +427,15 @@ function Agent:modifyHumanoidDescription(propertyName, value, isFinalDestroyedDe
 			local appliedDesc
 			local playerHead = self.player.Character:FindFirstChild("Head")
 			local facelessHeadPresentOnRemoval = playerHead and playerHead:FindFirstChild("face") == nil
+			local originalFace = facelessHeadPresentOnRemoval and self.humanoidDescription and self.humanoidDescription.Face
 			repeat
 				main.RunService.Heartbeat:Wait()
 				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
 				iterations += 1
 				appliedDesc = humanoid and humanoid:GetAppliedDescription()
 			until (appliedDesc and self.humanoidDescription and appliedDesc[propertyName] == self.humanoidDescription[propertyName]) or iterations == 10
-			if facelessHeadPresentOnRemoval then
+			if originalFace then
 				-- Yes this is ugly, but there's a really frustrating bug with HumanoidDescriptions that breaks the face when a Headless Horseman Head is removed
-				local originalFace = self.humanoidDescription.Face
 				self.humanoidDescription.Face = 0
 				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
 				self.humanoidDescription.Face = originalFace
@@ -491,8 +491,10 @@ function Agent:destroy()
 	self.destroyed = true
 	self:clearBuffs()
 	self._maid:clean()
-	for k, _ in pairs(self) do
-		self[k] = nil
+	for k, v in pairs(self) do
+		if typeof(v) == "table" then
+			self[k] = nil
+		end
 	end
 end
 Agent.Destroy = Agent.destroy
