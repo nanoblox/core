@@ -851,6 +851,9 @@ function Clone:destroy()
         self._maid:clean()
         self.destroyedSignal:Fire()
         self.destroyedSignal:Destroy()
+        for k, _ in pairs(self) do
+            self[k] = nil
+        end
     end
 end
 Clone.Destroy = Clone.destroy

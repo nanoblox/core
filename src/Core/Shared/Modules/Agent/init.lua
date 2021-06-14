@@ -491,6 +491,9 @@ function Agent:destroy()
 	self.destroyed = true
 	self:clearBuffs()
 	self._maid:clean()
+	for k, _ in pairs(self) do
+		self[k] = nil
+	end
 end
 Agent.Destroy = Agent.destroy
 

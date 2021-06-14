@@ -159,6 +159,9 @@ function UserStore:removeLeaderstat(player, statToUnbind)
 	local maid = self[maidName]
 	if maid then
 		maid:clean()
+		for k, _ in pairs(self) do
+			self[k] = nil
+		end
 		self[maidName] = nil
 	end
 	return true

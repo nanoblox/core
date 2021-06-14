@@ -301,8 +301,11 @@ end
 function User:destroy()
 	self.sessionId = nil
 	self._maid:clean()
+	for k, _ in pairs(self) do
+		self[k] = nil
+	end
 	self.destroyed:Fire()
-	self.destroyed:Disconnect()
+	self.destroyed:Destroy()
 	self.isDestroyed = true
 end
 

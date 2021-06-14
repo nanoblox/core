@@ -81,15 +81,13 @@ function Signal:Wait()
 	self.totalWaiting -= 1
 	local args = self.waiting[waitingId]
 	self.waiting[waitingId] = nil
-	return unpack(args)
+	if args then
+		return unpack(args)
+	end
 end
 Signal.wait = Signal.Wait
 
 function Signal:Destroy()
-	if self.bindableEvent then
-		self.bindableEvent:Destroy()
-		self.bindableEvent = nil
-	end
 	if self.connectionsChanged then
 		self.connectionsChanged:Fire(-self.totalConnections)
 		self.connectionsChanged:Destroy()
@@ -98,6 +96,9 @@ function Signal:Destroy()
 	self.totalConnections = 0
 	for connectionId, connection in pairs(self.connections) do
 		self.connections[connectionId] = nil
+	end
+	for waitingId, _ in pairs(self.waiting) do
+		self.waiting[waitingId] = nil
 	end
 end
 Signal.destroy = Signal.Destroy

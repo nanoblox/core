@@ -515,16 +515,15 @@ end
 
 function Task:kill()
 	if self.isDead then return end
-	if not self.isDead and self.command.revoke then
+	self.isDead = true
+	if self.command.revoke then
 		if self.revokeArguments then
 			self.command.revoke(self, unpack(self.revokeArguments))
 		else
 			self.command.revoke(self)
 		end
 	end
-	self.isDead = true
 	self:clearBuffs()
-	self.maid:clean()
 	if main.isServer then
 		self:revokeAllClients()
 		if not self.modifiers.perm then --self._global == false then
@@ -547,6 +546,12 @@ function Task:kill()
 		end
 		removeClientAgent(self.player)
 		removeClientAgent(self.caller)
+	end
+	self.maid:clean()
+	for k, _ in pairs(self) do
+		if k ~= "isDead" then
+			self[k] = nil
+		end
 	end
 end
 Task.destroy = Task.kill

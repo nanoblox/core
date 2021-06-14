@@ -226,6 +226,9 @@ end
 function Remote:destroy()
 	remotes[self.name] = nil
 	self._maid:clean()
+	for k, _ in pairs(self) do
+		self[k] = nil
+	end
 end
 Remote.Destroy = Remote.destroy
 

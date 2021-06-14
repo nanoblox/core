@@ -16,7 +16,7 @@ Command.autoPreview = false
 Command.requiresRig = main.enum.HumanoidRigType.None
 Command.preventRepeats = main.enum.TriStateSetting.False
 Command.revokeRepeats = true
-Command.persistence = main.enum.Persistence.UntilPlayerRespawns
+Command.persistence = main.enum.Persistence.UntilPlayerDies
 Command.args = {"Player", "Color"}
 
 function Command.invoke(task, args)

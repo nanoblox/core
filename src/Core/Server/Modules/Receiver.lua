@@ -26,6 +26,9 @@ end
 -- METHODS
 function Receiver:destroy()
 	self._maid:clean()
+	for k, _ in pairs(self) do
+		self[k] = nil
+	end
 end
 
 

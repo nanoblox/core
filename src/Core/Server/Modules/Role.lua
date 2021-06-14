@@ -32,6 +32,9 @@ end
 -- METHODS
 function Role:destroy()
 	self._maid:clean()
+	for k, _ in pairs(self) do
+		self[k] = nil
+	end
 end
 
 function Role:give(user, roleType)

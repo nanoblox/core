@@ -97,8 +97,12 @@ end
 function Buff:destroy()
     if self.isDestroyed then return end
     self.isDestroyed = true
-    self.updated:Fire()
-    self._maid:clean()
+    main.modules.Thread.delay(0.1, function()
+        -- We have this delay here to prevent 'appearance' commands from resetting then immidately snapping to a new buff (as there's slight frame different between killing and executing tasks).
+        self.updated:Fire()
+        self._maid:clean()
+        self.updated = nil
+    end)
     return self
 end
 Buff.Destroy = Buff.destroy
