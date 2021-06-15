@@ -301,13 +301,13 @@ end
 function User:destroy()
 	self.sessionId = nil
 	self._maid:clean()
+	self.destroyed:Fire()
+	self.destroyed:Destroy()
 	for k, v in pairs(self) do
 		if typeof(v) == "table" then
 			self[k] = nil
 		end
 	end
-	self.destroyed:Fire()
-	self.destroyed:Destroy()
 	self.isDestroyed = true
 end
 

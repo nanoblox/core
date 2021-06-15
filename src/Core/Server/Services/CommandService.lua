@@ -462,7 +462,7 @@ function CommandService.verifyStatement(callerUser, statement)
 		
 		if not statementCommands then
 			return resolve(false, {{"notice", {
-				text = "Invalid command(s)!",
+				text = "Failed to execute commands as they does not exist!",
 				error = true,
 			}}})
 		end

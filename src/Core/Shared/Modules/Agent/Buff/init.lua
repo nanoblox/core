@@ -1,5 +1,6 @@
 local main = require(game.Nanoblox)
 local httpService = game:GetService("HttpService")
+local bodyUtilPathway = script.BodyUtil
 local Maid = main.modules.Maid
 local Signal = main.modules.Signal
 local Effects = require(script.Effects)
@@ -32,6 +33,7 @@ function Buff.new(effect, property, weight)
     self.appliedValueTables = {}
     self.incremental = nil
     self.previousIncremental = nil
+    self.accessories = {}
 
 	return self
 end
@@ -43,6 +45,39 @@ function Buff:_changeValue(value)
     local newValue = value
     if typeof(value) == "BrickColor" then
         newValue = Color3.new(value.r, value.g, value.b)
+
+    elseif typeof(value) == "Instance" then
+        if value:IsA("HumanoidDescription") then
+            local function setupAccessories(container, rigTypePathways)
+                for _, accessory in pairs(container:GetChildren()) do
+                    if accessory:IsA("Folder") or accessory:IsA("Configuration") then
+                        local r15Name = accessory:GetAttribute("R15BodyPart") or accessory.Name
+                        local r6Name = accessory:GetAttribute("R6BodyPart") or accessory.Name
+                        local newRigTypePathways = main.modules.TableUtil.copy(rigTypePathways)
+                        table.insert(newRigTypePathways.R15, r15Name)
+                        table.insert(newRigTypePathways.R6, r6Name)
+                        setupAccessories(accessory, newRigTypePathways)
+                    else
+                        local accessoryClone = self._maid:give(accessory:Clone())
+                        self.accessories[accessoryClone] = rigTypePathways
+                    end
+                end
+            end
+            setupAccessories(value, {
+                R15 = {},
+                R6 = {},
+            })
+            
+            local BodyUtil = require(bodyUtilPathway)
+            for _, folder in pairs(value:GetChildren()) do
+                local bodyGroupName = folder.Name
+                local transparencyAttribute = folder:GetAttribute("Transparency")
+                if transparencyAttribute and BodyUtil.bodyGroups[bodyGroupName] and tonumber(transparencyAttribute) and transparencyAttribute ~= 0 then
+                    local buff = self.agent:buff("BodyTransparency", bodyGroupName):set(transparencyAttribute)
+                    self._maid:give(buff)
+                end
+            end--]]
+        end
     end
     return newValue
 end
@@ -101,11 +136,6 @@ function Buff:destroy()
         -- We have this delay here to prevent 'appearance' commands from resetting then immidately snapping to a new buff (as there's slight frame different between killing and executing tasks).
         self.updated:Fire()
         self._maid:clean()
-        for k, v in pairs(self) do
-            if typeof(v) == "table" then
-                self[k] = nil
-            end
-        end
     end)
     return self
 end

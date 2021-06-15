@@ -61,6 +61,12 @@ if main.isServer then
 	end
 end
 
+-- Material enum items dictionary
+local materialEnumNamesLowercase = {}
+for id, enumItem in pairs(Enum.Material:GetEnumItems()) do
+	materialEnumNamesLowercase[enumItem.Name:lower()] = enumItem
+end
+
 
 
 -- ARRAY
@@ -556,10 +562,9 @@ Args.array = {
 		description = "Accepts a valid material and returns a Material enum.",
 		defaultValue = Enum.Material.Plastic,
 		parse = function(self, stringToParse)
-			local enumName = stringToParse:sub(1,1):upper()..stringToParse:sub(2):lower()
-			local success, enum = pcall(function() return Enum.Material[enumName] end)
-			if success then
-				return enum
+			local enumItem = materialEnumNamesLowercase[stringToParse:lower()]
+			if enumItem then
+				return enumItem
 			end
 		end,
 	},
@@ -628,21 +633,35 @@ Args.array = {
 		name = "tools",
 		aliases = {"items"},
 		displayName = "toolName",
-		description = "Accepts a tool name that was present in either Nanoblox/Extensions/Tools, ServerStorage, ReplicatedStorage or Workspace upon the server initialising and returns the Tool instance",
+		description = "Accepts a tool name or 'all' and returns an array of tools based upon tools in ReplicatedStorage, ServerStorage or Nanoblox/Extensions/Tools.",
 		defaultValue = false,
 		parse = function(self, stringToParse)
-			-- consider searching workspace, serverscriptservice, nanoblox, etc for that tool
-			--[[
-			local toolName = argToProcess
-			argToProcess = {}
-			if string.len(stringToParseLower) > 0 then
-				for i,v in pairs(main.listOfTools) do
-					if toolName == "all" or string.lower(string.sub(v.Name, 1, #toolName)) == toolName then
-						table.insert(argToProcess, v)
-					end
+			local storageDetail = Args.getStorage(self.name)
+			local cachedItem = storageDetail:get(stringToParse)
+			if cachedItem then
+				return cachedItem
+			end
+			local tools
+			if stringToParse:lower() == "all" then
+				tools = main.services.AssetService.getTools()
+			else
+				local tool = main.services.AssetService.getTool(stringToParse)
+				if not tool then
+					tool = main.services.AssetService.getToolByShorthand(stringToParse)
+				end
+				if tool then
+					tools = {tool}
 				end
 			end
-			--]]
+			if tools then
+				for _, tool in pairs(tools) do
+					local cachedTool = storageDetail:get(tool.Name)
+					if not cachedTool then
+						storageDetail:cache(tool.Name, tool:Clone())
+					end
+				end
+				return tools
+			end
 		end,
 	},
 
@@ -654,7 +673,19 @@ Args.array = {
 		description = "Accepts a valid morph name and returns the morph",
 		defaultValue = false,
 		parse = function(self, stringToParse)
-
+			local storageDetail = Args.getStorage(self.name)
+			local cachedItem = storageDetail:get(stringToParse)
+			if cachedItem then
+				return cachedItem
+			end
+			local morph = main.services.AssetService.getMorph(stringToParse)
+			if not morph then
+				morph = main.services.AssetService.getMorphByShorthand(stringToParse)
+			end
+			if morph then
+				storageDetail:cache(morph.Name, morph:Clone())
+				return morph
+			end
 		end,
 	},
 

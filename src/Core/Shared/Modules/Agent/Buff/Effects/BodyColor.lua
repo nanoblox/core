@@ -24,6 +24,10 @@ return function(player, additional)
                         table.insert(instancesAndProps, {desc, groupName.."Color"})
                     end
                 end
+                local parts = BodyUtil.getPartsByBodyGroup(player, "Accessories")
+                for _, basePart in pairs(parts) do
+                    table.insert(instancesAndProps, {basePart, "Color"})
+                end
             end
         end
     end

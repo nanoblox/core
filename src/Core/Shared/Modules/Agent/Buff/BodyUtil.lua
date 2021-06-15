@@ -60,18 +60,18 @@ function BodyUtil.getPartsByBodyGroup(player, bodyGroupName)
             end
         elseif bodyGroup then
             local className = bodyGroup and bodyGroup.ClassName
-            if className == "Accessories" then
-                for _, accessory in pairs(character:GetDescendants()) do
-                    if accessory:IsA("Accessory") then
-                        for _, basePart in pairs(accessory:GetDescendants()) do
-                            if basePart:IsA("BasePart") then
-                                table.insert(parts, basePart)
-                            end
-                        end
-                    end
-                end
-                return parts
-            end
+			if className == "Accessories" then
+				for _, accessory in pairs(character:GetDescendants()) do
+					if accessory:IsA("Accessory") or accessory:IsA("Tool") then
+						for _, basePart in pairs(accessory:GetDescendants()) do
+							if basePart:IsA("BasePart") then
+								table.insert(parts, basePart)
+							end
+						end
+					end
+				end
+				return parts
+			end
             local rigName = humanoid.RigType.Name
             local partNames = bodyGroup[rigName]
             if partNames then

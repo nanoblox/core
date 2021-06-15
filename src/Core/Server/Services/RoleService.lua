@@ -87,7 +87,7 @@ function RoleService.generateRecord()
 		-- Behaviour
 		environment = main.enum.Environment.Global,
 		roleOrder = 0,
-		hidden = false,
+		hidden = false, -- when 'true', makes it so the role can only be viewed by people who own it, or by people who can edit it
 		nonadmin = false, -- This is solely for the 'nonadmins' and 'admins' qualifiers
 
 		-- Role Givers

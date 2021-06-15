@@ -140,17 +140,18 @@ function Agent:updateBuffGroups()
 end
 
 function Agent:_getDefaultGroup(effect, instance)
+	local key = instance --instance.Name
 	if instance.ClassName == "HumanoidDescription" then
 		-- HDs constantly change therefore we reference the Humanoid instead to remember the values
 		effect = "HumanoidDescription"
 		instance = self.player.Character.Humanoid
+		key = instance.Name
 	end
 	local defaultParentGroup = self.defaultValues[effect]
 	if defaultParentGroup == nil then
 		defaultParentGroup = {}
 		self.defaultValues[effect] = defaultParentGroup
 	end
-	local key = instance.Name --instance
 	local defaultGroup = defaultParentGroup[key]
 	if defaultGroup == nil then
 		defaultGroup = {}
@@ -174,6 +175,9 @@ end
 function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 	self:updateBuffGroups()
 	local humanoidDescription
+	local agentCharacter = self.player.Character
+	local agentHumanoid = agentCharacter and agentCharacter:FindFirstChild("Humanoid")
+	local agentRigType = agentHumanoid and agentHumanoid.RigType.Name
 
 	for effect, additionalTable in pairs(self.groupedBuffs) do
 		if not(specificEffect == nil or effect == specificEffect) then
@@ -233,7 +237,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 			local effectModule = effects[effect]
 			local effectData = (effectModule and require(effectModule))
 			if effectData then
-				instancesAndProperties = effectData(self.player, additionalString)
+				instancesAndProperties = effectData(self.player, additionalString, bossBuff.value)
 			end
 			
 			for _, group in pairs(instancesAndProperties) do
@@ -274,8 +278,37 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 						self.buffs[bossBuff.buffId] = nil
 						local BodyUtil = require(bodyUtilPathway)
 						BodyUtil.clearFakeBodyParts(self.player, effect, additionalString)
-						--
 					else
+						-- This applies any accessories associated with the buff
+						if agentRigType then
+							for accessory, rigTypePathways in pairs(bossBuff.accessories) do
+								local function updateAccessory()
+									local finalParent = agentCharacter
+									local characterPathway = rigTypePathways[agentRigType]
+									for _, name in pairs(characterPathway) do
+										finalParent = finalParent:FindFirstChild(name)
+										if not finalParent then
+											break
+										end
+									end
+									if finalParent then
+										local alreadyExists = finalParent:FindFirstChild(accessory.Name)
+										if not alreadyExists then
+											local accessoryClone = reduceTweenMaid:give(accessory:Clone())
+											accessoryClone.Parent = finalParent
+											reduceTweenMaid:give(accessoryClone.AncestryChanged:Connect(function()
+												main.RunService.Heartbeat:Wait()
+												if not bossBuff.isDestroyed then
+													updateAccessory()
+												end
+											end))
+										end
+									end
+								end
+								updateAccessory()
+							end
+						end
+						-- This sets the final value to the boss buff value
 						local buffValue = bossBuff.value
 						if typeof(buffValue) ==  "Instance" then --and buffValue:IsA("HumanoidDescription") then
 							buffValue = buffValue[propertyName]
@@ -491,11 +524,6 @@ function Agent:destroy()
 	self.destroyed = true
 	self:clearBuffs()
 	self._maid:clean()
-	for k, v in pairs(self) do
-		if typeof(v) == "table" then
-			self[k] = nil
-		end
-	end
 end
 Agent.Destroy = Agent.destroy
 

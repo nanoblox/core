@@ -24,6 +24,8 @@ local clientPermittedAssets = {}
 local serverPermittedAssets = {}
 local commandAssets = {}
 local assetNameToLocation = {}
+local morphs = {}
+local tools = {}
 
 
 
@@ -153,6 +155,33 @@ end
 -- START
 function AssetService.start()
 
+    -- Setup Morphs
+    for _, morph in pairs(main.server.Extensions.Morphs:GetChildren()) do
+        if morph:IsA("HumanoidDescription") then
+            local morphNameLower = morph.Name:lower()
+            morphs[morphNameLower] = morph
+        end
+    end
+
+    -- Setup Tools
+    local function checkAndRecordTool(instance)
+        if instance:IsA("Tool") then
+            local toolNameLower = instance.Name:lower()
+            tools[toolNameLower] = instance
+        end
+    end
+    local serviceAreas = {"ServerStorage", "ReplicatedStorage"}
+    for _, serviceAreaName in pairs(serviceAreas) do
+        local serviceArea = game:GetService(serviceAreaName)
+        for _, instance in pairs(serviceArea:GetDescendants()) do
+            checkAndRecordTool(instance)
+        end
+    end
+    for _, instance in pairs(main.server.Extensions.Tools:GetChildren()) do
+        checkAndRecordTool(instance)
+    end
+
+    -- Setup remotes
     local function getClientPermittedAssets(player, assetNamesArray)
         if typeof(assetNamesArray) ~= "table" then
             return false, INCORRECT_ARRAY
@@ -357,6 +386,52 @@ function AssetService.getCommandAssetsOrServerPermittedAssets(commandName, ...)
     return AssetService._getAssets(function(assetName)
         return AssetService.getCommandAssetOrServerPermittedAsset(commandName, assetName)
     end, ...)
+end
+
+function AssetService.getMorph(morphName)
+    local nameLower = morphName:lower()
+    return morphs[nameLower]
+end
+
+function AssetService.getMorphByShorthand(shorthandMorphName)
+    local shorthandLength = #shorthandMorphName
+    local shorthandMorphNameLower = shorthandMorphName:lower()
+    for _, item in pairs(morphs) do
+        if item.Name:lower():sub(1, shorthandLength) == shorthandMorphNameLower then
+            return item
+        end
+    end
+end
+
+function AssetService.getMorphs()
+    local itemsToReturn = {}
+    for _, item in pairs(morphs) do
+        table.insert(itemsToReturn, item)
+    end
+    return itemsToReturn
+end
+
+function AssetService.getTool(toolName)
+    local nameLower = toolName:lower()
+    return tools[nameLower]
+end
+
+function AssetService.getToolByShorthand(shorthandToolName)
+    local shorthandLength = #shorthandToolName
+    local shorthandToolNameLower = shorthandToolName:lower()
+    for _, item in pairs(tools) do
+        if item.Name:lower():sub(1, shorthandLength) == shorthandToolNameLower then
+            return item
+        end
+    end
+end
+
+function AssetService.getTools()
+    local itemsToReturn = {}
+    for _, item in pairs(tools) do
+        table.insert(itemsToReturn, item)
+    end
+    return itemsToReturn
 end
 
 
