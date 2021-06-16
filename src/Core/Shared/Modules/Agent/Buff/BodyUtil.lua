@@ -54,7 +54,7 @@ function BodyUtil.getPartsByBodyGroup(player, bodyGroupName)
         local bodyGroup = bodyGroups[bodyGroupName]
         if bodyGroupName == "nil" or bodyGroupName == nil then
             for _, basePart in pairs(character:GetDescendants()) do
-                if basePart:IsA("BasePart") and basePart.Name ~= "HumanoidRootPart" and basePart.Parent.Name ~= FAKE_GROUP_NAME then
+                if basePart:IsA("BasePart") and not basePart:IsA("Seat") and basePart.Name ~= "HumanoidRootPart" and basePart.Parent.Name ~= FAKE_GROUP_NAME then
                     table.insert(parts, basePart)
                 end
             end
@@ -64,7 +64,7 @@ function BodyUtil.getPartsByBodyGroup(player, bodyGroupName)
 				for _, accessory in pairs(character:GetDescendants()) do
 					if accessory:IsA("Accessory") or accessory:IsA("Tool") then
 						for _, basePart in pairs(accessory:GetDescendants()) do
-							if basePart:IsA("BasePart") then
+							if basePart:IsA("BasePart") and not basePart:IsA("Seat") then
 								table.insert(parts, basePart)
 							end
 						end
@@ -77,7 +77,7 @@ function BodyUtil.getPartsByBodyGroup(player, bodyGroupName)
             if partNames then
                 for _, partName in pairs(partNames) do
                     local correspondingPart = character:FindFirstChild(partName)
-                    if correspondingPart and correspondingPart:IsA("BasePart") then
+                    if correspondingPart and correspondingPart:IsA("BasePart") and not correspondingPart:IsA("Seat") then
                         table.insert(parts, correspondingPart)
                     end
                 end

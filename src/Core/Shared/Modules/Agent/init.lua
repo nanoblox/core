@@ -239,6 +239,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 			if effectData then
 				instancesAndProperties = effectData(self.player, additionalString, bossBuff.value)
 			end
+			local updatedAccessories = false
 			
 			for _, group in pairs(instancesAndProperties) do
 				
@@ -279,8 +280,31 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 						local BodyUtil = require(bodyUtilPathway)
 						BodyUtil.clearFakeBodyParts(self.player, effect, additionalString)
 					else
-						-- This applies any accessories associated with the buff
-						if agentRigType then
+						-- This applies any accessories and tempBuffs associated with the buff
+						if agentRigType and not updatedAccessories then
+							updatedAccessories = true
+							-- Create temp buffs in not already created
+							if not bossBuff.appliedTempBuffs and #bossBuff.tempBuffDetails > 0 then
+								bossBuff.appliedTempBuffs = true
+								for _, tempBuffDetails in pairs(bossBuff.tempBuffDetails) do
+									local tempBuff = self:buff(unpack(tempBuffDetails[1]))
+									tempBuff.onlyUpdateThisBuff = true
+									tempBuff:set(unpack(tempBuffDetails[2]))
+									table.insert(bossBuff.tempBuffs, tempBuff)
+									tempBuff.onlyUpdateThisBuff = nil
+									bossBuff._maid:give(tempBuff)
+								end
+							end
+							-- Remove temp buffs from others (this means if you do ;morph me chair then ;become matt, the character won't still be enitrely invisible)
+							for _, buff in pairs(buffs) do
+								if not buff.isDestroyed and buff ~= bossBuff and buff.appliedTempBuffs then
+									for _, tempBuff in pairs(buff.tempBuffs) do
+										tempBuff:destroy()
+									end
+									buff.tempBuffs = {}
+								end
+							end
+							-- Apply accessories
 							for accessory, rigTypePathways in pairs(bossBuff.accessories) do
 								local function updateAccessory()
 									local finalParent = agentCharacter
@@ -295,7 +319,12 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 										local alreadyExists = finalParent:FindFirstChild(accessory.Name)
 										if not alreadyExists then
 											local accessoryClone = reduceTweenMaid:give(accessory:Clone())
+											local handle = accessoryClone:FindFirstChild("Handle")
+											local forceCanCollide = handle and handle:FindFirstChild("ForceCanCollide")
 											accessoryClone.Parent = finalParent
+											if forceCanCollide and forceCanCollide.Value == true then
+												handle.CanCollide = true
+											end
 											reduceTweenMaid:give(accessoryClone.AncestryChanged:Connect(function()
 												main.RunService.Heartbeat:Wait()
 												if not bossBuff.isDestroyed then
@@ -432,6 +461,9 @@ end
 function Agent:modifyHumanoidDescription(propertyName, value, isFinalDestroyedDescBuff)
 	-- humanoidDescriptionInstances do this weird thing where they don't always apply, especially when applying as soon as a player respawns
 	-- or right after applying another description. The following code is designed to overcome this.
+	if self.blockHumanoidDescriptionUpdating then
+		return
+	end
 	self.humanoidDescriptionCount += 1
 	local myCount = self.humanoidDescriptionCount
 	local humanoid = self.player.Character.Humanoid
@@ -495,6 +527,9 @@ function Agent:modifyHumanoidDescription(propertyName, value, isFinalDestroyedDe
 			end
 		end--]]
 		-----------
+		self.blockHumanoidDescriptionUpdating = true
+		self:reduceAndApplyEffects()
+		self.blockHumanoidDescriptionUpdating = nil
 		self.applyingHumanoidDescription = false
 		self.humanoidDescription = nil
 	end)

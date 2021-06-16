@@ -34,6 +34,8 @@ function Buff.new(effect, property, weight)
     self.incremental = nil
     self.previousIncremental = nil
     self.accessories = {}
+    self.tempBuffs = {}
+    self.tempBuffDetails = {}
 
 	return self
 end
@@ -73,10 +75,9 @@ function Buff:_changeValue(value)
                 local bodyGroupName = folder.Name
                 local transparencyAttribute = folder:GetAttribute("Transparency")
                 if transparencyAttribute and BodyUtil.bodyGroups[bodyGroupName] and tonumber(transparencyAttribute) and transparencyAttribute ~= 0 then
-                    local buff = self.agent:buff("BodyTransparency", bodyGroupName):set(transparencyAttribute)
-                    self._maid:give(buff)
+                    table.insert(self.tempBuffDetails, {{"BodyTransparency", bodyGroupName}, {transparencyAttribute}})
                 end
-            end--]]
+            end
         end
     end
     return newValue
@@ -88,7 +89,7 @@ function Buff:set(value, optionalTweenInfo)
     self.tweenInfo = optionalTweenInfo
     self.value = self:_changeValue(value)
     self.timeUpdated = os.clock()
-    self.updated:Fire(self.effect, self.additional)
+    self:_update(true)
     return self
 end
 
@@ -99,7 +100,7 @@ function Buff:increment(value, optionalTweenInfo)
     self.tweenInfo = optionalTweenInfo
     self.value = self:_changeValue(value)
     self.timeUpdated = os.clock()
-    self.updated:Fire(self.effect, self.additional)
+    self:_update(true)
     return self
 end
 
@@ -111,8 +112,16 @@ end
 function Buff:setWeight(weight)
     self.weight = weight or 1
     self.timeUpdated = os.clock()
-    self.updated:Fire()
+    self:_update()
     return self
+end
+
+function Buff:_update(onlyUpdateThisBuff)
+    if onlyUpdateThisBuff or self.onlyUpdateThisBuff then
+        self.updated:Fire(self.effect, self.additional)
+    else
+        self.updated:Fire()
+    end
 end
 
 function Buff:_getAppliedValueTable(effect, instance)
@@ -134,7 +143,7 @@ function Buff:destroy()
     self.isDestroyed = true
     main.modules.Thread.delay(0.1, function()
         -- We have this delay here to prevent 'appearance' commands from resetting then immidately snapping to a new buff (as there's slight frame different between killing and executing tasks).
-        self.updated:Fire()
+        self:_update()
         self._maid:clean()
     end)
     return self
