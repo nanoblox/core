@@ -28,6 +28,7 @@ function Task.new(properties)
 	
 	self.command = (main.isServer and main.services.CommandService.getCommand(self.commandName)) or main.modules.ClientCommands.get(self.commandName)
 	self.commandName = (main.isServer and self.command.name) or self.commandName
+	self.hijackedCommandName = nil
 	self.threads = {}
 	self.isPaused = false
 	self.isDead = false
@@ -50,6 +51,14 @@ function Task.new(properties)
 	maid:give(function()
 		self.anchoredParts = nil
 	end)
+
+	self.tags = {}
+	if main.isServer then
+		local tags = self.command.tags or {}
+		for _, tagName in pairs(tags) do
+			self.tags[tagName:lower()] = true
+		end
+	end
 
 	local qualifierPresent = false
 	if self.qualifiers then
@@ -557,6 +566,14 @@ end
 Task.destroy = Task.kill
 Task.Destroy = Task.kill
 
+function Task:hijackCommand(commandName, argsTable)
+	local command = main.services.CommandService.getCommand(commandName)
+	if command then
+		self.hijackedCommandName = command.name
+		return command.invoke(self, argsTable)
+	end
+end
+
 -- An abstraction of ``task.maid:give(...)``
 function Task:give(item)
 	if self.isDead then
@@ -716,6 +733,14 @@ function Task:clearBuffs()
 	self.buffs = {}
 end
 
+function Task:findTag(tagName)
+	local tagNameLower = tostring(tagName):lower()
+	if self.tags[tagNameLower] then
+		return true
+	end
+	return false
+end
+
 function Task:getOriginalArg(argNameOrIndex)
 	local index = tonumber(argNameOrIndex)
 	if index then
@@ -752,7 +777,7 @@ function Task:_invoke(playersArray, ...)
 		self.trackingClients[player] = true
 		local clientTaskProperties = {
 			UID = self.UID,
-			commandName = self.commandName,
+			commandName = self.hijackedCommandName or self.commandName,
 			killAfterExecution = killAfterExecution,
 			clientArgs = table.pack(...),
 			playerUserId = self.playerUserId,

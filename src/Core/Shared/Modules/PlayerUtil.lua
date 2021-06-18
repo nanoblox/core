@@ -79,6 +79,19 @@ function PlayerUtil.getUserIdFromName(username)
 	end)
 end
 
+function PlayerUtil.loadTrack(player, animationId)
+	local humanoid = main.modules.PlayerUtil.getHumanoid(player)
+	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+	if not animator then
+		return
+	end
+	local animation = Instance.new("Animation")
+	animation.Name = "Nanoblox-"..animationId
+	animation.AnimationId = "rbxassetid://"..animationId
+	animation.Parent = player.Character
+	return animator:LoadAnimation(animation)
+end
+
 
 
 return PlayerUtil

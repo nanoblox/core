@@ -3,33 +3,28 @@ local ClientCommand =	{}
 
 
 
-function ClientCommand.invoke(task, animationId, speed, isLooped)
-	local char = main.localPlayer.Character
-	local humanoid = char:FindFirstChild("Humanoid")
-	if not humanoid then
+function ClientCommand.invoke(task, player, animationId, speed, isLooped)
+	local animTrack = main.modules.PlayerUtil.loadTrack(player, animationId)
+	local animation = animTrack and animTrack.Animation
+	local fadeTime = 0.2/speed
+	if not animTrack then
 		return
 	end
-	local animator = humanoid:FindFirstChildOfClass("Animator")
-	if not animator then
-		animator = Instance.new("Animator")
-		animator.Parent = humanoid
-	end
-	local animation = task:give(Instance.new("Animation"))
-	animation.AnimationId = "rbxassetid://"..animationId
-	animation.Name = "Nanoblox-"..animationId
-	animation.Parent = char
-	local track = task:give(animator:LoadAnimation(animation))
-	track.Looped = isLooped
-	track.Stopped:Connect(function()
-		task:kill()
-	end)
-	local fadeTime = 0.2/speed
+	task:give(animTrack)
+	task:give(animation)
+	animTrack:AdjustWeight(100)
+	animTrack.Looped = isLooped
+	animTrack.Priority = Enum.AnimationPriority.Action
+	animTrack:Play(fadeTime, nil, speed)
 	task:give(function()
-		track:Stop(fadeTime)
+		animTrack:Stop(fadeTime)
 	end)
-	track:AdjustWeight(100)
-	track:Play(fadeTime, nil, speed)
-	humanoid.Died:Wait()
+	if player == main.localPlayer then
+		animTrack.Stopped:Connect(function()
+			task:kill()
+		end)
+		player.Character.Humanoid.Died:Wait()
+	end
 end
 
 

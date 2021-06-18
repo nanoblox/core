@@ -22,17 +22,14 @@ Command.args = {"Player", "AnimationId", "Speed"}
 
 function Command.invoke(task, args)
 	local player, animationId, speed = unpack(args)
-	-- This enables us to determine whether the animation is looped
-	local humanoid = main.modules.PlayerUtil.getHumanoid(player)
-	if not humanoid then
+	-- This constructs the animation on the server so it can replicate to all other clients
+	local animTrack = main.modules.PlayerUtil.loadTrack(player, animationId)
+	local animation = animTrack and animTrack.Animation
+	if not animTrack then
 		return
 	end
-	local animator = task:give(Instance.new("Animator"))
-	animator.Name = "NanobloxPreviewAnimator"
-	animator.Parent = humanoid
-	local animation = task:give(Instance.new("Animation"))
-	animation.AnimationId = "rbxassetid://"..animationId
-	local animTrack = task:give(animator:LoadAnimation(animation))
+	task:give(animTrack)
+	task:give(animation)
 	-- For a bizarre reason, there is no animTrack.Loaded event, so we have to repeat wait until its length is greater than 0 instead
 	task:delayUntil(function() return animTrack.Length > 0 end, function()
 		local isLooped = animTrack.looped
@@ -40,14 +37,14 @@ function Command.invoke(task, args)
 		if isLooped then
 			task.persistence = main.enum.Persistence.UntilPlayerDies
 		end
-		animTrack:Destroy()
-		animation:Destroy()
-		animator:Destroy()
+		animTrack.Priority = Enum.AnimationPriority.Action
+		animTrack.Looped = isLooped
 		-- If speed defaulted (i.e. was not specified, set to 1)
 		if task:getOriginalArg("Speed") == nil then
 			speed = 1
 		end
-		task:invokeClient(player, animationId, speed, isLooped)
+		-- We invoke all clients, instead of just the individual whos playing, to make animations perfectly syncronised and to be able to set the track.Priority
+		task:invokeAllAndFutureClients(player, animationId, speed, isLooped)
 	end)
 end
 

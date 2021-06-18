@@ -162,6 +162,22 @@ function CommandService.loaded()
 		table.sort(array, function(a, b) return #a > #b end)
 		return array
 	end)
+	records:setTable("lowerCaseTagToGroupArray", function()
+		local tagGroups = {}
+		for _, record in pairs(records) do
+			local tags = record.tags or {}
+			for _, tagName in pairs(tags) do
+				local tagNameLower = tostring(tagName):lower()
+				local group = tagGroups[tagNameLower]
+				if not group then
+					group = {}
+					tagGroups[tagNameLower] = group
+				end
+				table.insert(group, record.name)
+			end
+		end
+		return tagGroups
+	end)
 
 end
 
@@ -235,6 +251,10 @@ function CommandService.getCommand(name)
 end
  
 function CommandService.getCommands()
+	return CommandService:getRecords()
+end
+
+function CommandService.getCommandsByTag(tag)
 	return CommandService:getRecords()
 end
 
@@ -460,10 +480,11 @@ function CommandService.verifyStatement(callerUser, statement)
 		local statementCommands = statement.commands
 		local modifiers = statement.modifiers
 		local qualifiers = statement.qualifiers
+		print("statementCommands = ", statementCommands)
 		
 		if not statementCommands then
 			return resolve(false, {{"notice", {
-				text = "Failed to execute commands as they does not exist!",
+				text = "Failed to execute command as it does not exist!",
 				error = true,
 			}}})
 		end
@@ -569,6 +590,22 @@ function CommandService.executeStatement(callerUserId, statement)
 	statement.modifiers = statement.modifiers or {}
 	statement.qualifiers = statement.qualifiers or {}
 
+	-- If 'player' instance detected within qualifiers, convert to player.Name
+	for qualifierKey, qualifierTable in pairs(statement.qualifiers) do
+		if typeof(qualifierKey) == "Instance" and qualifierKey:IsA("Player") then
+			local callerUser = main.modules.PlayerStore:getUserByUserId(callerUserId)
+			local playerDefinedSearch = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
+			local playerName = qualifierKey.Name
+			if playerDefinedSearch == main.enum.PlayerSearch.UserName or playerDefinedSearch == main.enum.PlayerSearch.UserNameAndDisplayName then
+				local playerIdentifier = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
+				playerName = tostring(playerIdentifier)..playerName
+				print("FINALLLLLLLLL playerName = ", playerName)
+			end
+			statement.qualifiers[qualifierKey] = nil
+			statement.qualifiers[playerName] = qualifierTable
+		end
+	end
+
 	-- This enables the preview modifier if command.autoPreview is true
 	-- or bypasses the preview modifier entirely if the request is from the client
 	if statement.fromClient then
@@ -662,14 +699,16 @@ function CommandService.executeStatement(callerUserId, statement)
 		end)
 end
 
-function CommandService.executeSimpleStatement(callerUserId, commandName, optionalCommandArgs, optionalQualifiers, optionalModifiers)
-	CommandService.executeStatement(callerUserId, {
-		commands = {
-			[commandName] = optionalCommandArgs or {}
-		},
-		qualifiers = optionalQualifiers or {},
-		modifiers = optionalModifiers or {},
-	})
+function CommandService.executeSimpleStatement(callerUserId, commandName, commandArgsArray, qualifiersDictionary, modifiersDictionary)
+	local statement = {
+		commands = {},
+		qualifiers = qualifiersDictionary or {},
+		modifiers = modifiersDictionary or {},
+	}
+	if commandName then
+		statement.commands[commandName] = commandArgsArray
+	end
+	return CommandService.executeStatement(callerUserId, statement)
 end
 
 --[[
