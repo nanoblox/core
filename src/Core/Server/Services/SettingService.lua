@@ -64,18 +64,18 @@ function SettingService.generateRecord(key)
 		["System"] = {
 			
 			restrictedIDs = {
-				library = { -- Sounds, Images, Models, etc
+				libraryAndCatalog = { -- LibraryIds (Sounds, Images, Models, etc) and CatalogIds (Gear, Accessories, Faces, etc)
 					denylist = {["0000"] = true,},
-					allowlist = {},
-				},
-				catalog = { -- Gear, Accessories, Faces, etc
-					denylist = {},
 					allowlist = {},
 				},
 				bundle = { -- Bundles
 					denylist = {},
 					allowlist = {},
 				},
+			},
+			
+			overrideIDs = { -- Replaces the item with a corresponding *libraryId*
+				libraryAndCatalog = {["80661504"] = "6965147933",},
 			},
 
 			-- Warning System
@@ -171,24 +171,22 @@ end
 
 function SettingService.verifyCanUseRestrictedID(user, groupName, ID)
 	-- Check group exists
-	local groupNameLower = tostring(groupName):lower()
 	local restrictedIDs = SettingService.getSystemSetting("restrictedIDs")
-	local group = restrictedIDs[groupNameLower]
+	local group = restrictedIDs[groupName]
 	if not group then
 		error(("Attempt to check for a non-existent group '%s'"):format(tostring(groupName)))
 	end
 	local stringID = tostring(ID)
-	local groupNameUpper = groupNameLower:sub(1,1):upper()..groupNameLower:sub(2)
 	-- Check if denylisted
 	if main.services.RoleService.verifySettings(user, "limit.denylistedIDs").areAll(true) then
 		if group.denylist[stringID] then
-			return false, string.format("'%s' is a denied %sID!", stringID, groupNameUpper)
+			return false, string.format("'%s' is a denied %sID!", stringID, groupName)
 		end
 	end
 	-- Check if allowlisted
 	if main.services.RoleService.verifySettings(user, "limit.toAllowlistedIDs").areAll(true) then
 		if not group.allowlist[stringID] then
-			return false, string.format("'%s' is not an allowed %sID!", stringID, groupNameUpper)
+			return false, string.format("'%s' is not an allowed %sID!", stringID, groupName)
 		end
 	end
 	return true

@@ -38,6 +38,7 @@ function Task.new(properties)
 	self.executionCompleted = maid:give(Signal.new())
 	self.callerLeft = maid:give(Signal.new())
 	self.persistence = self.command.persistence
+	self.cooldown = (main.isServer and tonumber(self.command.cooldown) or 0)
 	self.trackingClients = {}
 	self.totalReplicationRequests = 0
 	self.replicationRequestsThisSecond = 0
@@ -371,13 +372,13 @@ function Task:execute()
 		if invokedCommand then
 			self.executionThreadsCompleted:Wait()
 			local humanoid = main.modules.PlayerUtil.getHumanoid(self.player)
-			if humanoid and humanoid.Health == 0 then
-				local promise = Promise.new(function(charResolve)
+			if not self.isDead and humanoid and humanoid.Health == 0 then
+				Promise.new(function(charResolve)
 					self.player.CharacterAdded:Wait()
 					charResolve()
 				end)
-				promise:timeout(5)
-				promise:await()
+				:timeout(main.Players.RespawnTime + 1)
+				:await()
 			end
 		end
 		self.executionCompleted:Fire()
@@ -416,6 +417,7 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 	end
 	self[newCountPropertyName] += 1
 	local function declareDead()
+		local task = self
 		main.modules.Thread.spawn(function()
 			self[newCountPropertyName] -= 1
 			if self[newCountPropertyName] == 0 and self[newCompletedSignalName] and not self.isDead then
@@ -527,7 +529,10 @@ function Task:kill()
 	if main.isServer then
 		self:revokeAllClients()
 		if not self.modifiers.perm then --self._global == false then
-			main.services.TaskService.removeTask(self.UID)
+			if self.cooldown > 0 then
+				self.cooldownEndTime = os.clock() + self.cooldown
+			end
+			main.modules.Thread.delay(self.cooldown, main.services.TaskService.removeTask, self.UID)
 		end
 	else
 		-- This dynamically removes agents for client commands
@@ -548,11 +553,6 @@ function Task:kill()
 		removeClientAgent(self.caller)
 	end
 	self.maid:clean()
-	for k, v in pairs(self) do
-		if typeof(v) == "table" then
-			self[k] = nil
-		end
-	end
 end
 Task.destroy = Task.kill
 Task.Destroy = Task.kill

@@ -194,21 +194,22 @@ end)
 -- METHODS
 function CommandService.generateRecord(key)
 	return defaultCommands[key] or {
-		name = "", -- This will be locked, command names cannot change and must always be the same
+		name = "",
 		description = "",
-		contributors = {},
 		aliases	= {},
-		opposites = {}, -- the names to undo (revoke) the command, e.g. ;invisible would have 'visible'
-		prefixes = {},
+		opposites = {},
 		tags = {},
-		args = {},
+		prefixes = {},
+		contributors = {},
 		blockPeers = false,
 		blockJuniors = false,
 		autoPreview = false,
-		requiresRig = nil,
-		remoteNames = {},
-		receiverNames = {},
-		senderNames = {},
+		requiresRig = main.enum.HumanoidRigType.None,
+		revokeRepeats = false,
+		preventRepeats = main.enum.TriStateSetting.Default,
+		cooldown = 0,
+		persistence = main.enum.Persistence.None,
+		args = {},
 	}
 end
 

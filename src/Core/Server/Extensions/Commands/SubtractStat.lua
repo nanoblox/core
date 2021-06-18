@@ -4,18 +4,19 @@ local Command =	{}
 
 
 Command.name = script.Name
-Command.aliases	= {}
 Command.description = "Takes away the value from the players stat"
-Command.contributors = {82347291}
+Command.aliases	= {}
 Command.opposites = {}
-Command.prefixes = {}
 Command.tags = {"Stat"}
+Command.prefixes = {}
+Command.contributors = {82347291}
 Command.blockPeers = false
 Command.blockJuniors = false
 Command.autoPreview = false
 Command.requiresRig = main.enum.HumanoidRigType.None
-Command.preventRepeats = main.enum.TriStateSetting.Default
 Command.revokeRepeats = false
+Command.preventRepeats = main.enum.TriStateSetting.Default
+Command.cooldown = 0
 Command.persistence = main.enum.Persistence.None
 Command.args = {"Player", "Stat", "StatValue"}
 

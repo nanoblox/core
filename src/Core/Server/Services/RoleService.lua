@@ -128,14 +128,13 @@ function RoleService.generateRecord()
 		
 		-- Limit Abuse
 		limit = {
-			whenRequestsPerIntervalCapEnabled = true, -- I may have set this up in tasks already. Instead, make sure this goes into VERIFY and increases for every command within there
-			requestsPerIntervalCapRefresh = 20,
-			requestsPerIntervalCapAmount = 20,
+			whenRequestsPerIntervalCapEnabled = true, -- I may have set this up in tasks already. Instead, make sure this goes into VERIFY and increases for *every command* within there
+			requestsPerIntervalCapRefresh = 10,
+			requestsPerIntervalCapAmount = 10,
+			whenRequestCooldownEnabled = false,
 			whenGlobalExecutionsPerIntervalCapEnabled = true,
 			globalExecutionsPerIntervalCapRefresh = 20,
 			globalExecutionsPerIntervalCapAmount = 5,
-			whenExecutionCooldownEnabled = false,
-			executionCooldownAmount = 1, -- if true, this amount of seconds must be waited before being allowed to execute another statement
 			repeatCommands = true, -- this prevents a command from being repeated twice before finishing for users/servers. important: make sure to modify TaskService 'preventRepeatCommands'.
 			whenScaleCapEnabled = true,
 			scaleCapAmount = 5,

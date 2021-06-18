@@ -4,18 +4,19 @@ local Command =	{}
 
 
 Command.name = script.Name
-Command.aliases	= {}
 Command.description = "Changes the color of the players body"
-Command.contributors = {82347291}
+Command.aliases	= {}
 Command.opposites = {}
-Command.prefixes = {}
 Command.tags = {"Appearance"}
+Command.prefixes = {}
+Command.contributors = {82347291}
 Command.blockPeers = false
 Command.blockJuniors = false
 Command.autoPreview = false
 Command.requiresRig = main.enum.HumanoidRigType.None
-Command.preventRepeats = main.enum.TriStateSetting.False
 Command.revokeRepeats = true
+Command.preventRepeats = main.enum.TriStateSetting.False
+Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerDies
 Command.args = {"Player", "Color"}
 

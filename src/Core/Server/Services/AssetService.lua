@@ -434,6 +434,26 @@ function AssetService.getTools()
     return itemsToReturn
 end
 
+function AssetService.loadAsset(assetId)
+    local assetIdNumber = tonumber(assetId)
+    if not assetIdNumber then
+        return false, "AssetId must be a number!"
+    end
+    local overrideIDs = main.services.SettingService.getSystemSetting("overrideIDs").libraryAndCatalog
+    local finalAssetIdNumber = assetIdNumber
+    if overrideIDs then
+        local overrideID = overrideIDs[tostring(assetIdNumber)]
+        if overrideID then
+            local overrideIDNumber = tonumber(overrideID)
+            if overrideIDNumber then
+                finalAssetIdNumber = overrideIDNumber
+            end
+        end
+    end
+	local success, model = pcall(function() return(main.InsertService:LoadAsset(finalAssetIdNumber)) end)
+    return success, model
+end
+
 
 
 return AssetService

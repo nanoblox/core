@@ -493,6 +493,7 @@ function Agent:modifyHumanoidDescription(propertyName, value, isFinalDestroyedDe
 			local playerHead = self.player.Character:FindFirstChild("Head")
 			local facelessHeadPresentOnRemoval = playerHead and playerHead:FindFirstChild("face") == nil
 			local originalFace = facelessHeadPresentOnRemoval and self.humanoidDescription and self.humanoidDescription.Face
+			humanoid:UnequipTools()
 			repeat
 				main.RunService.Heartbeat:Wait()
 				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)

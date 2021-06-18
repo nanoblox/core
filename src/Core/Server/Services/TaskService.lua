@@ -172,6 +172,7 @@ function TaskService.createTask(isGlobal, properties)
 	local runningTasks = TaskService.getTasksWithCommandNameAndOptionalPlayerUserId(commandNameLower, properties.playerUserId)
 	if command.revokeRepeats then
 		for _, task in pairs(runningTasks) do
+			task.cooldown = 0
 			task:kill()
 		end
 	else
@@ -180,7 +181,19 @@ function TaskService.createTask(isGlobal, properties)
 			preventRepeats = main.services.SettingService.getGroup("System").preventRepeatCommands
 		end
 		if preventRepeats and #runningTasks > 0 then
-			warn(("Wait until command '%s' has finished before using again!"):format(commandNameLower)) --!!!notice
+			local firstRunningTask = runningTasks[1]
+			local taskCooldownEndTime = firstRunningTask.cooldownEndTime
+			local additionalUserMessage = ""
+			local associatedPlayer = firstRunningTask.player
+			if associatedPlayer then
+				additionalUserMessage = (" on '%s' (@%s)"):format(associatedPlayer.DisplayName, associatedPlayer.Name)
+			end
+			if taskCooldownEndTime then
+				local remainingTime = (math.ceil((taskCooldownEndTime-os.clock())*100))/100
+				warn(("Wait %s seconds until command '%s' has cooldown before using again%s!"):format(remainingTime, command.name, additionalUserMessage)) --!!!notice
+				return
+			end
+			warn(("Wait until command '%s' has finished before using again%s!"):format(command.name, additionalUserMessage)) --!!!notice
 			return
 		end
 	end
