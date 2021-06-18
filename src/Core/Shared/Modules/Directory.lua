@@ -169,7 +169,7 @@ function Directory.requireModule(module)
 end
 
 -- This moves and replaces any matching children
-function Directory.move(source, newParent)
+function Directory.move(source, newParent, dontDestroyTarget)
 	local sourceName = source.Name
 	local target = newParent:FindFirstChild(sourceName)
 	local targetClass = target and target.ClassName
@@ -178,7 +178,7 @@ function Directory.move(source, newParent)
 			Directory.move(childSource, target)
 		end
 	else
-		if target then
+		if target and not dontDestroyTarget then
 			target:Destroy()
 		end
 		source.Parent = newParent

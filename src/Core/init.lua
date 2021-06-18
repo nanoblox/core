@@ -18,23 +18,31 @@ function Core.init(loader)
     remotesContainer.Parent = shared
 
     -- This transfers extension items such as commands within the loader directly into the core
-    local extensionsToMove = {
-        Commands = server.Modules.Commands,
-        Core = true,
-    }
     local extensions = loader and loader:FindFirstChild("Extensions")
     if extensions then
         for _, extensionGroup in pairs(extensions:GetChildren()) do
-            local destination = extensionsToMove[extensionGroup.Name]
-            if destination then
-                if extensionGroup.Name == "Core" then
-                    Directory.merge(extensionGroup, script, false, true)
-                else
-                    for _, item in pairs(extensionGroup:GetChildren()) do
-                        Directory.move(item, destination)
-                    end
-                    extensionGroup:Destroy()
+            local groupName = extensionGroup.Name
+            local destination = server.Extensions:FindFirstChild(groupName)
+            if not destination then
+                destination = Instance.new("Folder")
+                destination.Name = groupName
+                destination.Parent = server.Extensions
+            end
+            if groupName == "Core" then
+                -- The Extensions/Core is merged from the top of the real Core
+                local extensionsCoreServer = extensionGroup:FindFirstChild("Server")
+                local redundantExtensions = extensionsCoreServer and extensionsCoreServer:FindFirstChild("Extensions")
+                if redundantExtensions then
+                    redundantExtensions:Destroy()
                 end
+                Directory.merge(extensionGroup, script, false, true)
+            else
+                -- Everything else is merged into realCore/Server/Extensions
+                local dontDestroyTarget = (groupName == "Commands" and true) or false
+                for _, item in pairs(extensionGroup:GetChildren()) do
+                    Directory.move(item, destination, dontDestroyTarget)
+                end
+                extensionGroup:Destroy()
             end
         end
     end

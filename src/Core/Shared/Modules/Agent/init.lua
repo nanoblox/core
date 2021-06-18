@@ -46,6 +46,7 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 	self.humanoidDescriptionCount = 0
 	self.humanoidDescription = nil
 	self.applyingHumanoidDescription = false
+	self.remainingHumanoidDescriptionBuffs = 0
 	self.destroyed = false
 
 	maid:give(player.CharacterAdded:Connect(function(char)
@@ -103,11 +104,13 @@ end
 function Agent:updateBuffGroups()
 	-- This organises buffs into groups by effect and additonal value
 	local groupedBuffs = {}
+	self.remainingHumanoidDescriptionBuffs = 0
 	for buffId, buff in pairs(self.buffs) do
-		local group = groupedBuffs[buff.effect]
+		local effect = buff.effect
+		local group = groupedBuffs[effect]
 		if not group then
 			group = {}
-			groupedBuffs[buff.effect] = group
+			groupedBuffs[effect] = group
 		end
 		local additionalString = tostring(buff.additional)
 		local additionalTable = group[additionalString]
@@ -116,21 +119,39 @@ function Agent:updateBuffGroups()
 			group[additionalString] = additionalTable
 		end
 		table.insert(additionalTable, buff)
+
+		-----------------------------
+		local effectModule = effects[effect]
+		local effectData = (effectModule and require(effectModule))
+		local instancesAndProperties = effectData and effectData(self.player, additionalString)
+		if instancesAndProperties then
+			for _, group in pairs(instancesAndProperties) do
+				local instance = group[1]
+				local isAHumanoidDescription = instance.ClassName == "HumanoidDescription"
+				if isAHumanoidDescription then
+					self.remainingHumanoidDescriptionBuffs += 1
+				end
+				break
+			end
+		end
+		-----------------------------
 	end
 	self.groupedBuffs = groupedBuffs
 end
 
 function Agent:_getDefaultGroup(effect, instance)
+	local key = instance --instance.Name
+	if instance.ClassName == "HumanoidDescription" then
+		-- HDs constantly change therefore we reference the Humanoid instead to remember the values
+		effect = "HumanoidDescription"
+		instance = self.player.Character.Humanoid
+		key = instance.Name
+	end
 	local defaultParentGroup = self.defaultValues[effect]
 	if defaultParentGroup == nil then
 		defaultParentGroup = {}
 		self.defaultValues[effect] = defaultParentGroup
 	end
-	if instance.ClassName == "HumanoidDescription" then
-		-- HDs constantly change therefore we reference the Humanoid instead to remember the values
-		instance = self.player.Character.Humanoid
-	end
-	local key = instance.Name --instance
 	local defaultGroup = defaultParentGroup[key]
 	if defaultGroup == nil then
 		defaultGroup = {}
@@ -154,8 +175,10 @@ end
 function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 	self:updateBuffGroups()
 	local humanoidDescription
-	local humanoidDescriptionInstance
-	local changedDescProperty
+	local agentCharacter = self.player.Character
+	local agentHumanoid = agentCharacter and agentCharacter:FindFirstChild("Humanoid")
+	local agentRigType = agentHumanoid and agentHumanoid.RigType.Name
+
 	for effect, additionalTable in pairs(self.groupedBuffs) do
 		if not(specificEffect == nil or effect == specificEffect) then
 			continue
@@ -205,12 +228,6 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 				reduceTweenMaid = self._maid:give(Maid.new())
 				self.reduceMaids[tweenReference] = reduceTweenMaid
 			end
-			
-			-- We do this as HumanoidDescription properties arent responsive (they are read-only and cant be tweened)
-			if effect == "HumanoidDescription" then
-				isNumerical = false
-				isIncremental = false
-			end
 
 			-- This retrieves the associated instances then calculates and applies a final value
 			-- The default value should only be for only remembering non-numerical values (such as colors, materials, etc)
@@ -220,8 +237,9 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 			local effectModule = effects[effect]
 			local effectData = (effectModule and require(effectModule))
 			if effectData then
-				instancesAndProperties = effectData(self.player, additionalString)
+				instancesAndProperties = effectData(self.player, additionalString, bossBuff.value)
 			end
+			local updatedAccessories = false
 			
 			for _, group in pairs(instancesAndProperties) do
 				
@@ -231,7 +249,13 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 				local propertyValue = forcedBaseValue or (isAHumanoidDescription and humanoidDescription and humanoidDescription[propertyName]) or instance[propertyName]
 				local finalValue = propertyValue
 				local activeAppliedTables = {}
-				local isPriorityValue = false
+				local isFinalDestroyedDescBuff = false
+
+				-- We do this as HumanoidDescription properties arent responsive (they are read-only and cant be tweened)
+				if isAHumanoidDescription then
+					isNumerical = false
+					isIncremental = false
+				end
 
 				if not isNumerical then
 					-- For nonnumerical items we simply 'remember' the original value if the first time setting
@@ -243,16 +267,77 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 						defaultGroup[defaultAdditionalString] = propertyValue
 						defaultValue = propertyValue
 					end
-					if bossBuff.isDestroyed then
-						isPriorityValue = true
+					if bossBuff.isDestroyed then -- if this is the very last buff of that group
+						if isAHumanoidDescription then
+							if self.remainingHumanoidDescriptionBuffs <= 1 then
+								isFinalDestroyedDescBuff = true
+							end
+						else
+							defaultGroup[defaultAdditionalString] = nil
+						end
 						finalValue = defaultValue
-						defaultGroup[defaultAdditionalString] = nil
 						self.buffs[bossBuff.buffId] = nil
-						--
 						local BodyUtil = require(bodyUtilPathway)
 						BodyUtil.clearFakeBodyParts(self.player, effect, additionalString)
-						--
 					else
+						-- This applies any accessories and tempBuffs associated with the buff
+						if agentRigType and not updatedAccessories then
+							updatedAccessories = true
+							-- Create temp buffs in not already created
+							if not bossBuff.appliedTempBuffs and #bossBuff.tempBuffDetails > 0 then
+								bossBuff.appliedTempBuffs = true
+								for _, tempBuffDetails in pairs(bossBuff.tempBuffDetails) do
+									local tempBuff = self:buff(unpack(tempBuffDetails[1]))
+									tempBuff.onlyUpdateThisBuff = true
+									tempBuff:set(unpack(tempBuffDetails[2]))
+									table.insert(bossBuff.tempBuffs, tempBuff)
+									tempBuff.onlyUpdateThisBuff = nil
+									bossBuff._maid:give(tempBuff)
+								end
+							end
+							-- Remove temp buffs from others (this means if you do ;morph me chair then ;become matt, the character won't still be enitrely invisible)
+							for _, buff in pairs(buffs) do
+								if not buff.isDestroyed and buff ~= bossBuff and buff.appliedTempBuffs then
+									for _, tempBuff in pairs(buff.tempBuffs) do
+										tempBuff:destroy()
+									end
+									buff.tempBuffs = {}
+								end
+							end
+							-- Apply accessories
+							for accessory, rigTypePathways in pairs(bossBuff.accessories) do
+								local function updateAccessory()
+									local finalParent = agentCharacter
+									local characterPathway = rigTypePathways[agentRigType]
+									for _, name in pairs(characterPathway) do
+										finalParent = finalParent:FindFirstChild(name)
+										if not finalParent then
+											break
+										end
+									end
+									if finalParent then
+										local alreadyExists = finalParent:FindFirstChild(accessory.Name)
+										if not alreadyExists then
+											local accessoryClone = reduceTweenMaid:give(accessory:Clone())
+											local handle = accessoryClone:FindFirstChild("Handle")
+											local forceCanCollide = handle and handle:FindFirstChild("ForceCanCollide")
+											accessoryClone.Parent = finalParent
+											if forceCanCollide and forceCanCollide.Value == true then
+												handle.CanCollide = true
+											end
+											reduceTweenMaid:give(accessoryClone.AncestryChanged:Connect(function()
+												main.RunService.Heartbeat:Wait()
+												if not bossBuff.isDestroyed then
+													updateAccessory()
+												end
+											end))
+										end
+									end
+								end
+								updateAccessory()
+							end
+						end
+						-- This sets the final value to the boss buff value
 						local buffValue = bossBuff.value
 						if typeof(buffValue) ==  "Instance" then --and buffValue:IsA("HumanoidDescription") then
 							buffValue = buffValue[propertyName]
@@ -332,7 +417,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 					end
 					if not finalValueTweenInfo then
 						if isAHumanoidDescription then
-							self:modifyHumanoidDescription(propertyName, finalValue, isPriorityValue)
+							self:modifyHumanoidDescription(propertyName, finalValue, isFinalDestroyedDescBuff)
 						else
 							
 							instance[propertyName] = finalValue
@@ -367,78 +452,89 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 				end
 				
 			end
+			self.destroyingFinalDescBuff = nil
 
 		end
 	end
 end
 
-function Agent:modifyHumanoidDescription(propertyName, value, isPriorityValue)
+function Agent:modifyHumanoidDescription(propertyName, value, isFinalDestroyedDescBuff)
 	-- humanoidDescriptionInstances do this weird thing where they don't always apply, especially when applying as soon as a player respawns
 	-- or right after applying another description. The following code is designed to overcome this.
+	if self.blockHumanoidDescriptionUpdating then
+		return
+	end
 	self.humanoidDescriptionCount += 1
 	local myCount = self.humanoidDescriptionCount
 	local humanoid = self.player.Character.Humanoid
 	if not self.humanoidDescription then
 		self.humanoidDescription = humanoid:GetAppliedDescription()
 	end
-	self.humanoidDescriptionPriorities = self.humanoidDescriptionPriorities or {}
-	if not self.humanoidDescriptionPriorities[propertyName] then
-		self.humanoidDescription[propertyName] = value
-		if isPriorityValue then
-			self.humanoidDescriptionPriorities[propertyName] = true
-		end
+	self.humanoidDescription[propertyName] = value
+	local delayAmount = 0
+	if isFinalDestroyedDescBuff then
+		-- Tasks are often destroyed before the next one is executed, meaning
+		-- the appearance will reset then immidately update again.
+		-- We do this to prevent that snapping-jagged feel.
+		delayAmount = 0.4
 	end
-	main.modules.Thread.spawn(function()
-		if self.humanoidDescriptionCount == myCount and not self.applyingHumanoidDescription then
-			local iterations = 0
-			self.applyingHumanoidDescription = true
+	main.modules.Thread.delay(delayAmount, function()
+		if self.humanoidDescriptionCount ~= myCount then
+			return
+		end
+		if self.applyingHumanoidDescription then
+			self.reapplyHumanoidDescription = true
+			return
+		end
+		local iterations = 0
+		self.applyingHumanoidDescription = true
+		local function applyHumanoidDescription()
 			local appliedDesc
-			local currentDesc = humanoid and humanoid:FindFirstChildOfClass("HumanoidDescription")
-			local facelessHeads = {
-				["134082579"] = true,
-				["2499611582"] = true,
-			}
 			local playerHead = self.player.Character:FindFirstChild("Head")
 			local facelessHeadPresentOnRemoval = playerHead and playerHead:FindFirstChild("face") == nil
+			local originalFace = facelessHeadPresentOnRemoval and self.humanoidDescription and self.humanoidDescription.Face
+			humanoid:UnequipTools()
 			repeat
 				main.RunService.Heartbeat:Wait()
 				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
 				iterations += 1
 				appliedDesc = humanoid and humanoid:GetAppliedDescription()
 			until (appliedDesc and self.humanoidDescription and appliedDesc[propertyName] == self.humanoidDescription[propertyName]) or iterations == 10
-			if facelessHeadPresentOnRemoval then
+			if originalFace then
 				-- Yes this is ugly, but there's a really frustrating bug with HumanoidDescriptions that breaks the face when a Headless Horseman Head is removed
-				local originalFace = self.humanoidDescription.Face
 				self.humanoidDescription.Face = 0
 				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
 				self.humanoidDescription.Face = originalFace
 				pcall(function() humanoid:ApplyDescription(self.humanoidDescription) end)
 			end
-			self.humanoidDescriptionPriorities = nil
-			self.applyingHumanoidDescription = false
-			self.humanoidDescription = nil
+			if self.reapplyHumanoidDescription then
+				self.reapplyHumanoidDescription = nil
+				applyHumanoidDescription()
+			end
 		end
+		applyHumanoidDescription()
+		----------
+		--[[
+		if isFinalDestroyedDescBuff then --and not self.destroyingFinalDescBuff then
+			self:updateBuffGroups()
+			--self.destroyingFinalDescBuff = true
+			if self.remainingHumanoidDescriptionBuffs == 0 then
+				local defaultGroup = self:_getDefaultGroup("HumanoidDescription", self.humanoidDescription)
+				for key, defaultValue in pairs(defaultGroup) do
+					self.humanoidDescription[key] = defaultValue
+					defaultGroup[key] = nil
+				end
+				applyHumanoidDescription()
+			end
+		end--]]
+		-----------
+		self.blockHumanoidDescriptionUpdating = true
+		self:reduceAndApplyEffects()
+		self.blockHumanoidDescriptionUpdating = nil
+		self.applyingHumanoidDescription = false
+		self.humanoidDescription = nil
 	end)
 end
---[[
-local FACE_ID = "616381207"
-local HEAD_ID = "134082579" -- Headless Horseman, also breaks for other faceless Heads such as '2499611582'
-local player = game:GetService("Players").ForeverHD
-local humanoid = player.Character.Humanoid
-
-local description = humanoid:GetAppliedDescription()
-description.Face = FACE_ID
-description.Head = HEAD_ID
-humanoid:ApplyDescription(description)
-
-wait(7)
-
-local description = humanoid:GetAppliedDescription()
-description.Face = FACE_ID
-description.Head = ""
-humanoid:ApplyDescription(description)
-
---]]
 
 function Agent:clearBuffs()
 	for buffId, buff in pairs(self.buffs) do

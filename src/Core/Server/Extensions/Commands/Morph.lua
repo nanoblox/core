@@ -4,32 +4,27 @@ local Command =	{}
 
 
 Command.name = script.Name
+Command.description = "Transforms the player into the morph."
 Command.aliases	= {}
-Command.description = ""
-Command.contributors = {}
 Command.opposites = {}
+Command.tags = {"Fun", "Appearance"}
 Command.prefixes = {}
-Command.tags = {}
+Command.contributors = {82347291}
 Command.blockPeers = false
 Command.blockJuniors = false
 Command.autoPreview = false
 Command.requiresRig = main.enum.HumanoidRigType.None
+Command.revokeRepeats = true
 Command.preventRepeats = main.enum.TriStateSetting.Default
-Command.revokeRepeats = false
-Command.persistence = main.enum.Persistence.None
-Command.args = {"Username"}
+Command.cooldown = 0
+Command.persistence = main.enum.Persistence.UntilPlayerLeaves
+Command.args = {"Player", "Morph"}
 
 function Command.invoke(task, args)
-	local username = unpack(args)
-    print("USERNAME = ", username)
-end
-
-function Command.revoke(task)
-	
-end
-
-function Command.preReplication(task, targetPool, packedData)
-	return false
+	local _, morph = unpack(args)
+	if morph then
+		task:buffPlayer("HumanoidDescription"):set(morph)
+	end
 end
 
 

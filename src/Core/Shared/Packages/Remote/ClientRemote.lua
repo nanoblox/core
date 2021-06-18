@@ -226,6 +226,11 @@ end
 function Remote:destroy()
 	remotes[self.name] = nil
 	self._maid:clean()
+	for k, v in pairs(self) do
+		if typeof(v) == "table" then
+			self[k] = nil
+		end
+	end
 end
 Remote.Destroy = Remote.destroy
 

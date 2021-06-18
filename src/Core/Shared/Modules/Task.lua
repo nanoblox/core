@@ -28,6 +28,7 @@ function Task.new(properties)
 	
 	self.command = (main.isServer and main.services.CommandService.getCommand(self.commandName)) or main.modules.ClientCommands.get(self.commandName)
 	self.commandName = (main.isServer and self.command.name) or self.commandName
+	self.hijackedCommandName = nil
 	self.threads = {}
 	self.isPaused = false
 	self.isDead = false
@@ -38,6 +39,7 @@ function Task.new(properties)
 	self.executionCompleted = maid:give(Signal.new())
 	self.callerLeft = maid:give(Signal.new())
 	self.persistence = self.command.persistence
+	self.cooldown = (main.isServer and tonumber(self.command.cooldown) or 0)
 	self.trackingClients = {}
 	self.totalReplicationRequests = 0
 	self.replicationRequestsThisSecond = 0
@@ -49,6 +51,14 @@ function Task.new(properties)
 	maid:give(function()
 		self.anchoredParts = nil
 	end)
+
+	self.tags = {}
+	if main.isServer then
+		local tags = self.command.tags or {}
+		for _, tagName in pairs(tags) do
+			self.tags[tagName:lower()] = true
+		end
+	end
 
 	local qualifierPresent = false
 	if self.qualifiers then
@@ -371,13 +381,13 @@ function Task:execute()
 		if invokedCommand then
 			self.executionThreadsCompleted:Wait()
 			local humanoid = main.modules.PlayerUtil.getHumanoid(self.player)
-			if humanoid and humanoid.Health == 0 then
-				local promise = Promise.new(function(charResolve)
+			if not self.isDead and humanoid and humanoid.Health == 0 then
+				Promise.new(function(charResolve)
 					self.player.CharacterAdded:Wait()
 					charResolve()
 				end)
-				promise:timeout(5)
-				promise:await()
+				:timeout(main.Players.RespawnTime + 1)
+				:await()
 			end
 		end
 		self.executionCompleted:Fire()
@@ -416,6 +426,7 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 	end
 	self[newCountPropertyName] += 1
 	local function declareDead()
+		local task = self
 		main.modules.Thread.spawn(function()
 			self[newCountPropertyName] -= 1
 			if self[newCountPropertyName] == 0 and self[newCompletedSignalName] and not self.isDead then
@@ -515,20 +526,22 @@ end
 
 function Task:kill()
 	if self.isDead then return end
-	if not self.isDead and self.command.revoke then
+	self.isDead = true
+	if self.command.revoke then
 		if self.revokeArguments then
 			self.command.revoke(self, unpack(self.revokeArguments))
 		else
 			self.command.revoke(self)
 		end
 	end
-	self.isDead = true
 	self:clearBuffs()
-	self.maid:clean()
 	if main.isServer then
 		self:revokeAllClients()
 		if not self.modifiers.perm then --self._global == false then
-			main.services.TaskService.removeTask(self.UID)
+			if self.cooldown > 0 then
+				self.cooldownEndTime = os.clock() + self.cooldown
+			end
+			main.modules.Thread.delay(self.cooldown, main.services.TaskService.removeTask, self.UID)
 		end
 	else
 		-- This dynamically removes agents for client commands
@@ -548,9 +561,18 @@ function Task:kill()
 		removeClientAgent(self.player)
 		removeClientAgent(self.caller)
 	end
+	self.maid:clean()
 end
 Task.destroy = Task.kill
 Task.Destroy = Task.kill
+
+function Task:hijackCommand(commandName, argsTable)
+	local command = main.services.CommandService.getCommand(commandName)
+	if command then
+		self.hijackedCommandName = command.name
+		return command.invoke(self, argsTable)
+	end
+end
 
 -- An abstraction of ``task.maid:give(...)``
 function Task:give(item)
@@ -711,6 +733,14 @@ function Task:clearBuffs()
 	self.buffs = {}
 end
 
+function Task:findTag(tagName)
+	local tagNameLower = tostring(tagName):lower()
+	if self.tags[tagNameLower] then
+		return true
+	end
+	return false
+end
+
 function Task:getOriginalArg(argNameOrIndex)
 	local index = tonumber(argNameOrIndex)
 	if index then
@@ -747,7 +777,7 @@ function Task:_invoke(playersArray, ...)
 		self.trackingClients[player] = true
 		local clientTaskProperties = {
 			UID = self.UID,
-			commandName = self.commandName,
+			commandName = self.hijackedCommandName or self.commandName,
 			killAfterExecution = killAfterExecution,
 			clientArgs = table.pack(...),
 			playerUserId = self.playerUserId,

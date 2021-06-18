@@ -54,30 +54,30 @@ function BodyUtil.getPartsByBodyGroup(player, bodyGroupName)
         local bodyGroup = bodyGroups[bodyGroupName]
         if bodyGroupName == "nil" or bodyGroupName == nil then
             for _, basePart in pairs(character:GetDescendants()) do
-                if basePart:IsA("BasePart") and basePart.Name ~= "HumanoidRootPart" and basePart.Parent.Name ~= FAKE_GROUP_NAME then
+                if basePart:IsA("BasePart") and not basePart:IsA("Seat") and basePart.Name ~= "HumanoidRootPart" and basePart.Parent.Name ~= FAKE_GROUP_NAME then
                     table.insert(parts, basePart)
                 end
             end
         elseif bodyGroup then
             local className = bodyGroup and bodyGroup.ClassName
-            if className == "Accessories" then
-                for _, accessory in pairs(character:GetDescendants()) do
-                    if accessory:IsA("Accessory") then
-                        for _, basePart in pairs(accessory:GetDescendants()) do
-                            if basePart:IsA("BasePart") then
-                                table.insert(parts, basePart)
-                            end
-                        end
-                    end
-                end
-                return parts
-            end
+			if className == "Accessories" then
+				for _, accessory in pairs(character:GetDescendants()) do
+					if accessory:IsA("Accessory") or accessory:IsA("Tool") then
+						for _, basePart in pairs(accessory:GetDescendants()) do
+							if basePart:IsA("BasePart") and not basePart:IsA("Seat") then
+								table.insert(parts, basePart)
+							end
+						end
+					end
+				end
+				return parts
+			end
             local rigName = humanoid.RigType.Name
             local partNames = bodyGroup[rigName]
             if partNames then
                 for _, partName in pairs(partNames) do
                     local correspondingPart = character:FindFirstChild(partName)
-                    if correspondingPart and correspondingPart:IsA("BasePart") then
+                    if correspondingPart and correspondingPart:IsA("BasePart") and not correspondingPart:IsA("Seat") then
                         table.insert(parts, correspondingPart)
                     end
                 end
@@ -117,7 +117,7 @@ function BodyUtil.getOrSetupFakeBodyParts(player, parts, effect, additional)
             additionalTag.Name = additionalString
             additionalTag.Parent = effectTag
             table.insert(connections, effectTag.ChildRemoved:Connect(function(child)
-                if child.Name == additionalString then
+                if child.Name == additionalString and connections then
                     for _, connection in pairs(connections) do
                         connection:Disconnect()
                     end
@@ -150,63 +150,92 @@ function BodyUtil.getOrSetupFakeBodyParts(player, parts, effect, additional)
             if not ignoreParts[part.Name] then
                 local fakePart = fakeFolder:FindFirstChild(part.Name)
                 if not fakePart then
-                    local updateSize
+                    local function setupFakePart(partToCopy, forcedProperties)
+                        local updateSize
+                        local isAHead = partToCopy.Name == "Head"
+                        if isAHead and not partToCopy:IsA("MeshPart") then
+                            fakePart = main.shared.Assets.FakeHead:Clone()
+                            updateSize = function()
+                                fakePart.Size = Vector3.new(partToCopy.Size.X/2, partToCopy.Size.Y, partToCopy.Size.Z)*1.2
+                            end
+                        else
+                            fakePart = partToCopy:Clone()
+                            fakePart:ClearAllChildren()
+                            updateSize = function()
+                                local ADDITIONAL_SIZE = 0.02 --0.01
+                                fakePart.Size = partToCopy.Size + Vector3.new(ADDITIONAL_SIZE, ADDITIONAL_SIZE, ADDITIONAL_SIZE)
+                            end
+                        end
+                        if isAHead then
+                            local face = partToCopy:FindFirstChild("face") or partToCopy:FindFirstChildOfClass("Decal")
+                            if face then
+                                local fakeFace = face:Clone()
+                                fakeFace.Parent = fakePart
+                                table.insert(connections, face:GetPropertyChangedSignal("Texture"):Connect(function()
+                                    fakeFace.Texture = face.Texture
+                                end))
+                                table.insert(connections, face:GetPropertyChangedSignal("Transparency"):Connect(function()
+                                    fakeFace.Transparency = face.Transparency
+                                end))
+                            end
+                        end
 
-                    local isAHead = part.Name == "Head"
-                    if isAHead and not part:IsA("MeshPart") then
-                        fakePart = main.shared.Assets.FakeHead:Clone()
-                        updateSize = function()
-                            fakePart.Size = Vector3.new(part.Size.X/2, part.Size.Y, part.Size.Z)*1.2
+                        fakePart.CFrame = partToCopy.CFrame
+                        fakePart.Name = partToCopy.Name
+                        fakePart.CanCollide = false
+                        fakePart.Material = partToCopy.Material
+                        fakePart.Color = partToCopy.Color
+                        fakePart.Transparency = partToCopy.Transparency
+                        fakePart.Reflectance = partToCopy.Reflectance
+                        if forcedProperties then
+                            for propertName, value in pairs(forcedProperties) do
+                                fakePart[propertName] = value
+                            end
                         end
-                    else
-                        fakePart = part:Clone()
-                        fakePart:ClearAllChildren()
-                        updateSize = function()
-                            fakePart.Size = part.Size + Vector3.new(0.001, 0.001, 0.001)
-                        end
-                    end
-                    if isAHead then
-                        local face = part:FindFirstChild("face") or part:FindFirstChildOfClass("Decal")
-                        if face then
-                            local fakeFace = face:Clone()
-                            fakeFace.Parent = fakePart
-                            table.insert(connections, face:GetPropertyChangedSignal("Texture"):Connect(function()
-                                fakeFace.Texture = face.Texture
-                            end))
-                            table.insert(connections, face:GetPropertyChangedSignal("Transparency"):Connect(function()
-                                fakeFace.Transparency = face.Transparency
-                            end))
-                        end
-                    end
-
-                    fakePart.CFrame = part.CFrame
-                    fakePart.Name = part.Name
-                    fakePart.CanCollide = false
-                    fakePart.Material = part.Material
-                    fakePart.Color = part.Color
-                    fakePart.Transparency = part.Transparency
-                    updateSize()
-                    --
-                    local weld = Instance.new("Weld")
-                    weld.Part0 = part
-                    weld.Part1 = fakePart
-                    weld.C0 = part.CFrame:Inverse()
-                    weld.C1 = fakePart.CFrame:Inverse()
-                    weld.Parent = fakePart
-                    --
-                    table.insert(connections, part:GetPropertyChangedSignal("Material"):Connect(function()
-                        fakePart.Material = part.Material
-                    end))
-                    table.insert(connections, part:GetPropertyChangedSignal("Color"):Connect(function()
-                        fakePart.Color = part.Color
-                    end))
-                    table.insert(connections, part:GetPropertyChangedSignal("Transparency"):Connect(function()
-                        fakePart.Transparency = part.Transparency
-                    end))
-                    table.insert(connections, part:GetPropertyChangedSignal("Size"):Connect(function()
                         updateSize()
-                    end))
-                    fakePart.Parent = fakeFolder
+                        --
+                        local weld = Instance.new("Weld")
+                        weld.Part0 = partToCopy
+                        weld.Part1 = fakePart
+                        weld.C0 = partToCopy.CFrame:Inverse()
+                        weld.C1 = fakePart.CFrame:Inverse()
+                        weld.Parent = partToCopy
+                        --
+                        table.insert(connections, partToCopy:GetPropertyChangedSignal("Material"):Connect(function()
+                            fakePart.Material = partToCopy.Material
+                        end))
+                        table.insert(connections, partToCopy:GetPropertyChangedSignal("Color"):Connect(function()
+                            fakePart.Color = partToCopy.Color
+                        end))
+                        table.insert(connections, partToCopy:GetPropertyChangedSignal("Transparency"):Connect(function()
+                            fakePart.Transparency = partToCopy.Transparency
+                        end))
+                        table.insert(connections, partToCopy:GetPropertyChangedSignal("Reflectance"):Connect(function()
+                            fakePart.Reflectance = partToCopy.Reflectance
+                        end))
+                        table.insert(connections, partToCopy:GetPropertyChangedSignal("Size"):Connect(function()
+                            updateSize()
+                        end))
+                        table.insert(connections, partToCopy:GetPropertyChangedSignal("Parent"):Connect(function()
+                            main.RunService.Heartbeat:Wait()
+                            if partToCopy.Parent == nil and fakeFolder.Parent ~= nil and fakePart.Parent ~= nil then
+                                fakePart:Destroy()
+                            end
+                        end))
+                        table.insert(connections, fakePart:GetPropertyChangedSignal("Parent"):Connect(function()
+                            if fakePart.Parent == nil and fakeFolder.Parent ~= nil then
+                                local correspondingPart = character:FindFirstChild(part.Name)
+                                if correspondingPart then
+                                    setupFakePart(correspondingPart, {
+                                        Material = fakePart.Material,
+                                        Reflectance = fakePart.Reflectance,
+                                    })
+                                end
+                            end
+                        end))
+                        fakePart.Parent = fakeFolder
+                    end
+                    setupFakePart(part)
                 end
                 if firstTimeApplying then
                     local appliedCount = fakePart:GetAttribute("AppliedCount") or 0

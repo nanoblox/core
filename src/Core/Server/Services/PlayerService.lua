@@ -49,7 +49,7 @@ local function playerAdded(player)
 
 	-- Listen for chat
 	player.Chatted:Connect(function(message)
-		main.services.CommandService.chatCommand(user, message)
+		main.services.CommandService.processMessage(user, message)
 	end)
 
 	-- Create additional user methods and events

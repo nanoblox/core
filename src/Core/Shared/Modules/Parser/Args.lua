@@ -39,26 +39,36 @@ if main.isServer then
 			cache = function(self, itemKey, item)
 				local stringKey = tostring(itemKey)
 				if not self.items[stringKey] then
+					local container = Instance.new("Folder")
+					container.Name = stringKey
 					self.items[stringKey] = item
-					item.Name = stringKey
-					if item.Parent ~= self.folder then
-						item.Parent = self.folder
+					if item.Parent ~= container then
+						item.Parent = container
+					end
+					if container.Parent ~= self.folder then
+						container.Parent = self.folder
 					end
 					item:GetPropertyChangedSignal("Parent"):Connect(function()
-						if item.Parent ~= self.folder then
+						if item.Parent ~= container then
 							warn(("Nanoblox: Instances returned from Args should not be modified! Clone the instance ('%s' from '%s') instead!"):format(stringKey, finalStorageName))
 						end
-						item.Parent = self.folder
+						item.Parent = container
 					end)
 				end
 			end
 		}
 		Args.storages[finalStorageName] = storageDetail
 		for _, child in pairs(storageFolder:GetChildren()) do
-			storageDetail:cache(child.Name, child)
+			storageDetail:cache(child.Name, child:GetChildren()[1])
 		end
 		return storageDetail
 	end
+end
+
+-- Material enum items dictionary
+local materialEnumNamesLowercase = {}
+for id, enumItem in pairs(Enum.Material:GetEnumItems()) do
+	materialEnumNamesLowercase[enumItem.Name:lower()] = enumItem
 end
 
 
@@ -215,6 +225,63 @@ Args.array = {
 
 	-----------------------------------
 	{
+		name = "animationId",
+		aliases = {"animId"},
+		description = "Accepts a number, verifies its a valid animationId, then return an animationId",
+		defaultValue = false,
+		parse = function(self, stringToParse)
+			local storageDetail = Args.getStorage(self.name)
+			local cachedItem = storageDetail:get(stringToParse)
+			if cachedItem then
+				return tonumber(cachedItem.Name)
+			end
+			local assetType = main.modules.ProductUtil.getAssetTypeAsync(stringToParse, Enum.InfoType.Asset)
+			local loadDetail = self.validAssetTypes[tostring(assetType)]
+			local animationId
+			if loadDetail == "LoadAsset" then
+				local success, model = main.services.AssetService.loadAsset(stringToParse)
+				local animation = success and model:FindFirstChildOfClass("Animation")
+				if animation then
+					animationId = tonumber(animation.AnimationId:match("%d+"))
+				end
+			else
+				animationId = tonumber(stringToParse)
+			end
+			if animationId then
+				local itemToCache = Instance.new("Folder")
+				itemToCache.Name = animationId
+				storageDetail:cache(stringToParse, itemToCache)
+			end
+			return animationId
+		end,
+		validAssetTypes = {
+			[tostring(Enum.AssetType.Animation.Value)] = true,
+			[tostring(Enum.AssetType.EmoteAnimation.Value)] = "LoadAsset",
+		},
+		verifyCanUse = function(self, callerUser, valueToParse)
+			-- Check if valid string
+			local stringToParse = tostring(valueToParse)
+			local animIdString = string.match(tostring(stringToParse), "%d+")
+			local animId = tonumber(animIdString)
+			if not animId then
+				return false, string.format("'%s' is an invalid ID!", stringToParse)
+			end
+			-- Check if restricted to user
+			local approved, warning = main.services.SettingService.verifyCanUseRestrictedID(callerUser, "libraryAndCatalog", animIdString)
+			if not approved then
+				return false, warning
+			end
+			-- Check if correct asset type
+			local assetType = main.modules.ProductUtil.getAssetTypeAsync(animId, Enum.InfoType.Asset)
+			if not self.validAssetTypes[tostring(assetType)] then
+				return false, string.format("'%s' is not a valid AnimID!", animId)
+			end
+			return true
+		end,
+	},
+
+	-----------------------------------
+	{
 		name = "sound",
 		aliases = {"music", "audio"},
 		displayName = "soundId",
@@ -240,7 +307,7 @@ Args.array = {
 				return false, string.format("'%s' is an invalid ID!", stringToParse)
 			end
 			-- Check if restricted to user
-			local approved, warning = main.services.SettingService.verifyCanUseRestrictedID(callerUser, "library", soundIdString)
+			local approved, warning = main.services.SettingService.verifyCanUseRestrictedID(callerUser, "libraryAndCatalog", soundIdString)
 			if not approved then
 				return false, warning
 			end
@@ -266,7 +333,7 @@ Args.array = {
 			if cachedItem then
 				return cachedItem
 			end
-			local success, model = pcall(function() return(main.InsertService:LoadAsset(stringToParse)) end)
+			local success, model = main.services.AssetService.loadAsset(stringToParse)
 			if not success then
 				return
 			end
@@ -286,7 +353,7 @@ Args.array = {
 				return false, string.format("'%s' is an invalid ID!", stringToParse)
 			end
 			-- Check if restricted to user
-			local approved, warning = main.services.SettingService.verifyCanUseRestrictedID(callerUser, "catalog", gearIdString)
+			local approved, warning = main.services.SettingService.verifyCanUseRestrictedID(callerUser, "libraryAndCatalog", gearIdString)
 			if not approved then
 				return false, warning
 			end
@@ -317,8 +384,8 @@ Args.array = {
 			end
 			-- Check has permission to use scale value
 			local RoleService = main.services.RoleService
-			if RoleService.verifySettings(callerUser, "limit.scaleSize").areAll(true) then
-				local scaleLimit = RoleService.getMaxValueFromSettings(callerUser, "scaleSizeLimitAmount")
+			if RoleService.verifySettings(callerUser, "limit.whenScaleCapEnabled").areAll(true) then
+				local scaleLimit = RoleService.getMaxValueFromSettings(callerUser, "limit.scaleCapAmount")
 				if scaleValue > scaleLimit then
 					return false, ("Cannot exceed scale limit of '%s'. Your value was '%s'."):format(scaleLimit, scaleValue)
 				end
@@ -425,7 +492,7 @@ Args.array = {
 	-----------------------------------
 	{
 		name = "bool",
-		aliases = {"boolean", "trueOrFalse", "yesOrNo"},
+		aliases = {"boolean", "trueOrFalse", "yesOrNo", "isLooped"},
 		description = "Accepts 'true', 'false', 'yes', 'y', 'no' or 'n' and returns a boolean.",
 		defaultValue = false,
 		parse = function(self, stringToParse)
@@ -556,10 +623,9 @@ Args.array = {
 		description = "Accepts a valid material and returns a Material enum.",
 		defaultValue = Enum.Material.Plastic,
 		parse = function(self, stringToParse)
-			local enumName = stringToParse:sub(1,1):upper()..stringToParse:sub(2):lower()
-			local success, enum = pcall(function() return Enum.Material[enumName] end)
-			if success then
-				return enum
+			local enumItem = materialEnumNamesLowercase[stringToParse:lower()]
+			if enumItem then
+				return enumItem
 			end
 		end,
 	},
@@ -580,6 +646,19 @@ Args.array = {
 			return description
 		end,
 		verifyCanUse = function(self, callerUser, valueToParse)
+			-- Check if valid string
+			local stringToParse = tostring(valueToParse)
+			local bundleIdString = string.match(tostring(stringToParse), "%d+")
+			local bundleId = tonumber(bundleIdString)
+			if not bundleId then
+				return false, string.format("'%s' is an invalid ID!", stringToParse)
+			end
+			-- Check if restricted to user
+			local approved, warning = main.services.SettingService.verifyCanUseRestrictedID(callerUser, "bundle", bundleIdString)
+			if not approved then
+				return false, warning
+			end
+			-- Check bundle exists
 			local success, warning = main.modules.MorphUtil.loadBundleId(valueToParse):await()
 			return success, warning
 		end,
@@ -628,21 +707,35 @@ Args.array = {
 		name = "tools",
 		aliases = {"items"},
 		displayName = "toolName",
-		description = "Accepts a tool name that was present in either Nanoblox/Extensions/Tools, ServerStorage, ReplicatedStorage or Workspace upon the server initialising and returns the Tool instance",
+		description = "Accepts a tool name or 'all' and returns an array of tools based upon tools in ReplicatedStorage, ServerStorage or Nanoblox/Extensions/Tools.",
 		defaultValue = false,
 		parse = function(self, stringToParse)
-			-- consider searching workspace, serverscriptservice, nanoblox, etc for that tool
-			--[[
-			local toolName = argToProcess
-			argToProcess = {}
-			if string.len(stringToParseLower) > 0 then
-				for i,v in pairs(main.listOfTools) do
-					if toolName == "all" or string.lower(string.sub(v.Name, 1, #toolName)) == toolName then
-						table.insert(argToProcess, v)
-					end
+			local storageDetail = Args.getStorage(self.name)
+			local cachedItem = storageDetail:get(stringToParse)
+			if cachedItem then
+				return cachedItem
+			end
+			local tools
+			if stringToParse:lower() == "all" then
+				tools = main.services.AssetService.getTools()
+			else
+				local tool = main.services.AssetService.getTool(stringToParse)
+				if not tool then
+					tool = main.services.AssetService.getToolByShorthand(stringToParse)
+				end
+				if tool then
+					tools = {tool}
 				end
 			end
-			--]]
+			if tools then
+				for _, tool in pairs(tools) do
+					local cachedTool = storageDetail:get(tool.Name)
+					if not cachedTool then
+						storageDetail:cache(tool.Name, tool:Clone())
+					end
+				end
+				return tools
+			end
 		end,
 	},
 
@@ -654,7 +747,19 @@ Args.array = {
 		description = "Accepts a valid morph name and returns the morph",
 		defaultValue = false,
 		parse = function(self, stringToParse)
-
+			local storageDetail = Args.getStorage(self.name)
+			local cachedItem = storageDetail:get(stringToParse)
+			if cachedItem then
+				return cachedItem
+			end
+			local morph = main.services.AssetService.getMorph(stringToParse)
+			if not morph then
+				morph = main.services.AssetService.getMorphByShorthand(stringToParse)
+			end
+			if morph then
+				storageDetail:cache(morph.Name, morph:Clone())
+				return morph
+			end
 		end,
 	},
 

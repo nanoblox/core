@@ -14,10 +14,12 @@ function Role.new(properties)
 	
 	local maid = Maid.new()
 	self._maid = maid
-	self.commands = {}
+	self.settings = {
+		commands = {}
+	}
 	
 	for k,v in pairs(properties or {}) do
-		self[k] = v
+		self.settings[k] = v
 	end
 
 	self:updateCommands()
@@ -30,10 +32,15 @@ end
 -- METHODS
 function Role:destroy()
 	self._maid:clean()
+	for k, v in pairs(self) do
+		if typeof(v) == "table" then
+			self[k] = nil
+		end
+	end
 end
 
 function Role:give(user, roleType)
-	user.temp:getOrSetup("roles"):set(self.UID, true)
+	user.temp:getOrSetup("roles"):set(self.settings.UID, true)
 	main.services.RoleService.updateRoleInformation(user)
 end
 

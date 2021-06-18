@@ -2,6 +2,7 @@
 local main = require(game.Nanoblox)
 local System = main.modules.System
 local CommandService = System.new("Commands")
+local defaultCommands = {}
 CommandService.remotes = {}
 
 
@@ -9,8 +10,101 @@ CommandService.remotes = {}
 -- START
 function CommandService.start()
 
+	-- This retrieves all commands present on server start, applies tags/other details accoridngly and adds them to 'defaultCommands'
+	local checkedAliases = {}
+	local checkedCommandNames = {}
+	local DUPLICATE_COMMAND_WARNING = "Duplicate command names are not permitted! Rename '%s' to something different."
+	local DUPLICTE_ALIAS_WARNING = "Duplicate command aliases are not permitted! Rename '%s' to something different."
+	local DUPLICTE_BOTH_WARNING = "Duplicate command names/aliases are not permitted! Rename '%s' to something different."
+	local function setupCommands(group, tags)
+		local groupClass = group.ClassName
+		local thisTag = (groupClass == "Folder" or groupClass == "Configuration") and group.Name:lower()
+		local newTags = tags and {unpack(tags)} or {}
+		if thisTag then
+			table.insert(newTags, thisTag)
+		end
+		for _, instance in pairs(group:GetChildren()) do
+			if instance:IsA("ModuleScript") then
+				local command = require(instance)
+				local commandName = instance.Name
+				local commandNameLower = commandName:lower()
+				command.tags = (typeof(command.tags == "table") and command.tags) or {}
+				command.aliases = (typeof(command.aliases == "table") and command.aliases) or {}
+				command.name = commandName
+				for _, tagToAdd in pairs(newTags) do
+					table.insert(command.tags, tagToAdd)
+				end
+				for _, alias in pairs(command.aliases) do
+					local aliasName = tostring(alias)
+					local aliasLower = aliasName:lower()
+					if checkedAliases[aliasLower] or checkedCommandNames[aliasLower] then
+						error((DUPLICTE_ALIAS_WARNING):format(aliasName))
+					end
+					checkedAliases[aliasLower] = true
+				end
+				local client = instance:FindFirstChild("Client") or instance:FindFirstChild("client")
+				if client then
+					client.Name = commandNameLower
+					client.Parent = main.shared.Modules.ClientCommands
+				end
+				if checkedCommandNames[commandNameLower] then
+					error((DUPLICATE_COMMAND_WARNING):format(commandName))
+				elseif checkedAliases[commandNameLower] then
+					error((DUPLICTE_BOTH_WARNING):format(commandNameLower))
+				end
+				checkedCommandNames[commandNameLower] = true
+				defaultCommands[commandName] = command
+			else
+				setupCommands(instance, newTags)
+			end
+		end
+	end
+	setupCommands(main.server.Extensions.Commands)
+
+
+
+	-- Setup remotes
     local previewCommand = main.modules.Remote.new("previewCommand")
     CommandService.remotes.previewCommand = previewCommand
+
+	local CLIENT_REQUEST_LIMIT = 10
+	local REFRESH_INTERVAL = 5
+
+	local requestBatch = main.modules.Remote.new("requestBatch", CLIENT_REQUEST_LIMIT, REFRESH_INTERVAL)
+    CommandService.remotes.requestBatch = requestBatch
+	requestBatch.onServerInvoke = function(player, batch)
+		local callerUser = main.modules.PlayerStore:getUser(player)
+		local success, approved = CommandService.verifyThenExecuteBatch(callerUser, batch):await()
+		if success and approved then
+			return true
+		end
+		return false
+	end
+
+	local requestStatement = main.modules.Remote.new("requestStatement", CLIENT_REQUEST_LIMIT, REFRESH_INTERVAL)
+    CommandService.remotes.requestStatement = requestStatement
+	requestStatement.onServerInvoke = function(player, statement)
+		local callerUser = main.modules.PlayerStore:getUser(player)
+		local success, approved = CommandService.verifyThenExecuteStatement(callerUser, statement):await()
+		if success and approved then
+			return true
+		end
+		return false
+	end
+
+	local requestChat = main.modules.Remote.new("requestChat", CLIENT_REQUEST_LIMIT, REFRESH_INTERVAL)
+    CommandService.remotes.requestChat = requestChat
+	requestChat.onServerInvoke = function(player, message)
+		if typeof(message) ~= "string" then
+			return false, "Invalid message"
+		end
+		local callerUser = main.modules.PlayerStore:getUser(player)
+		local success, approved = CommandService.processMessage(callerUser, message):await()
+		if success and approved then
+			return true
+		end
+		return false
+	end
     
 end
 
@@ -23,7 +117,7 @@ end
 
 
 
--- BEGIN
+-- LOADED
 function CommandService.loaded()
 	
 	-- Setup globals
@@ -33,8 +127,7 @@ function CommandService.loaded()
 		CommandService.executeStatement(callerUserId, statement)
 	end)
 
-	-- Grab default commands
-	local defaultCommands = main.modules.Commands
+	-- Convert default commands to service commands
 	for name, details in pairs(defaultCommands) do
 		CommandService.createCommand(name, details)
 	end
@@ -69,6 +162,22 @@ function CommandService.loaded()
 		table.sort(array, function(a, b) return #a > #b end)
 		return array
 	end)
+	records:setTable("lowerCaseTagToGroupArray", function()
+		local tagGroups = {}
+		for _, record in pairs(records) do
+			local tags = record.tags or {}
+			for _, tagName in pairs(tags) do
+				local tagNameLower = tostring(tagName):lower()
+				local group = tagGroups[tagNameLower]
+				if not group then
+					group = {}
+					tagGroups[tagNameLower] = group
+				end
+				table.insert(group, record.name)
+			end
+		end
+		return tagGroups
+	end)
 
 end
 
@@ -100,23 +209,23 @@ end)
 
 -- METHODS
 function CommandService.generateRecord(key)
-	local defaultCommands = main.modules.Commands
 	return defaultCommands[key] or {
-		name = "", -- This will be locked, command names cannot change and must always be the same
+		name = "",
 		description = "",
-		contributors = {},
 		aliases	= {},
-		opposites = {}, -- the names to undo (revoke) the command, e.g. ;invisible would have 'visible'
-		prefixes = {},
+		opposites = {},
 		tags = {},
-		args = {},
+		prefixes = {},
+		contributors = {},
 		blockPeers = false,
 		blockJuniors = false,
 		autoPreview = false,
-		requiresRig = nil,
-		remoteNames = {},
-		receiverNames = {},
-		senderNames = {},
+		requiresRig = main.enum.HumanoidRigType.None,
+		revokeRepeats = false,
+		preventRepeats = main.enum.TriStateSetting.Default,
+		cooldown = 0,
+		persistence = main.enum.Persistence.None,
+		args = {},
 	}
 end
 
@@ -142,6 +251,10 @@ function CommandService.getCommand(name)
 end
  
 function CommandService.getCommands()
+	return CommandService:getRecords()
+end
+
+function CommandService.getCommandsByTag(tag)
 	return CommandService:getRecords()
 end
 
@@ -239,50 +352,152 @@ function CommandService.createFakeUser(userId)
 	return user
 end
 
-function CommandService.chatCommand(callerUser, message)
-	local callerUserId = callerUser.userId
-	local callerPlayer = callerUser.player
+function CommandService.processMessage(callerUser, message)
 	local batch = main.modules.Parser.parseMessage(message, callerUser)
-	print(callerUser.name, "chatted: ", message, batch)
-	if type(batch) == "table" then
-		for _, statement in pairs(batch) do
-			CommandService.verifyStatement(callerUser, statement)
-				:andThen(function(approved, noticeDetails)
-					if approved then
-						CommandService.executeStatement(callerUserId, statement)
-					end
-					if callerPlayer then
-						for _, detail in pairs(noticeDetails) do
-							local method = main.services.MessageService[detail[1]]
-							method(callerPlayer, detail[2])
-						end
-					end
-				end)
-				:catch()
+	return CommandService.verifyThenExecuteBatch(callerUser, batch, message)
+end
+
+function CommandService.convertStatementToRealNames(statement)
+	-- We modify the statement to convert all aliases into the actual names for commands and modifiers
+	if statement.converted then
+		return
+	end
+	statement.converted = true
+	local tablesToConvertToRealNames = {
+		["commands"] = {CommandService, "getCommand"},
+		["modifiers"] = {main.modules.Parser.Modifiers, "get"},
+	}
+	for tableName, getMethodDetail in pairs(tablesToConvertToRealNames) do
+		local table = statement[tableName]
+		if table then
+			local getTable = getMethodDetail[1]
+			local getMethod = getTable[getMethodDetail[2]]
+			local newTable = {}
+			local originalTableName = "original"..tableName:sub(1,1):upper()..tableName:sub(2)
+			local originalTable = {}
+			for name, value in pairs(table) do
+				local returnValue = getMethod(name)
+				local realName = returnValue and string.lower(returnValue.name)
+				if realName then
+					newTable[realName] = value
+				end
+				originalTable[name] = true
+			end
+			statement[originalTableName] = originalTable
+			statement[tableName] = newTable
 		end
 	end
+	print("requested statement: ", statement)
+end
+
+function CommandService.verifyThenExecuteStatement(callerUser, statement)
+	local callerUserId = callerUser.userId
+	local callerPlayer = callerUser.player
+	local Promise = main.modules.Promise
+	return CommandService.verifyStatement(callerUser, statement)
+		:andThen(function(approved, noticeDetails)
+			if callerPlayer then
+				for _, detail in pairs(noticeDetails) do
+					local method = main.services.MessageService[detail[1]]
+					method(callerPlayer, detail[2])
+				end
+			end
+			if approved then
+				return Promise.new(function(resolve, reject)
+					local sucess, tasksOrWarning = CommandService.executeStatement(callerUserId, statement):await()
+					if sucess then
+						return resolve(true, tasksOrWarning)
+					end
+					reject(tasksOrWarning)
+				end)
+			end
+			return false
+		end)
+end
+
+function CommandService.verifyThenExecuteBatch(callerUser, batch, message)
+	local callerUserId = callerUser.userId
+	local Promise = main.modules.Promise
+	return Promise.defer(function(resolve, reject)
+		if type(batch) ~= "table" then
+			return resolve(false, "The batch must be a table!")
+		end
+		local approvedPromises = {}
+		for _, statement in pairs(batch) do
+			if type(batch) ~= "table" then
+				return resolve(false, "Statements must be a table!")
+			end
+			statement.message = message
+			table.insert(approvedPromises, Promise.new(function(subResolve, subReject)
+				local success, approved, noticeDetails = CommandService.verifyStatement(callerUser, statement):await()
+				if success and approved then
+					subResolve()
+				elseif not success then
+					reject(approved)
+					subReject()
+				else
+					subReject()
+				end
+			end))
+		end
+		local approvedAllStatements = Promise.all(approvedPromises):await()
+		if not approvedAllStatements then
+			return resolve(false, "Invalid permission to execute all statements")
+		end
+		local collectiveTasks = {}
+		for _, statement in pairs(batch) do
+			local sucess, tasks = CommandService.executeStatement(callerUserId, statement):await()
+			if sucess then
+				for _, task in pairs(tasks) do
+					table.insert(collectiveTasks, task)
+				end
+			end
+		end
+		resolve(true, collectiveTasks)
+	end)
 end
 
 function CommandService.verifyStatement(callerUser, statement)
 	local approved = true
 	local details = {}
 	local Promise = main.modules.Promise
-	local promises = {}
-
-	local jobId = statement.jobId
-	local statementCommands = statement.commands
-	local modifiers = statement.modifiers
-	local qualifiers = statement.qualifiers
+	local RoleService = main.services.RoleService
+	local Args = main.modules.Parser.Args
+	local callerUserId = callerUser.userId
 
 	-- argItem.verifyCanUse can sometimes be asynchronous therefore we return and resolve a Promise
-	return Promise.defer(function(resolve, reject)
+	local promise = Promise.defer(function(resolve, reject)
+		
+		if typeof(statement) ~= "table" then
+			return resolve(false, {{"notice", {
+				text = "Statements must be tables!",
+				error = true,
+			}}})
+		end
+		CommandService.convertStatementToRealNames(statement)
+		
+		local jobId = statement.jobId
+		local statementCommands = statement.commands
+		local modifiers = statement.modifiers
+		local qualifiers = statement.qualifiers
+		print("statementCommands = ", statementCommands)
+		
 		if not statementCommands then
-			return resolve(false, {})
+			return resolve(false, {{"notice", {
+				text = "Failed to execute command as it does not exist!",
+				error = true,
+			}}})
 		end
 
 		-- This verifies the caller can use the given commands and associated arguments
 		for commandName, arguments in pairs(statementCommands) do
 			
+			-- If arguments is not a table, convert to one
+			if typeof(arguments) ~= "table" then
+				arguments = {}
+				statementCommands[commandName] = arguments
+			end
+
 			-- Does the command exist
 			local command = main.services.CommandService.getCommand(commandName)
 			if not command then
@@ -294,7 +509,7 @@ function CommandService.verifyStatement(callerUser, statement)
 
 			-- Does the caller have permission to use it
 			local commandNameLower = string.lower(commandName)
-			if not main.services.RoleService.verifySettings(callerUser, "commands").have(commandNameLower) then
+			if not RoleService.verifySettings(callerUser, "commands").have(commandNameLower) then
 				--!!! RE_ENABLE THIS
 				--[[return resolve(false, {{"notice", {
 					text = string.format("You do not have permission to use command '%s'!", commandName),
@@ -303,16 +518,34 @@ function CommandService.verifyStatement(callerUser, statement)
 				return--]]
 			end
 
+			-- Does the caller have permission to target multiple players
+			local targetPlayers = Args.get("player"):parse(statement.qualifiers, callerUserId)
+			if RoleService.verifySettings(callerUser, "limit.whenQualifierTargetCapEnabled").areAll(true) then
+				local limitAmount = RoleService.getMaxValueFromSettings(callerUser, "limit.qualifierTargetCapAmount")
+				if #targetPlayers > limitAmount then
+					local finalMessage
+					if limitAmount == 1 then
+						finalMessage = ("1 player")
+					else
+						finalMessage = string.format("%s players", limitAmount)
+					end
+					return resolve(false, {{"notice", {
+						text = string.format("You're only permitted to target %s per statement!", finalMessage),
+						error = true,
+					}}})
+				end
+			end
+
 			-- Does the caller have permission to use the associated arguments of the command
 			local argStringIndex = 0
 			for _, argNameOrAlias in pairs(command.args) do
-				local argItem = main.modules.Parser.Args.get(argNameOrAlias)
+				local argItem = Args.get(argNameOrAlias)
 				if argStringIndex == 0 and argItem.playerArg then
 					continue
 				end
 				argStringIndex += 1
 				local argString = arguments[argStringIndex]
-				if argItem.verifyCanUse then
+				if argItem.verifyCanUse and not (modifiers.undo or modifiers.preview) then
 					local canUseArg, deniedReason = argItem:verifyCanUse(callerUser, argString)
 					if not canUseArg then
 						return resolve(false, {{"notice", {
@@ -332,36 +565,85 @@ function CommandService.verifyStatement(callerUser, statement)
 				error = false,
 			}})
 		end
-
+		
 		resolve(approved, details)
+	end)
+
+	return promise:andThen(function(approved, noticeDetails)
+		-- This fires off any notifications to the caller
+		local callerPlayer = callerUser.player
+		if callerPlayer then
+			for _, detail in pairs(noticeDetails) do
+				local method = main.services.MessageService[detail[1]]
+				method(callerPlayer, detail[2])
+			end
+		end
+		return approved, noticeDetails
 	end)
 end
 
 function CommandService.executeStatement(callerUserId, statement)
-	----
+
+	CommandService.convertStatementToRealNames(statement)
+
 	statement.commands = statement.commands or {}
 	statement.modifiers = statement.modifiers or {}
 	statement.qualifiers = statement.qualifiers or {}
-	----
-	local tasks = {}
+
+	-- If 'player' instance detected within qualifiers, convert to player.Name
+	for qualifierKey, qualifierTable in pairs(statement.qualifiers) do
+		if typeof(qualifierKey) == "Instance" and qualifierKey:IsA("Player") then
+			local callerUser = main.modules.PlayerStore:getUserByUserId(callerUserId)
+			local playerDefinedSearch = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
+			local playerName = qualifierKey.Name
+			if playerDefinedSearch == main.enum.PlayerSearch.UserName or playerDefinedSearch == main.enum.PlayerSearch.UserNameAndDisplayName then
+				local playerIdentifier = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
+				playerName = tostring(playerIdentifier)..playerName
+				print("FINALLLLLLLLL playerName = ", playerName)
+			end
+			statement.qualifiers[qualifierKey] = nil
+			statement.qualifiers[playerName] = qualifierTable
+		end
+	end
+
+	-- This enables the preview modifier if command.autoPreview is true
+	-- or bypasses the preview modifier entirely if the request is from the client
+	if statement.fromClient then
+		statement.modifiers.preview = nil
+	else
+		for commandName, arguments in pairs(statement.commands) do
+			local command = CommandService.getCommand(commandName)
+			if command.autoPreview then
+				statement.modifiers.preview = statement.modifiers.preview or true
+				break
+			end
+		end
+	end
+
+	-- This handles any present modifiers
+	-- If the modifier preAction value returns false then cancel the execution
+	local Promise = main.modules.Promise
 	local Modifiers = main.modules.Parser.Modifiers
 	for modifierName, _ in pairs(statement.modifiers) do
 		local modifierItem = Modifiers.get(modifierName)
 		if modifierItem then
 			local continueExecution = modifierItem.preAction(callerUserId, statement)
 			if not continueExecution then
-				return tasks
+				return Promise.new(function(resolve)
+					resolve({})
+				end)
 			end
 		end
 	end
+
 	local Args = main.modules.Parser.Args
-	local Promise = main.modules.Promise
 	local promises = {}
+	local tasks = {}
 	local isPermModifier = statement.modifiers.perm
 	local isGlobalModifier = statement.modifiers.wasGlobal
 	for commandName, arguments in pairs(statement.commands) do
+		
 		local command = CommandService.getCommand(commandName)
-		print("command = ", commandName, command)
 		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(command.args[1])]
 		local TaskService = main.services.TaskService
 		local properties = TaskService.generateRecord()
@@ -369,6 +651,7 @@ function CommandService.executeStatement(callerUserId, statement)
 		properties.commandName = commandName
 		properties.args = arguments or properties.args
 		properties.modifiers = statement.modifiers
+
 		-- Its important to split commands into specific users for most cases so that the command can
 		-- be easily reapplied if the player rejoins (for ones where the perm modifier is present)
 		-- The one exception for this is when a global modifier is present. In this scenerio, don't save
@@ -399,8 +682,9 @@ function CommandService.executeStatement(callerUserId, statement)
 			table.insert(promises, Promise.defer(function(resolve)
 				local targetPlayers = Args.get("player"):parse(statement.qualifiers, callerUserId)
 				for _, plr in pairs(targetPlayers) do
-					properties.playerUserId = plr.UserId
-					local task = main.services.TaskService.createTask(addToPerm, properties)
+					local newProperties = main.modules.TableUtil.copy(properties)
+					newProperties.playerUserId = plr.UserId
+					local task = main.services.TaskService.createTask(addToPerm, newProperties)
 					if task then
 						table.insert(tasks, task)
 					end
@@ -415,14 +699,16 @@ function CommandService.executeStatement(callerUserId, statement)
 		end)
 end
 
-function CommandService.executeSimpleStatement(callerUserId, commandName, optionalCommandArgs, optionalQualifiers, optionalModifiers)
-	CommandService.executeStatement(callerUserId, {
-		commands = {
-			[commandName] = optionalCommandArgs or {}
-		},
-		qualifiers = optionalQualifiers or {},
-		modifiers = optionalModifiers or {},
-	})
+function CommandService.executeSimpleStatement(callerUserId, commandName, commandArgsArray, qualifiersDictionary, modifiersDictionary)
+	local statement = {
+		commands = {},
+		qualifiers = qualifiersDictionary or {},
+		modifiers = modifiersDictionary or {},
+	}
+	if commandName then
+		statement.commands[commandName] = commandArgsArray
+	end
+	return CommandService.executeStatement(callerUserId, statement)
 end
 
 --[[

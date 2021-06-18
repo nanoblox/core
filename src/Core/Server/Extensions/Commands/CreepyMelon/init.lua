@@ -4,18 +4,19 @@ local Command =	{}
 
 
 Command.name = script.Name
-Command.aliases	= {"PraiseTheMelonLord", "Mel"}
 Command.description = ""
-Command.contributors = {}
+Command.aliases	= {"PraiseTheMelonLord", "Mel"}
 Command.opposites = {}
-Command.prefixes = {}
 Command.tags = {}
+Command.prefixes = {}
+Command.contributors = {}
 Command.blockPeers = false
 Command.blockJuniors = false
 Command.autoPreview = false
 Command.requiresRig = main.enum.HumanoidRigType.None
-Command.preventRepeats = main.enum.TriStateSetting.Default
 Command.revokeRepeats = false
+Command.preventRepeats = main.enum.TriStateSetting.Default
+Command.cooldown = 8
 Command.persistence = main.enum.Persistence.UntilPlayerDies
 Command.args = {"Player"}
 

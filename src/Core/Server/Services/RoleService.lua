@@ -19,8 +19,8 @@ RoleService.roleRemoved = Signal.new()
 RoleService.recordAdded:Connect(function(roleUID, record)
 	--warn(("ROLE '%s' ADDED!"):format(record.name))
 	local role = Role.new(record)
-	role.UID = roleUID
-	role.environment = role.environment or main.enum.Environment.Global
+	role.settings.UID = roleUID
+	role.settings.environment = role.settings.environment or main.enum.Environment.Global
 	roles[roleUID] = role
 	RoleService.roleAdded:Fire(role)
 end)
@@ -39,7 +39,7 @@ end)
 RoleService.recordChanged:Connect(function(roleUID, propertyName, propertyValue, propertyOldValue)
 	local role = roles[roleUID]
 	if role then
-		role[propertyName] = propertyValue
+		role.settings[propertyName] = propertyValue
 		role:updateUsers()
 	end
 	RoleService.roleChanged:Fire(role, propertyName, propertyValue, propertyOldValue)
@@ -87,26 +87,35 @@ function RoleService.generateRecord()
 		-- Behaviour
 		environment = main.enum.Environment.Global,
 		roleOrder = 0,
+		hidden = false, -- when 'true', makes it so the role can only be viewed by people who own it, or by people who can edit it
 		nonadmin = false, -- This is solely for the 'nonadmins' and 'admins' qualifiers
 
 		-- Role Givers
-		giveTo = {
-			everyone = false,
-			creator = false,
-			users = {},
-			usersWithGamepasses = {},
-			usersWithAssets = {},  -- Note: impossible to tell unless in game
-			usersOfRanksInGroup = {},  -- Note: impossible to tell unless in game
-			friendsOfUsers = {},
-			vipServerOwner = false,
-			vipServerPlayers = false,
-			premiumUsers = false,  -- Note: impossible to tell unless in game
-			starCreators = false,
-			usersWithMinimumAccountAge = 7,  -- Note: impossible to tell unless in game
-			usersWithDailyLoginStreak = 14,
+		give = {
+			toEveryone = false,
+			toCreator = false,
+			toUsers = {},
+			toUsersWithGamepasses = {},
+			toUsersWithAssets = {},  -- Note: impossible to tell unless in game
+			toUsersOfRanksInGroup = {},  -- Note: impossible to tell unless in game
+			toFriendsOfUsers = {},
+			toVipServerOwner = false,
+			toVipServerPlayers = false,
+			toPremiumUsers = false,  -- Note: impossible to tell unless in game
+			toStarCreators = false,
+			whenMinimumAccountAgeGiverEnabled = false,
+			toUsersWithMinimumAccountAge = 7,  -- Note: impossible to tell unless in game
+			whenDailyLoginStreakGiverEnabled = false,
+			toUsersWithDailyLoginStreak = 14,
+			onDeveloperProductPurchases = {},
 		},
-		enableAccountAgeGiver = false,
-		enableDailyLoginStreakGiver = false,
+		
+		-- Role takers
+		take = {
+			whenXCommandExecutionsTakerEnabled = true,
+			afterXCommandExecutions = 1,
+			afterRespawning = false,
+		},
 		
 		-- Command Inheritance
 		inheritCommands = {
@@ -119,26 +128,27 @@ function RoleService.generateRecord()
 		
 		-- Limit Abuse
 		limit = {
-			requestsPerInterval = true, -- I may have set this up in tasks already. Instead, make sure this goes into VERIFY and increases for every command within there
-			globalExecutionsPerInterval = true,
-			executionCooldown = false,
-			scaleSize = true,
+			whenRequestsPerIntervalCapEnabled = true, -- I may have set this up in tasks already. Instead, make sure this goes into VERIFY and increases for *every command* within there
+			requestsPerIntervalCapRefresh = 10,
+			requestsPerIntervalCapAmount = 10,
+			whenRequestCooldownEnabled = false,
+			whenGlobalExecutionsPerIntervalCapEnabled = true,
+			globalExecutionsPerIntervalCapRefresh = 20,
+			globalExecutionsPerIntervalCapAmount = 5,
+			repeatCommands = true, -- this prevents a command from being repeated twice before finishing for users/servers. important: make sure to modify TaskService 'preventRepeatCommands'.
+			whenScaleCapEnabled = true,
+			scaleCapAmount = 5,
 			denylistedIDs = true,
 			toAllowlistedIDs = false,
+			whenQualifierTargetCapEnabled = false,
+			qualifierTargetCapAmount = 1,
 		},
-		requestsPerIntervalRefresh = 20,
-		requestsPerIntervalLimitAmount = 20,
-		globalExecutionsPerIntervalRefresh = 20,
-		globalExecutionsPerIntervalLimitAmount = 5,
-		executionCooldownLimitAmount = 1, -- if 'limitExecutions' is true, this amount of seconds must be waited before being allowed to execute another statement
-		scaleSizeLimitAmount = 5,
 		
 		-- Individual Powers
 		canUse = {
 			all = false,
 			commandsOnOthers = true,
 			commandsOnFriends = true,
-			multiQualifiers = true, -- Qualifiers which impact more than 1 person at a time (e.g. 'all', 'others'). This will also prevent multiple people being selected in a single execution
 			cmdbar1 = false,
 			cmdbar2 = false,
 		},
@@ -270,7 +280,7 @@ end
 
 function RoleService.getRoleByName(name)
 	for roleUID, role in pairs(roles) do
-		if role.name == name then
+		if role.settings.name == name then
 			return role
 		end
 	end
@@ -280,7 +290,7 @@ end
 function RoleService.getRoleByLowerName(name)
 	local lowerName = name:lower()
 	for roleUID, role in pairs(roles) do
-		if (role.name):lower() == lowerName then
+		if (role.settings.name):lower() == lowerName then
 			return role
 		end
 	end
@@ -291,7 +301,7 @@ function RoleService.getRoleByLowerShorthandName(name)
 	local lowerName = name:lower()
 	local length = string.len(lowerName)
 	for roleUID, role in pairs(roles) do
-		if (role.name):lower():sub(1,length) == lowerName then
+		if (role.settings.name):lower():sub(1,length) == lowerName then
 			return role
 		end
 	end
@@ -309,14 +319,14 @@ end
 function RoleService.updateRole(nameOrUID, propertiesToUpdate)
 	local role = RoleService.getRole(nameOrUID)
 	assert(role, ("role '%s' not found!"):format(tostring(nameOrUID)))
-	RoleService:updateRecord(role.UID, propertiesToUpdate)
+	RoleService:updateRecord(role.settings.UID, propertiesToUpdate)
 	return true
 end
 
 function RoleService.removeRole(nameOrUID)
 	local role = RoleService.getRole(nameOrUID)
 	assert(role, ("role '%s' not found!"):format(tostring(nameOrUID)))
-	RoleService:removeRecord(role.UID)
+	RoleService:removeRecord(role.settings.UID)
 	return true
 end
 
@@ -332,8 +342,8 @@ local function sortRoles(tableOfRoleUIDsOrNames, approveRole)
 	local currentOrder, selectedRole = nil, nil
 	for _, roleUID in pairs(arrayOfRoles) do
 		local role = RoleService.getRole(roleUID)
-		if role and (selectedRole == nil or approveRole(role.roleOrder, currentOrder)) then
-			currentOrder, selectedRole = role.roleOrder, role
+		if role and (selectedRole == nil or approveRole(role.settings.roleOrder, currentOrder)) then
+			currentOrder, selectedRole = role.settings.roleOrder, role
 		end
 	end
 	if not selectedRole then
@@ -518,10 +528,10 @@ function RoleService.updateRoleInformation(user)
 		local role = RoleService.getRoleByUID(roleKey)
 		if role then
 			-- This setups up the info dictionaries for each setting
-			scanTable(role, information)
+			scanTable(role.settings, information)
 			-- This determines the environment across *all* roles
 			-- If the collection of Roles contain 'Private' *and* 'Global', then set to 'Multiple'
-			local roleEnvironment = role.environment
+			local roleEnvironment = role.settings.environment
 			local existingEnvironment = information["_collectiveEnvironment"]
 			local newEnvironment = roleEnvironment
 			if existingEnvironment and existingEnvironment ~= roleEnvironment then

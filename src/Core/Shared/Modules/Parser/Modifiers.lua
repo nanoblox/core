@@ -12,12 +12,14 @@ Modifiers.array = {
 	-----------------------------------
 	{
 		name = "preview",
-		aliases = { "pr-" },
+		aliases = {"prev"},
 		order = 1,
 		description = "Displays a menu that previews the command instead of executing it.",
 		preAction = function(callerUserId, statement)
 			local caller = main.Players:GetPlayerByUserId(callerUserId)
 			if caller then
+				--!!! remove this
+				warn("Preview: ", statement)
 				main.services.CommandService.remotes.previewCommand:fireClient(caller, statement)
 			end
 			return false
@@ -27,7 +29,7 @@ Modifiers.array = {
 	-----------------------------------
 	{
 		name = "random",
-		aliases = { "r-" },
+		aliases = { "rand" },
 		order = 2,
 		description = "Randomly selects a command within a statement. All other commands are discarded.",
 		preAction = function(_, statement)
@@ -45,7 +47,7 @@ Modifiers.array = {
 	-----------------------------------
 	{
 		name = "perm",
-		aliases = { "p-" },
+		aliases = {},
 		order = 3,
 		description = "Permanently saves the task. This means in addition to the initial execution, the command will be executed whenever a server starts, or if player specific, every time the player joins a server.",
 		preAction = function(_, statement)
@@ -65,7 +67,7 @@ Modifiers.array = {
 	-----------------------------------
 	{
 		name = "global",
-		aliases = { "g-" },
+		aliases = {},
 		order = 4,
 		description = "Broadcasts the task to all servers.",
 		preAction = function(callerUserId, statement)
@@ -82,7 +84,7 @@ Modifiers.array = {
 	-----------------------------------
 	{
 		name = "undo",
-		aliases = { "un", "u-", "revoke" },
+		aliases = { "un", "revoke" },
 		order = 5,
 		description = "Revokes all tasks that match the given command name(s) (and associated player targets if specified). To revoke a task across all servers, the 'global' modifier must be included.",
 		preAction = function(callerUserId, statement)
@@ -109,7 +111,7 @@ Modifiers.array = {
 	-----------------------------------
 	{
 		name = "epoch",
-		aliases = { "e-" },
+		aliases = {},
 		order = 6,
 		description = "Waits until the given epoch time before executing. If the epoch time has already passed, the command will be executed right away. Combine with 'global' and 'perm' for a permanent game effect. Example: ``;globalPermEpoch(3124224000)message(green) Happy new year!``",
 		executeRightAway = false,
@@ -128,7 +130,7 @@ Modifiers.array = {
 	-----------------------------------
 	{
 		name = "delay",
-		aliases = { "d-" },
+		aliases = {},
 		order = 7,
 		description = "Waits x amount of time before executing the command. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;delay(3s)kill all``.",
 		executeRightAway = false,
@@ -145,7 +147,7 @@ Modifiers.array = {
 	-----------------------------------
 	{
 		name = "loop",
-		aliases = { "repeat", "l-" },
+		aliases = {"repeat"},
 		order = 8,
 		description = "Repeats a command for x iterations every y time delay. If not specified, x defaults to ∞ and y to 1s. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;loop(50,1s)jump me``.",
 		executeRightAway = true,
@@ -171,7 +173,7 @@ Modifiers.array = {
 	-----------------------------------
 	{
 		name = "spawn",
-		aliases = { "s-" },
+		aliases = {},
 		order = 9,
 		description = "Executes the command every time the given player(s) respawn (in addition to the initial execution). This modifier only works for commands with player-related arguments.",
 		executeRightAway = true,
@@ -199,7 +201,7 @@ Modifiers.array = {
 	-----------------------------------
 	{
 		name = "expire",
-		aliases = { "x-", "until" },
+		aliases = {"until"},
 		order = 10,
 		description = "Revokes the command after its first execution plus the given time. Time can be represented in seconds as 's', minutes as 'm', hours as 'h', days as 'd', weeks as 'w' and years as 'y'. Example: ``;expire(2m30s)mute player``.",
 		executeRightAway = true,
