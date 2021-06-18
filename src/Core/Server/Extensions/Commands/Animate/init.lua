@@ -18,7 +18,7 @@ Command.revokeRepeats = true
 Command.preventRepeats = main.enum.TriStateSetting.Default
 Command.cooldown = 0
 Command.persistence = main.enum.Persistence.None
-Command.args = {"Player", "AnimationId", "Speed"}
+Command.args = {"Player", "AnimationId", "AnimationSpeed"}
 
 function Command.invoke(task, args)
 	local player, animationId, speed = unpack(args)
@@ -40,9 +40,7 @@ function Command.invoke(task, args)
 		animTrack.Priority = Enum.AnimationPriority.Action
 		animTrack.Looped = isLooped
 		-- If speed defaulted (i.e. was not specified, set to 1)
-		if task:getOriginalArg("Speed") == nil then
-			speed = 1
-		end
+		speed = speed or 1
 		-- We invoke all clients, instead of just the individual whos playing, to make animations perfectly syncronised and to be able to set the track.Priority
 		task:invokeAllAndFutureClients(player, animationId, speed, isLooped)
 	end)

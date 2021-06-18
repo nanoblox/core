@@ -225,6 +225,17 @@ Args.array = {
 
 	-----------------------------------
 	{
+		name = "animationSpeed",
+		aliases = {"animSpeed"},
+		description = "Accepts a number string and returns a Number",
+		defaultValue = false,
+		parse = function(self, stringToParse)
+			return tonumber(stringToParse)
+		end,
+	},
+
+	-----------------------------------
+	{
 		name = "animationId",
 		aliases = {"animId"},
 		description = "Accepts a number, verifies its a valid animationId, then return an animationId",

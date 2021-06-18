@@ -5,7 +5,7 @@ local Command =	{}
 
 Command.name = script.Name
 Command.description = "Plays an emote for the player."
-Command.aliases	= {"Bow"}
+Command.aliases	= {}
 Command.opposites = {}
 Command.tags = {"Fun", "Emote", "Animation"}
 Command.prefixes = {}
@@ -19,13 +19,14 @@ Command.preventRepeats = main.enum.TriStateSetting.Default
 Command.cooldown = 0
 Command.persistence = main.enum.Persistence.None
 Command.args = {"Player", "Speed"}
-Command.emoteId = 4646306583
+Command.emoteId = 4689362868
 
 function Command.invoke(task, args)
     local player = args[1]
     local animationId = main.modules.Parser.Args.get("AnimationId"):parse(Command.emoteId)
-    local speed = task:getOriginalArg("Speed")
+    local speed = task:getOriginalArg("Speed") or 0.2
     task:hijackCommand("Animate", {player, animationId, speed})
+    task:buffPlayer("HumanoidDescription", "Face"):set(162068415)
 end
 
 
