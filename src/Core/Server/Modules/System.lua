@@ -478,9 +478,33 @@ function System:getRecords()
 	return recordsArray
 end
 
-function System:updateRecord(key, propertiesToUpdate)
+function System:updateRecord(key, propertiesToUpdateIncoming)
 	--
-	propertiesToUpdate = propertiesToUpdate or {}
+	local propertiesToUpdate = {}
+	propertiesToUpdateIncoming = propertiesToUpdateIncoming or {}
+	-- Some keys maybe string pathways (such as 'soundProperties.Volume.Music') so this converts them into tables
+	for k, value in pairs(propertiesToUpdateIncoming) do
+		local pathwayTable = string.split(k, ".")
+		local totalItems = #pathwayTable
+		if totalItems > 1 then
+			local masterTable = {}
+			local bottomTable = masterTable
+			local topKey = pathwayTable[1]
+			for i, itemKey in pairs(pathwayTable) do
+				if i == totalItems then
+					bottomTable[itemKey] = value
+				elseif i ~= 1 then
+					local newBottomTable = {}
+					bottomTable[itemKey] = newBottomTable
+					bottomTable = newBottomTable
+				end
+			end
+			propertiesToUpdate[topKey] = masterTable
+		else
+			propertiesToUpdate[k] = value
+		end
+	end
+	--
 	local user = self.user
 	local record = user.temp[key]
 	local prevGlobal = record and record._global
@@ -508,7 +532,7 @@ function System:updateRecord(key, propertiesToUpdate)
 	local function setData(tableToUpdate, vauesToBeApplied)
 		for propName, propValue in pairs(vauesToBeApplied) do
 			local subTable = tableToUpdate:getOrSetup(key)
-			if false then--typeof(subTable:get(propName)) == "table" and typeof(propValue) == "table" then
+			if typeof(subTable:get(propName)) == "table" and typeof(propValue) == "table" then
 				setData(subTable, propValue)
 			else
 				subTable:set(propName, propValue)

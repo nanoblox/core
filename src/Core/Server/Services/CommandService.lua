@@ -325,7 +325,7 @@ function CommandService.setupParsePatterns(user)
 	user.temp:set("parsePatterns", {})
 	for _, detail in pairs(PARSE_SETTINGS) do
 		local settingName = detail.settingName
-		local settingValue = main.services.SettingService.getPlayerSetting(settingName, user)
+		local settingValue = main.services.SettingService.getUsersPlayerSetting(user, settingName)
 		validSettingNames[settingName] = true
 		user.temp.parsePatterns:set(settingName, settingValue)
 	end
@@ -594,10 +594,10 @@ function CommandService.executeStatement(callerUserId, statement)
 	for qualifierKey, qualifierTable in pairs(statement.qualifiers) do
 		if typeof(qualifierKey) == "Instance" and qualifierKey:IsA("Player") then
 			local callerUser = main.modules.PlayerStore:getUserByUserId(callerUserId)
-			local playerDefinedSearch = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
+			local playerDefinedSearch = main.services.SettingService.getUsersPlayerSetting(callerUser, "playerIdentifier")
 			local playerName = qualifierKey.Name
 			if playerDefinedSearch == main.enum.PlayerSearch.UserName or playerDefinedSearch == main.enum.PlayerSearch.UserNameAndDisplayName then
-				local playerIdentifier = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
+				local playerIdentifier = main.services.SettingService.getUsersPlayerSetting(callerUser, "playerIdentifier")
 				playerName = tostring(playerIdentifier)..playerName
 				print("FINALLLLLLLLL playerName = ", playerName)
 			end

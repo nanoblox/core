@@ -5,7 +5,7 @@ local Command =	{}
 
 Command.name = script.Name
 Command.description = "Plays a dance animation for the player."
-Command.aliases	= {"Dance2"}
+Command.aliases	= {"Dance2", "Floss"}
 Command.opposites = {}
 Command.tags = {"Fun", "Dance", "Animation"}
 Command.prefixes = {}

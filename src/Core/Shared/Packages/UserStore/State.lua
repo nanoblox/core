@@ -68,14 +68,14 @@ end
 
 
 -- CONSTRUCTOR
-function State.new(props, convertDescendantsToTables)
+function State.new(props, convertDescendantsToTables, parentTable)
 	
 	local newTable = {}
 	local maid = Maid.new()
 	if typeof(props) == "table" and (convertDescendantsToTables or props._convertDescendantsToTables) then
 		for k,v in pairs(props) do
 			if typeof(v) == "table" then
-				v = maid:give(State.new(v, convertDescendantsToTables))
+				v = maid:give(State.new(v, convertDescendantsToTables, newTable))
 			end
 			newTable[k] = v
 		end
@@ -86,6 +86,7 @@ function State.new(props, convertDescendantsToTables)
 	hiddenKeys["_convertDescendantsToTables"] = convertDescendantsToTables
 	hiddenKeys["changedFirst"] = "signal"
 	hiddenKeys["changed"] = "signal"
+	hiddenKeys["_parentTable"] = parentTable
 	setmetatable(newTable, {
 		__index = function(this, index)
 			local newIndex = State[index]
@@ -111,11 +112,20 @@ end
 
 
 -- METHODS
-function State:_get(cancelCriteria, ...)
+local function getPathwayTable(...)
 	local pathwayTable = {...}
-	if type(pathwayTable[1]) == "table" then
+	local firstItem = pathwayTable[1]
+	local firstItemType = type(firstItem)
+	if firstItemType == "table" then
 		pathwayTable = ...
+	elseif #pathwayTable == 1 and firstItemType == "string" then
+		pathwayTable = string.split(firstItem, ".")
 	end
+	return pathwayTable
+end
+
+function State:_get(remainCriteria, ...)
+	local pathwayTable = getPathwayTable(...)
 	local max = #pathwayTable
 	local value = self
 	if max == 0 then
@@ -123,7 +133,7 @@ function State:_get(cancelCriteria, ...)
 	end
 	for i, key in pairs(pathwayTable) do
 		value = value[key]
-		if not cancelCriteria(i, max, value) then
+		if not remainCriteria(i, max, value) then
 			return nil
 		end
 	end
@@ -143,10 +153,7 @@ function State:getSimple(...)
 end
 
 function State:getOrSetup(...)
-	local pathwayTable = {...}
-	if type(pathwayTable[1]) == "table" then
-		pathwayTable = ...
-	end
+	local pathwayTable = getPathwayTable(...)
 	local value = self
 	for i, key in pairs(pathwayTable) do
 		local nextValue = value[key]
@@ -159,10 +166,7 @@ function State:getOrSetup(...)
 end
 
 function State:find(...)
-	local pathwayTable = {...}
-	if type(pathwayTable[1]) == "table" then
-		pathwayTable = ...
-	end
+	local pathwayTable = getPathwayTable(...)
 	local max = #pathwayTable
 	local value = pathwayTable[max]
 	table.remove(pathwayTable, max)
@@ -193,10 +197,10 @@ end
 
 function State:set(stat, value, forceConvertTableToState)
 	local oldValue = self[stat]
-	if type(value) == "table" and (self._convertDescendantsToTables or forceConvertTableToState) then--and not value.new then
-		-- Convert tables and descending tables into States unless an object
+	if type(value) == "table" and (self._convertDescendantsToTables or forceConvertTableToState) then
+		-- Convert tables and descending tables into States if permitted
 		local thisMaid = activeTables[self].maid
-		value = thisMaid:give(State.new(value, self._convertDescendantsToTables))
+		value = thisMaid:give(State.new(value, self._convertDescendantsToTables, self))
 	elseif value == nil and type(oldValue) == "table" and oldValue.isState then
 		-- Destroy State and descending States
 		oldValue:destroy()
@@ -204,7 +208,35 @@ function State:set(stat, value, forceConvertTableToState)
 	self[stat] = value
 	self.changedFirst:Fire(stat, value, oldValue)
 	self.changed:Fire(stat, value, oldValue)
+	local function callParentTable(childTable)
+		local parentTable = childTable._parentTable
+		if parentTable and parentTable.isState then
+			local parentStat
+			for k, v in pairs(parentTable) do
+				if v == childTable then
+					parentStat = k
+				end
+			end
+			parentTable.changed:Fire(parentStat, childTable, childTable, true)
+			callParentTable(parentTable)
+		end
+	end
+	callParentTable(self)
 	return value
+end
+
+function State:setPathway(pathwayTableOrString, value, forceConvertTableToState)
+	local pathwayTable = getPathwayTable(pathwayTableOrString)
+	local finalTable = self
+	local totalItems = #pathwayTable
+	if totalItems == 0 then
+		return false
+	end
+	local stat = table.remove(pathwayTable, totalItems)
+	if totalItems > 1 then
+		finalTable = self:getOrSetup(pathwayTable)
+	end
+	finalTable:set(stat, value, forceConvertTableToState)
 end
 
 function State:increment(stat, value)
@@ -334,7 +366,10 @@ function State:createDescendantChangedSignal(includeSelf)
 			end
 		end
 		if not onlyListenToDescendants then
-			tab.changed:Connect(function(key, newValue, oldValue)
+			tab.changed:Connect(function(key, newValue, oldValue, fromDescendant)
+				if fromDescendant then
+					return
+				end
 				connectChild(key, newValue)
 				----
 				signal:Fire(pathwayTable, key, newValue, oldValue)

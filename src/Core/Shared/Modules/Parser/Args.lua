@@ -442,7 +442,7 @@ Args.array = {
 			local role = RoleService.getRole(stringToParse)
 			if not role then
 				local user = main.modules.PlayerStore:getUserByUserId(callerUserId)
-				local spaceSeparator = main.services.SettingService.getPlayerSetting("spaceSeparator", user)
+				local spaceSeparator = main.services.SettingService.getUsersPlayerSetting(user, "spaceSeparator")
 				local stringToParseWithoutUnderscoresOrHyphens = stringToParse:gsub("_", spaceSeparator)
 				role = RoleService.getRole(stringToParseWithoutUnderscoresOrHyphens)
 			end
@@ -556,7 +556,7 @@ Args.array = {
 			if userId then
 				return userId
 			end
-			local playerIdentifier = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
+			local playerIdentifier = main.services.SettingService.getUsersPlayerSetting(callerUser, "playerIdentifier")
 			local username = stringToParse:gsub(playerIdentifier, "")
 			local success, finalUserId = main.modules.PlayerUtil.getUserIdFromName(username):await()
 			if success then
@@ -586,7 +586,7 @@ Args.array = {
 					return finalUsername
 				end
 			end
-			local playerIdentifier = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
+			local playerIdentifier = main.services.SettingService.getUsersPlayerSetting(callerUser, "playerIdentifier")
 			local username = stringToParse:gsub(playerIdentifier, "")
 			return username
 		end,

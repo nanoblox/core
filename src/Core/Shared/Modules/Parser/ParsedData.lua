@@ -82,9 +82,9 @@ function ParsedData.parsedDataSetRequiresQualifierFlag(parsedData, optionalUser)
 				table.insert(userNames, player.Name:lower())
 			end
 
-			local playerIdentifier = settingService.getPlayerSetting("playerIdentifier", optionalUser)
-			local playerDefinedSearch = settingService.getPlayerSetting("playerDefinedSearch", optionalUser)
-			local playerUndefinedSearch = settingService.getPlayerSetting("playerUndefinedSearch", optionalUser)
+			local playerIdentifier = settingService.getUsersPlayerSetting(optionalUser, "playerIdentifier")
+			local playerDefinedSearch = settingService.getUsersPlayerSetting(optionalUser, "playerDefinedSearch")
+			local playerUndefinedSearch = settingService.getUsersPlayerSetting(optionalUser, "playerUndefinedSearch")
 
 			for _, qualifier in pairs(parsedData.unrecognizedQualifiers) do
 				local qualifierHasPlayerIdentifier = (qualifier:sub(1, 1) == playerIdentifier)

@@ -2,6 +2,7 @@
 local main = require(game.Nanoblox)
 local System = main.modules.System
 local SettingService = System.new("Settings")
+SettingService.remotes = {}
 
 
 
@@ -9,6 +10,38 @@ local SettingService = System.new("Settings")
 SettingService.recordChanged:Connect(function(groupName, statName, value)
 	
 end)
+
+
+
+-- START
+function SettingService.start()
+
+	local updateLocalPlayerSettings = main.modules.Remote.new("updateLocalPlayerSettings")
+	SettingService.remotes.updateLocalPlayerSettings = updateLocalPlayerSettings
+	
+end
+
+
+
+-- PLAYER USER LOADED
+function SettingService.userLoadedMethod(user)
+	local playerSettings = user.perm:getOrSetup("playerSettings")
+	playerSettings.changed:Connect(function(settingName, value)
+		print("Send playerSettings (2): ", {
+			[settingName] = value
+		})
+		SettingService.remotes.updateLocalPlayerSettings:fireClient(user.player, {
+			[settingName] = value
+		})
+	end)
+	print("Send playerSettings (1): ", playerSettings)
+	SettingService.remotes.updateLocalPlayerSettings:fireClient(user.player, playerSettings)
+
+	main.modules.Thread.delay(3, function()
+		print("YOOOO")
+		SettingService.updateUsersPlayerSetting(user, "soundProperties.Pitch.Command", 7.5)
+	end)
+end
 
 
 
@@ -41,23 +74,7 @@ end
 function SettingService.generateRecord(key)
 	local defaultRecords = {
 		---------------------------
-		["Player"] = {
-			prefixes = {";"},
-			argCapsule = "(%s)",
-			collective = ",",
-			descriptorSeparator = "",
-			spaceSeparator = " ",
-			batchSeparator = " ",
-			
-			playerIdentifier = "@",
-			playerUndefinedSearch = main.enum.PlayerSearch.DisplayName, -- 'Undefined' means *without* the 'playerIdentifier' (e.g. ";kill Ben)
-			playerDefinedSearch = main.enum.PlayerSearch.UserName, -- 'Defined' means *with* the 'playerIdentifier' (e.g. ";kill @ForeverHD)
-
-			previewIncompleteCommands = false,
-			
-			theme = "",
-			backgroundTransparency 	= 0.1,
-		},
+		["Player"] = main.modules.PlayerSettingsTemplate,
 		
 		
 		---------------------------
@@ -118,11 +135,17 @@ function SettingService.generateRecord(key)
 	return defaultRecords[key]
 end
 
-function SettingService.getPlayerSetting(settingName, optionalUser)
+function SettingService.getPlayerSetting(settingName)
+	local group = SettingService.getGroup("Player")
+	local settingValue = group[settingName]
+	return settingValue
+end
+
+function SettingService.getUsersPlayerSetting(user, settingName)
 	local group = SettingService.getGroup("Player")
 	local settingValue
-	if optionalUser then
-		local playerSettings = optionalUser.perm:getOrSetup("playerSettings")
+	if user and user.isLoaded then
+		local playerSettings = user.perm:getOrSetup("playerSettings")
 		settingValue = playerSettings:get(settingName)
 	end
 	if settingValue == nil then
@@ -131,15 +154,28 @@ function SettingService.getPlayerSetting(settingName, optionalUser)
 	return settingValue
 end
 
-function SettingService.updatePlayerSetting(settingName, settingValue, optionalUser)
-	if optionalUser ~= nil then
-		local playerSettings = optionalUser.perm:getOrSetup("playerSettings")
-		playerSettings:set(settingName, settingValue)
-	else
-		SettingService.updateGroup("Player", {
-			[settingName] = settingValue
-		})
+function SettingService.updatePlayerSetting(settingPathway, settingValue)
+	SettingService.updateGroup("Player", {
+		[settingPathway] = settingValue
+	})
+end
+
+function SettingService.updateUsersPlayerSetting(user, settingPathway, settingValue)
+	if not user then
+		return
 	end
+	local function updatePlayerSettings()
+		local playerSettings = user.perm:getOrSetup("playerSettings")
+		playerSettings:setPathway(settingPathway, settingValue)
+	end
+	if user.isLoaded then
+		updatePlayerSettings()
+		return
+	end
+	main.modules.Thread.spawn(function()
+		user:waitUntilLoaded()
+		updatePlayerSettings()
+	end)
 end
 
 function SettingService.getSystemSetting(settingName)
