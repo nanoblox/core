@@ -26,21 +26,13 @@ end
 -- PLAYER USER LOADED
 function SettingService.userLoadedMethod(user)
 	local playerSettings = user.perm:getOrSetup("playerSettings")
-	playerSettings.changed:Connect(function(settingName, value)
-		print("Send playerSettings (2): ", {
-			[settingName] = value
-		})
+	local playerSettingsChangedSignal = playerSettings:createDescendantChangedSignal(true)
+	playerSettingsChangedSignal:Connect(function(key, value, oldValue, pathwayArray, pathwayString)
 		SettingService.remotes.updateLocalPlayerSettings:fireClient(user.player, {
-			[settingName] = value
+			[pathwayString] = value
 		})
 	end)
-	print("Send playerSettings (1): ", playerSettings)
 	SettingService.remotes.updateLocalPlayerSettings:fireClient(user.player, playerSettings)
-
-	main.modules.Thread.delay(3, function()
-		print("YOOOO")
-		SettingService.updateUsersPlayerSetting(user, "soundProperties.Pitch.Command", 7.5)
-	end)
 end
 
 

@@ -70,7 +70,7 @@ function Role:updateCommands() -- maybe consider changing to just 'update'
 	self:updateUsers()
 end
 
-function Role:updateProperty(pathwayTable, value)
+function Role:updateProperty(pathwayArray, value)
 
 	self:updateUsers()
 end

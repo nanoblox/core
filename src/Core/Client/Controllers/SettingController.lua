@@ -1,8 +1,7 @@
 -- LOCAL
 local main = require(game.Nanoblox)
 local SettingController = {
-	playerSettings = main.modules.PlayerSettingsTemplate,
-	playerSettingsChanged = main.modules.Signal.new()
+	playerSettings = main.modules.State.new(main.modules.PlayerSettingsTemplate, true),
 }
 
 
@@ -10,17 +9,17 @@ local SettingController = {
 -- START
 function SettingController.start()
 	
-	print("Client DEFAULT playerSettings: ", SettingController.playerSettings)
 	local updateLocalPlayerSettings = main.modules.Remote.new("updateLocalPlayerSettings")
-	updateLocalPlayerSettings.onClientEvent:Connect(function(tableOfSettings)
-		print("Client RECEIVE playerSettings (1): ", tableOfSettings)
-		for key, value in pairs(tableOfSettings) do
-			SettingController.playerSettings[key] = value
-			SettingController.playerSettingsChanged:Fire(key, value)
-		end
-		print("Client RECEIVE playerSettings (2): ", SettingController.playerSettings)
+	local DataUtil = main.modules.DataUtil
+	updateLocalPlayerSettings.onClientEvent:Connect(function(propertiesToUpdate)
+		local propertiesToUpdateFinal = DataUtil.getPathwayDictionaryFromMixedDictionary(propertiesToUpdate)
+		DataUtil.mergeSettingTables(SettingController.playerSettings, propertiesToUpdateFinal)
 	end)
 
+end
+
+function SettingController.getPlayerSetting(pathwayString)
+	return SettingController.playerSettings:get(pathwayString)
 end
 
 

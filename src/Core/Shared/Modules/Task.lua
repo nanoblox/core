@@ -329,11 +329,11 @@ function Task:execute()
 		local finishedInvokingCommand = false
 		self:track(main.modules.Thread.delayUntil(function() return finishedInvokingCommand == true end))
 		self:track(main.modules.Thread.delayUntil(function() return filteredAllArguments == true end, function()
-			local success, errorMessage = pcall(command.invoke, self, unpack(additional))
-			if not success then
+			xpcall(command.invoke, function(errorMessage)
+				-- This enables the task to be cleaned up even if the command throws an error
 				self:kill()
-				warn(debug.traceback(("Nanoblox command error: %s"):format(tostring(errorMessage))))
-			end
+				warn(debug.traceback(("Nanoblox command error: %s"):format(tostring(errorMessage)), 2))
+			end, self, unpack(additional))
 			finishedInvokingCommand = true
 		end))
 	end
@@ -398,7 +398,7 @@ end
 
 function Task:track(threadOrTween, countPropertyName, completedSignalName)
 	local threadType = typeof(threadOrTween)
-	local isAPromise = threadType == "table" and threadOrTween.getStatus
+	local isAPromise = threadType == "table" and rawget(threadOrTween, "getStatus")
 	if not isAPromise and not ((threadType == "Instance" or threadType == "table") and threadOrTween.PlaybackState) then
 		error("Can only track Threads, Tweens or Promises!")
 	end

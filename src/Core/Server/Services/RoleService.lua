@@ -389,7 +389,7 @@ end
 function RoleService._getSettingTablesFromPathways(...)
 	local settingTables = {}
 	for _, stringSetting in pairs({...}) do
-		local tableSetting = string.split(stringSetting, ".")
+		local tableSetting = DataUtil.getPathwayArrayFromString(stringSetting)
 		table.insert(settingTables, tableSetting)
 	end
 	return settingTables

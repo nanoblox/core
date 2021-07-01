@@ -112,26 +112,26 @@ end
 
 
 -- METHODS
-local function getPathwayTable(...)
-	local pathwayTable = {...}
-	local firstItem = pathwayTable[1]
+local function getPathwayArray(...)
+	local pathwayArray = {...}
+	local firstItem = pathwayArray[1]
 	local firstItemType = type(firstItem)
 	if firstItemType == "table" then
-		pathwayTable = ...
-	elseif #pathwayTable == 1 and firstItemType == "string" then
-		pathwayTable = string.split(firstItem, ".")
+		pathwayArray = ...
+	elseif #pathwayArray == 1 and firstItemType == "string" then
+		pathwayArray = string.split(firstItem, ".")
 	end
-	return pathwayTable
+	return pathwayArray
 end
 
 function State:_get(remainCriteria, ...)
-	local pathwayTable = getPathwayTable(...)
-	local max = #pathwayTable
+	local pathwayArray = getPathwayArray(...)
+	local max = #pathwayArray
 	local value = self
 	if max == 0 then
 		return value
 	end
-	for i, key in pairs(pathwayTable) do
+	for i, key in pairs(pathwayArray) do
 		value = value[key]
 		if not remainCriteria(i, max, value) then
 			return nil
@@ -153,9 +153,9 @@ function State:getSimple(...)
 end
 
 function State:getOrSetup(...)
-	local pathwayTable = getPathwayTable(...)
+	local pathwayArray = getPathwayArray(...)
 	local value = self
-	for i, key in pairs(pathwayTable) do
+	for i, key in pairs(pathwayArray) do
 		local nextValue = value[key]
 		if type(nextValue) ~= "table" then
 			nextValue = value:set(key, {}, true)
@@ -166,14 +166,14 @@ function State:getOrSetup(...)
 end
 
 function State:find(...)
-	local pathwayTable = getPathwayTable(...)
-	local max = #pathwayTable
-	local value = pathwayTable[max]
-	table.remove(pathwayTable, max)
+	local pathwayArray = getPathwayArray(...)
+	local max = #pathwayArray
+	local value = pathwayArray[max]
+	table.remove(pathwayArray, max)
 	max = max - 1
 	local tab = self
 	if max > 0 then
-		tab = self:get(unpack(pathwayTable))
+		tab = self:get(unpack(pathwayArray))
 	end
 	if type(tab) == "table" then
 		if #tab == 0 then return tab[value] end
@@ -225,16 +225,16 @@ function State:set(stat, value, forceConvertTableToState)
 	return value
 end
 
-function State:setPathway(pathwayTableOrString, value, forceConvertTableToState)
-	local pathwayTable = getPathwayTable(pathwayTableOrString)
+function State:setPathway(pathwayArrayOrString, value, forceConvertTableToState)
+	local pathwayArray = getPathwayArray(pathwayArrayOrString)
 	local finalTable = self
-	local totalItems = #pathwayTable
+	local totalItems = #pathwayArray
 	if totalItems == 0 then
 		return false
 	end
-	local stat = table.remove(pathwayTable, totalItems)
+	local stat = table.remove(pathwayArray, totalItems)
 	if totalItems > 1 then
-		finalTable = self:getOrSetup(pathwayTable)
+		finalTable = self:getOrSetup(pathwayArray)
 	end
 	finalTable:set(stat, value, forceConvertTableToState)
 end
@@ -350,19 +350,19 @@ end
 
 -- This creates a signal that is fired when descendant tables
 -- (and itself optionally) are changed. The first value returned
--- is a 'pathwayTable', followed by the normal .changed return values.
+-- is a 'pathwayArray', followed by the normal .changed return values.
 -- A pathway table enables you to get the table that was originally
 -- called, from the listening table, by doing
--- ``self:get(pathwayTable)``
+-- ``self:get(pathwayArray)``
 function State:createDescendantChangedSignal(includeSelf)
 	local maid = activeTables[self].maid
 	local signal = maid:give(Signal.new())
-	local function connectToTable(tab, pathwayTable, onlyListenToDescendants)
+	local function connectToTable(tab, pathwayArray, onlyListenToDescendants)
 		local function connectChild(key, value)
 			if type(value) == "table" then
-				local newPathwayTable = deepCopyTable(pathwayTable)
-				table.insert(newPathwayTable, key)
-				connectToTable(value, newPathwayTable)
+				local newPathwayArray = deepCopyTable(pathwayArray)
+				table.insert(newPathwayArray, key)
+				connectToTable(value, newPathwayArray)
 			end
 		end
 		if not onlyListenToDescendants then
@@ -370,9 +370,15 @@ function State:createDescendantChangedSignal(includeSelf)
 				if fromDescendant then
 					return
 				end
+				local pathwayArrayIncludingKey = {}
+				for _, v in pairs(pathwayArray) do
+					table.insert(pathwayArrayIncludingKey, v)
+				end
+				table.insert(pathwayArrayIncludingKey, key)
+				local pathwayString = table.concat(pathwayArrayIncludingKey, ".")
 				connectChild(key, newValue)
 				----
-				signal:Fire(pathwayTable, key, newValue, oldValue)
+				signal:Fire(key, newValue, oldValue, pathwayArray, pathwayString)
 				----
 			end)
 		end
@@ -380,8 +386,8 @@ function State:createDescendantChangedSignal(includeSelf)
 			connectChild(key, value)
 		end
 	end
-	local initialPathwayTable = {}
-	connectToTable(self, initialPathwayTable, not includeSelf)
+	local initialPathwayArray = {}
+	connectToTable(self, initialPathwayArray, not includeSelf)
 	return signal
 end
 

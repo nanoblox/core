@@ -33,15 +33,15 @@ local function createFolder(folderName, folderParent)
 	return folder
 end
 
-local function getPathwayTable(pathway)
+local function getPathwayArray(pathway)
 	return pathway:split(".")
 end
 
-local function setupDirectory(pathwayTable, startParent, finalFunction)
+local function setupDirectory(pathwayArray, startParent, finalFunction)
 	local currentParent = startParent
-	local total = #pathwayTable
+	local total = #pathwayArray
 	for i = 1, total do
-		local folderName = pathwayTable[i]
+		local folderName = pathwayArray[i]
 		local folder = createFolder(folderName, currentParent)
 		if i == total and finalFunction then
 			return(finalFunction(folder))
@@ -78,14 +78,14 @@ function Directory.getLocationDetails(location)
 end
 
 function Directory.createDirectory(pathway, contents)
-	local pathwayTable = getPathwayTable(pathway)
-	local location = table.remove(pathwayTable, 1)
+	local pathwayArray = getPathwayArray(pathway)
+	local location = table.remove(pathwayArray, 1)
 	local locationDetails = Directory.getLocationDetails(location)
 	local currentParent = locationDetails.realLocation
 	local finalFunction = function(finalFolder)
 		local playerPathway = locationDetails.playerPathway
 		if playerPathway then
-			local playerPathwayTable = getPathwayTable(playerPathway)
+			local playerPathwayArray = getPathwayArray(playerPathway)
 			local playerFinalFunction = function(playerFinalFolder)
 				for _, object in pairs(contents) do
 					if not playerFinalFolder:FindFirstChild(object.Name) then
@@ -97,7 +97,7 @@ function Directory.createDirectory(pathway, contents)
 				coroutine.wrap(function()
 					local character = plr.Character or plr.CharacterAdded:Wait()
 					runService.Heartbeat:Wait()
-					setupDirectory(playerPathwayTable, plr, playerFinalFunction)
+					setupDirectory(playerPathwayArray, plr, playerFinalFunction)
 				end)()
 			end
 		end
@@ -108,10 +108,10 @@ function Directory.createDirectory(pathway, contents)
 		end
 		return finalFolder
 	end
-	if #pathwayTable == 0 then
+	if #pathwayArray == 0 then
 		return(finalFunction(currentParent))
 	end
-	return(setupDirectory(pathwayTable, currentParent, finalFunction))
+	return(setupDirectory(pathwayArray, currentParent, finalFunction))
 end
 
 --local MERGED_MODULE_NAME = "NanobloxModuleToMerge"

@@ -1,6 +1,31 @@
 -- LOCAL
-local Sound = {}
 local main = require(game.Nanoblox)
+local Sound = {
+    sounds = {}
+}
+
+
+
+-- FUNCTIONS
+function Sound.getSound(soundId)
+    for soundInstance, sound in pairs(Sound.sounds) do
+        if sound.soundId == soundId then
+            return sound
+        end
+    end
+end
+
+function Sound.getSoundByInstance(soundInstance)
+    return Sound.sounds[soundInstance]
+end
+
+function Sound.getOrCreateSound(soundId, soundType)
+    local sound = Sound.getSound(soundId)
+    if not sound then
+        sound = Sound.new(soundId, soundType)
+    end
+    return sound
+end
 
 
 
@@ -21,7 +46,10 @@ function Sound.new(soundId, soundType)
                 return propertyOrMethod
             end
             local soundInstance = rawget(self, "soundInstance")
-            local returnValue = soundInstance[index]
+            local success, returnValue = pcall(function() return soundInstance[index] end)
+            if not success then
+                return nil
+            end
             if typeof(returnValue) == "function" then
                 returnValue = {}
                 setmetatable(returnValue, {
@@ -46,20 +74,57 @@ function Sound.new(soundId, soundType)
     }
     
     local maid = main.modules.Maid.new()
+    local settingModule = (main.isServer and main.services.SettingService) or main.controllers.SettingController
     local soundIdParsed = objectPropertiesToUpdate.SoundId(soundId)
     local soundInstance = maid:give(Instance.new("Sound"))
+    local soundTypeFinal = soundType or (main.isServer and main.enum.SoundType.Command) or (main.isClient and main.enum.SoundType.Interface)
+    local soundTypeName = main.enum.SoundType.getName(soundTypeFinal)
     soundInstance.SoundId = "rbxassetid://"..soundIdParsed
+    soundInstance:SetAttribute("NanobloxSoundType", soundTypeName)
     
     self.maid = maid
     self.soundId = soundIdParsed
     self.soundInstance = soundInstance
-    self.soundType = soundType or (main.isServer and main.enum.SoundType.Command) or (main.isClient and main.enum.SoundType.Interface)
-    self.soundTypeName = main.enum.SoundType.getName(self.soundType)
+    self.soundType = soundTypeFinal
+    self.soundTypeName = soundTypeName
     self.destroyed = false
+    self.originalValues = {}
+    self.settingModule = settingModule
+    self.changedMaid = maid:give(main.modules.Maid.new())
+    self.updateSoundFunction = false
     
     setmetatable(self, meta)
 
+    local defaultSoundProperties = settingModule.getPlayerSetting("soundProperties")
+    for propertyName, _ in pairs(defaultSoundProperties) do
+        self.originalValues[propertyName] = soundInstance[propertyName]
+    end
+
+    if main.isClient then
+        self.updateSoundFunction = function(propertyName, settingValue)
+            local currentValue = self.originalValues[propertyName]
+            local modifiedValue = currentValue * settingValue
+            self:untrackChanges(propertyName)
+            soundInstance[propertyName] = modifiedValue
+            self:trackChanges(propertyName)
+        end
+        local soundProperties = settingModule.getPlayerSetting("soundProperties")
+        for propertyName, typeValues in pairs(soundProperties) do
+            self.updateSoundFunction(propertyName, typeValues[self.soundTypeName])
+            maid:give(typeValues.changed:Connect(function(settingName, value)
+                if settingName == self.soundTypeName then
+                    self.updateSoundFunction(propertyName, value)
+                end
+            end))
+        end
+    end
+
     if main.isServer then
+        self.updateSoundFunction = function(propertyName, settingValue, player)
+            local currentValue = self.originalValues[propertyName]
+            local modifiedValue = currentValue * settingValue
+            main.services.SoundService.remotes.updateSoundProperty:fireClient(player, soundInstance, propertyName, modifiedValue)
+        end
         local function updateSounds(player)
             -- This ensures the Sound instance is replicated to the client
             local originalParent = soundInstance.Parent
@@ -75,22 +140,15 @@ function Sound.new(soundId, soundType)
                 if self.destroyed then
                     return
                 end
-                local playerSettings = user.perm:getOrSetup("playerSettings")
-                local soundProperties = main.services.SettingService.getUsersPlayerSetting(user, "soundProperties")
-                local clientProperties = {}
-                local SoundService = main.services.SoundService
+                local soundProperties = settingModule.getUsersPlayerSetting(user, "soundProperties")
                 for propertyName, typeValues in pairs(soundProperties) do
-                    local setting = playerSettings:getOrSetup(propertyName)
-                    clientProperties[propertyName] = typeValues[self.soundTypeName]
-                    maid:give(setting.changed:Connect(function(settingName, value)
+                    self.updateSoundFunction(propertyName, typeValues[self.soundTypeName], player)
+                    maid:give(typeValues.changed:Connect(function(settingName, value)
                         if settingName == self.soundTypeName then
-                            SoundService.remotes.updateSoundProperties:fireClient(player, soundInstance, {
-                                [propertyName] = value
-                            })
+                            self.updateSoundFunction(propertyName, value, player)
                         end
                     end))
                 end
-                SoundService.remotes.updateSoundProperties:fireClient(player, soundInstance, clientProperties)
             end)
         end
         for _, player in pairs(main.Players:GetPlayers()) do
@@ -101,8 +159,13 @@ function Sound.new(soundId, soundType)
         end))
     end
 
+    self:trackChanges()
+
+    Sound.sounds[soundInstance] = self
+
     return self
 end
+Sound.createSound = Sound.new
 
 
 
@@ -112,7 +175,58 @@ function Sound:clone()
 end
 Sound.Clone = Sound.clone
 
+function Sound:trackChanges(specificPropertyName)
+    -- This listens for changes to the Volume, Pitch, etc
+    local propertyCaps = {
+        Default = 5,
+        Pitch = 2.5,
+        Volume = 5,
+    }
+    local defaultSoundProperties = self.settingModule.getPlayerSetting("soundProperties")
+    for propertyName, _ in pairs(defaultSoundProperties) do
+        if specificPropertyName == nil or propertyName == specificPropertyName then
+            local totalChangesThisFrame = 0
+            self.changedMaid[propertyName] = self.soundInstance:GetPropertyChangedSignal(propertyName):Connect(function(a,b,c)
+                -- Clients can modify sounds on a scale between 0-2, therefore we cap properties at half their limit
+                local value = self.soundInstance[propertyName]
+                local cap = propertyCaps[propertyName] or propertyCaps.Default
+                if value > cap then
+                    self.soundInstance[propertyName] = cap
+                    return
+                end
+                totalChangesThisFrame += 1
+                main.modules.Thread.spawn(function()
+                    totalChangesThisFrame -= 1
+                end)
+                local only1ChangeSoFar = totalChangesThisFrame == 1
+                if only1ChangeSoFar then
+                    self.originalValues[propertyName] = value
+                end
+                local playersToUpdate = (main.isServer and main.Players:GetPlayers()) or {main.localPlayer}
+                for _, player in pairs(playersToUpdate) do
+                    local soundProperties = (main.isServer and self.settingModule.getUsersPlayerSetting(main.modules.PlayerStore:getUser(player), "soundProperties")) or self.settingModule.getPlayerSetting("soundProperties")
+                    local settingValue = soundProperties[propertyName][self.soundTypeName]
+                    self.updateSoundFunction(propertyName, settingValue, player)
+                end
+                if not only1ChangeSoFar then
+                    self.originalValues[propertyName] = value
+                end
+            end)
+        end
+    end
+end
+
+function Sound:untrackChanges(specificPropertyName)
+    local defaultSoundProperties = self.settingModule.getPlayerSetting("soundProperties")
+    for propertyName, _ in pairs(defaultSoundProperties) do
+        if specificPropertyName == nil or propertyName == specificPropertyName then
+            self.changedMaid[propertyName] = nil
+        end
+    end
+end
+
 function Sound:destroy()
+    Sound.sounds[self.soundInstance] = nil
     self.maid:clean()
     self.destroyed = true
 end

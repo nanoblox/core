@@ -89,7 +89,7 @@ function System.new(name, ignoreTempChanges)
 	local newServerCooldownEnd = tick() + newServerCooldown
 	local firstTimeLoading = true
 	local myUIDs = {}
-	user.perm.descendantChanged:Connect(function(pathwayTable, key, newValue, oldValue)
+	user.perm.descendantChanged:Connect(function(key, newValue, oldValue, pathwayArray, pathwayString)
 		-- Block first load completely
 		if not userLoadedFirstTime then
 			return
@@ -98,12 +98,12 @@ function System.new(name, ignoreTempChanges)
 		if type(newValue) == "table" then
 			newValue = TableUtil.copy(newValue)
 		end
-		user.temp:getOrSetup(pathwayTable):set(key, newValue)
+		user.temp:getOrSetup(pathwayArray):set(key, newValue)
 		-- Data is being loaded from another server, block actions
 		if user.transformingLoadData then
 			return
 		end
-		table.insert(actionRecords, {pathwayTable, key, newValue})
+		table.insert(actionRecords, {pathwayArray, key, newValue})
 		-- Request a global update
 		-- If no global request already pending, or something
 		-- went wrong (i.e. over 15 seconds elapsed), make request
@@ -133,8 +133,8 @@ function System.new(name, ignoreTempChanges)
 		local currentActionRecords = actionRecords
 		actionRecords = {}
 		for _, record in pairs(currentActionRecords) do
-			local pathwayTable, key, newValue = unpack(record)
-			user.perm:getOrSetup(pathwayTable):set(key, newValue)
+			local pathwayArray, key, newValue = unpack(record)
+			user.perm:getOrSetup(pathwayArray):set(key, newValue)
 		end
 	end)
 	-- This handles requests from this and other servers
@@ -206,7 +206,7 @@ function System.new(name, ignoreTempChanges)
 	-- data with default values (from generateRecord), and call the
 	-- necessary service-object events
 	if not ignoreTempChanges then
-		local realRecords = {}
+		local realRecords = main.modules.State.new(nil, true)
 		----
 		self.records = main.modules.State.new(nil, true)
 		----
@@ -220,10 +220,10 @@ function System.new(name, ignoreTempChanges)
 		local expiryWatchInterval = 1200 -- 20 minutes
 		local nextExpiryUpdate = os.time()
 		local pairedUIDs = {}
-		user.temp.descendantChanged:Connect(function(pathwayTable, key, newValue, oldValue)
+		user.temp.descendantChanged:Connect(function(key, newValue, oldValue, pathwayArray, pathwayString)
 			
 			------ TOP LAYER (calls recordAdded and recordRemoved) ------
-			local depth = #pathwayTable
+			local depth = #pathwayArray
 			if depth == 0 then
 				local recordKey, record = key, newValue
 				-- Ignore records labelled as 'nilled' (i.e. within NilledData)
@@ -281,7 +281,7 @@ function System.new(name, ignoreTempChanges)
 							end
 							---------------
 							self.recordAdded:Fire(recordKey, newRecord)
-							realRecords[recordKey] = newRecord
+							realRecords:set(recordKey, newRecord)
 						end
 					end
 					recordValue = newRecord
@@ -294,7 +294,7 @@ function System.new(name, ignoreTempChanges)
 						if realRecords[recordKey] ~= nil then
 							self.recordRemoved:Fire(recordKey, oldValue)
 						end
-						realRecords[recordKey] = nil
+						realRecords:set(recordKey, nil)
 					end
 				end
 				self.records:set(recordKey, recordValue)
@@ -302,7 +302,6 @@ function System.new(name, ignoreTempChanges)
 				-- show the last request
 				local actionUID = DataUtil.generateUID()
 				changedUIDs[recordKey] = actionUID
-				--print(name, recordKey, " self.recordsActionDelay = ", self.recordsActionDelay)
 				local function endFunc()
 					if changedUIDs[recordKey] ~= actionUID then
 						return
@@ -325,29 +324,29 @@ function System.new(name, ignoreTempChanges)
 			else
 				-- Only the first and second layers are important to us. When a change is made
 				-- made below the second layer, find its ancestor 2nd layer and call this instead
-				local recordKey = pathwayTable[1]
-				local propName = (depth == 1 and key) or pathwayTable[2]
-				local newPropValue = (depth == 1 and newValue) or user.temp[recordKey][propName]
-				local displayOldPropValue = self.records[recordKey] and self.records[recordKey][propName]
-				local oldPropValue = (depth == 1 and oldValue) or displayOldPropValue or newPropValue
+				local surfaceRecordKey = pathwayArray[1]
+				local surfacePropName = (depth == 1 and key) or pathwayArray[2]
+				local surfaceNewPropValue = (depth == 1 and newValue) or user.temp[surfaceRecordKey][surfacePropName]
+				local displayOldPropValue = self.records[surfaceRecordKey] and self.records[surfaceRecordKey][surfacePropName]
+				local surfaceOldPropValue = (depth == 1 and oldValue) or displayOldPropValue or surfaceNewPropValue
 
 				-- If the record does not exist already (i.e. is nilled) then ignore
-				if self.records[recordKey] == nil then
+				if self.records[surfaceRecordKey] == nil then
 					return
 				end
 				-- If the records prop already equals newProp, then ignore
-				if DataUtil.isEqual(displayOldPropValue, newPropValue) then
+				if DataUtil.isEqual(displayOldPropValue, surfaceNewPropValue) then
 					return
 				end
 				-- Record changed
-				if type(newPropValue) == "table" then
-					newPropValue = TableUtil.copy(newPropValue)
+				if type(surfaceNewPropValue) == "table" then
+					surfaceNewPropValue = TableUtil.copy(surfaceNewPropValue)
 				end
-				self.records[recordKey]:set(propName, newPropValue)--self.records[recordKey][propName] = newPropValue
+				self.records:getOrSetup(pathwayArray):set(key, newValue) --self.records[surfaceRecordKey]:set(surfacePropName, surfaceNewPropValue)
 				-- Data may change rapidly - flter these rapid changes and only
 				-- show the last request
 				local actionUID = DataUtil.generateUID()
-				local actionKey = recordKey.." | "..propName
+				local actionKey = surfaceRecordKey.." | "..surfacePropName
 				pairedUIDs[actionKey] = actionUID
 				
 				local function endFunc()
@@ -357,19 +356,20 @@ function System.new(name, ignoreTempChanges)
 					pairedUIDs[actionKey] = nil
 					-- Expiry checks
 					local currentTime = os.time()
-					if propName == "expiryTime" then
-						if realRecords[recordKey] == nil and newPropValue > currentTime then
+					if surfacePropName == "expiryTime" then
+						if realRecords[surfaceRecordKey] == nil and surfaceNewPropValue > currentTime then
 							-- If previously expired and no longer, then re-add
-							user.temp:set(recordKey, self.records[recordKey])
+							user.temp:set(surfaceRecordKey, self.records[surfaceRecordKey])
 							return
-						elseif newPropValue <= nextExpiryUpdate and not expiryRecordsToWatch[recordKey] then
+						elseif surfaceNewPropValue <= nextExpiryUpdate and not expiryRecordsToWatch[surfaceRecordKey] then
 							-- Value falls within close-watch range, add to tracking
-							expiryRecordsToWatch[recordKey] = true
+							expiryRecordsToWatch[surfaceRecordKey] = true
 						end
 					end
 					-- Call action
-					self.recordChanged:Fire(recordKey, propName, newPropValue, oldPropValue)
-					realRecords[recordKey][propName] = newPropValue
+					self.recordChanged:Fire(surfaceRecordKey, surfacePropName, surfaceNewPropValue, surfaceOldPropValue)
+					local reallllllllll = realRecords:getOrSetup(pathwayArray)
+					reallllllllll:set(key, newValue)
 				end
 				if self.recordsActionDelay > 0 then
 					Thread.delay(self.recordsActionDelay, endFunc)
@@ -415,7 +415,7 @@ function System.new(name, ignoreTempChanges)
 					if expiryTime <= currentTime then
 						expiryRecordsToWatch[recordKey] = nil
 						self.recordRemoved:Fire(recordKey, record)
-						realRecords[recordKey] = nil
+						realRecords:set(recordKey, nil)
 					end
 				end
 			end
@@ -478,37 +478,13 @@ function System:getRecords()
 	return recordsArray
 end
 
-function System:updateRecord(key, propertiesToUpdateIncoming)
+function System:updateRecord(key, propertiesToUpdate)
 	--
-	local propertiesToUpdate = {}
-	propertiesToUpdateIncoming = propertiesToUpdateIncoming or {}
-	-- Some keys maybe string pathways (such as 'soundProperties.Volume.Music') so this converts them into tables
-	for k, value in pairs(propertiesToUpdateIncoming) do
-		local pathwayTable = string.split(k, ".")
-		local totalItems = #pathwayTable
-		if totalItems > 1 then
-			local masterTable = {}
-			local bottomTable = masterTable
-			local topKey = pathwayTable[1]
-			for i, itemKey in pairs(pathwayTable) do
-				if i == totalItems then
-					bottomTable[itemKey] = value
-				elseif i ~= 1 then
-					local newBottomTable = {}
-					bottomTable[itemKey] = newBottomTable
-					bottomTable = newBottomTable
-				end
-			end
-			propertiesToUpdate[topKey] = masterTable
-		else
-			propertiesToUpdate[k] = value
-		end
-	end
-	--
+	local propertiesToUpdateFinal = DataUtil.getPathwayDictionaryFromMixedDictionary(propertiesToUpdate)
 	local user = self.user
 	local record = user.temp[key]
 	local prevGlobal = record and record._global
-	local newGlobal = propertiesToUpdate._global
+	local newGlobal = propertiesToUpdateFinal._global
 	if newGlobal == nil then
 		newGlobal = prevGlobal
 	end
@@ -525,21 +501,7 @@ function System:updateRecord(key, propertiesToUpdateIncoming)
 	end
 	--
 	local data = (newGlobal == true and user.perm) or user.temp
-	--[[
-	for propName, propValue in pairs(propertiesToUpdate) do
-		data:getOrSetup(key):set(propName, propValue)
-	end--]]
-	local function setData(tableToUpdate, vauesToBeApplied)
-		for propName, propValue in pairs(vauesToBeApplied) do
-			local subTable = tableToUpdate:getOrSetup(key)
-			if typeof(subTable:get(propName)) == "table" and typeof(propValue) == "table" then
-				setData(subTable, propValue)
-			else
-				subTable:set(propName, propValue)
-			end
-		end
-	end
-	setData(data, propertiesToUpdate)
+	DataUtil.mergeSettingTables(data:getOrSetup(key), propertiesToUpdateFinal)
 	return data
 end
 

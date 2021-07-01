@@ -75,6 +75,69 @@ function DataUtil.hexToColor3(hex)
 	return Color3.fromRGB(r,g,b)
 end
 
+function DataUtil.mergeSettingTables(stateTableToUpdate, valuesToBeApplied)
+	for propName, propValue in pairs(valuesToBeApplied) do
+		local subTableToUpdate = stateTableToUpdate:get(propName)
+		if typeof(subTableToUpdate) == "table" and typeof(propValue) == "table" then
+			DataUtil.mergeSettingTables(subTableToUpdate, propValue)
+		else
+			stateTableToUpdate:set(propName, propValue)
+		end
+	end
+end
+
+function DataUtil.getPathwayDictionaryFromMixedDictionary(propertiesToUpdate)
+	-- Some keys may be string pathways (such as {'soundProperties.Volume.Music'} = value) so this converts them into tables (such as {'soundProperties' = {Volume = {Music = value}}})
+	if not propertiesToUpdate then
+		return {}
+	end
+	local pathwayDictionary = {}
+	for k, value in pairs(propertiesToUpdate) do
+		local _, newKey, newValue = DataUtil.getPathwayDictionary(k, value)
+		pathwayDictionary[newKey] = newValue
+	end
+	return pathwayDictionary
+end
+
+function DataUtil.getPathwayStringFromTable(pathwayArray)
+	if typeof(pathwayArray) ~= "table" then
+		return ""
+	end
+	local pathwayString = table.concat(pathwayArray, ".")
+	return pathwayString
+end
+
+function DataUtil.getPathwayArrayFromString(pathwayString)
+	if typeof(pathwayString) ~= "string" then
+		return {}
+	end
+	local pathwayArray = string.split(pathwayString, ".")
+	return pathwayArray
+end
+
+function DataUtil.getPathwayDictionary(pathwayString, value)
+	-- Some keys may be string pathways (such as {'soundProperties.Volume.Music'} = value) so this converts them into tables (such as {'soundProperties' = {Volume = {Music = value}}})
+	pathwayString = (typeof(pathwayString) == "string" and pathwayString) or ""
+	local pathwayArray = DataUtil.getPathwayArrayFromString(pathwayString)
+	local totalItems = #pathwayArray
+	if totalItems > 1 then
+		local masterTable = {}
+		local bottomTable = masterTable
+		local topKey = pathwayArray[1]
+		for i, itemKey in pairs(pathwayArray) do
+			if i == totalItems then
+				bottomTable[itemKey] = value
+			elseif i ~= 1 then
+				local newBottomTable = {}
+				bottomTable[itemKey] = newBottomTable
+				bottomTable = newBottomTable
+			end
+		end
+		return {[topKey] = masterTable}, topKey, masterTable
+	end
+	return {[pathwayString] = value}, pathwayString, value
+end
+
 
 
 return DataUtil

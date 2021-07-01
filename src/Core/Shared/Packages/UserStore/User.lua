@@ -92,10 +92,10 @@ function User.new(dataStoreName, key)
 	self.backup.descendantChanged = self.backup:createDescendantChangedSignal(true)
 
 	-- Perm to _Data (serialization)
-	self.perm.descendantChanged:Connect(function(pathwayTable, permKey, permValue)
+	self.perm.descendantChanged:Connect(function(permKey, permValue, oldValue, pathwayArray, pathwayString)
 		local newPermKey = Serializer.serialize(permKey, true)
 		local newPermValue = Serializer.serialize(permValue, true)
-		self._data:getOrSetup(pathwayTable):set(newPermKey, newPermValue)
+		self._data:getOrSetup(pathwayArray):set(newPermKey, newPermValue)
 		self._data._tableUpdated = true
 	end)
 

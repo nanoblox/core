@@ -293,7 +293,7 @@ Args.array = {
 
 	-----------------------------------
 	{
-		name = "sound",
+		name = "soundId",
 		aliases = {"music", "audio"},
 		displayName = "soundId",
 		description = "Accepts a soundId (aka a LibraryId) and returns a Sound instance if valid. Do not use the returned Sound instance, clone it instead.",
@@ -302,12 +302,12 @@ Args.array = {
 			local storageDetail = Args.getStorage(self.name)
 			local cachedItem = storageDetail:get(stringToParse)
 			if cachedItem then
-				return cachedItem
+				return cachedItem.Name
 			end
-			local newSound = Instance.new("Sound")
-			newSound.SoundId = "rbxassetid://"..stringToParse
+			local newSound = Instance.new("Folder")
+			newSound.Name = "rbxassetid://"..stringToParse
 			storageDetail:cache(stringToParse, newSound)
-			return newSound
+			return newSound.Name
 		end,
 		verifyCanUse = function(self, callerUser, valueToParse)
 			-- Check if valid string
