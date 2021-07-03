@@ -18,7 +18,7 @@ local playerSettings = {
 	theme = "",
 	backgroundTransparency 	= 0.1,
 
-	soundProperties = {
+	soundProperties = { -- These all range from 0-2, to be modified with a slider
 		Volume = {
 			Music = 1,
 			Command = 1,

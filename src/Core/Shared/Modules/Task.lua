@@ -398,7 +398,7 @@ end
 
 function Task:track(threadOrTween, countPropertyName, completedSignalName)
 	local threadType = typeof(threadOrTween)
-	local isAPromise = threadType == "table" and rawget(threadOrTween, "getStatus")
+	local isAPromise = threadType == "table" and rawget(threadOrTween, "_unhandledRejection")
 	if not isAPromise and not ((threadType == "Instance" or threadType == "table") and threadOrTween.PlaybackState) then
 		error("Can only track Threads, Tweens or Promises!")
 	end
@@ -676,6 +676,7 @@ function Task:getAsset(assetName)
 		return asset
 	end
 	-- THE CLIENT IS ASSYNCHRONOUS THEREFORE RETURNS A PROMISE
+	local asset = main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName)
 	return self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))
 end
 

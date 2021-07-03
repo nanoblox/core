@@ -83,9 +83,10 @@ Args.array = {
 		description = "Accepts qualifiers (e.g. 'raza', '@ForeverHD', 'others' from ';paint raza,@ForeverHD,others'), calls the command *for each player*, and returns a single Player instance.",
 		playerArg = true,
 		executeForEachPlayer = true,
-		parse = function(self, qualifiers, callerUserId)
+		parse = function(self, qualifiers, callerUserId, additional)
 			local defaultToMe = qualifiers == nil or main.modules.TableUtil.isEmpty(qualifiers)
-			if defaultToMe then
+			local ignoreDefault = (additional and additional.ignoreDefault)
+			if defaultToMe and not ignoreDefault then
 				local players = {}
 				local callerPlayer = main.Players:GetPlayerByUserId(callerUserId)
 				if callerPlayer then
@@ -95,6 +96,9 @@ Args.array = {
 			end
 			local targetsDict = {}
 			for qualifierName, qualifierArgs in pairs(qualifiers or {}) do
+				if qualifierName == "" then
+					continue
+				end
 				local Qualifiers = main.modules.Parser.Qualifiers
 				local qualifierDetail = Qualifiers.get(qualifierName)
 				local targets
@@ -124,7 +128,21 @@ Args.array = {
 		playerArg = true,
 		executeForEachPlayer = false,
 		parse = function(self, qualifiers, callerUserId)
-			return main.modules.Parser.Args.get("player"):parse(qualifiers, callerUserId)
+			return main.modules.Parser.Args.get("player"):parse(qualifiers, callerUserId, {ignoreDefault = true})
+		end,
+	},
+
+	-----------------------------------
+	{
+		name = "targetPlayer",
+		aliases = {},
+		description = "Accepts qualifiers (e.g. 'raza', '@ForeverHD', 'others' from ';paint raza,@ForeverHD,others') and returns a single Player instance (or false).",
+		playerArg = true,
+		executeForEachPlayer = true,
+		parse = function(self, qualifiers, callerUserId)
+			print("Getting...")
+			local players = main.modules.Parser.Args.get("player"):parse(qualifiers, callerUserId, {ignoreDefault = true})
+			return players[1] or false
 		end,
 	},
 
@@ -305,7 +323,7 @@ Args.array = {
 				return cachedItem.Name
 			end
 			local newSound = Instance.new("Folder")
-			newSound.Name = "rbxassetid://"..stringToParse
+			newSound.Name = stringToParse
 			storageDetail:cache(stringToParse, newSound)
 			return newSound.Name
 		end,

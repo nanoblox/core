@@ -58,6 +58,12 @@ local function createThread()
 	thread.play = thread.resume
 	thread.Play = thread.resume
 	
+	function thread:setFrameEvent(name)
+		thread.frameEvent = main.RunService[name]
+		thread:pause()
+		thread:resume()
+	end
+
 	function thread:cancel()
 		thread:disconnect(true)
 	end

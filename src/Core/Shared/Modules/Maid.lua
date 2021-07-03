@@ -151,7 +151,7 @@ function Maid:give(taskOrPromise)
 		error(errorMessage)
 	end
 	local taskId, newPromise
-	if type(taskOrPromise) == "table" and rawget(taskOrPromise, "getStatus") then
+	if type(taskOrPromise) == "table" and rawget(taskOrPromise, "_unhandledRejection") then
 		newPromise, taskId = self:givePromise(taskOrPromise)
 		taskOrPromise = newPromise
 	else

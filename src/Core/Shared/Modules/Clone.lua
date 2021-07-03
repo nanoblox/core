@@ -19,18 +19,19 @@ Clone.replicatedStorage = nil
 
 
 -- CONSTRUCTOR
-function Clone.new(playerOrCharacterOrUserId, spawnCFrame)
+function Clone.new(playerOrCharacterOrUserId, properties)
 	local self = {}
 	setmetatable(self, Clone)
 	
     local maid = main.modules.Maid.new()
-    self._maid = maid
+    self.maid = maid
     self.userId = nil
     self.character = nil
     self.clone = nil
     self.hidden = false
     self.tracks = {}
-    self.spawnCFrame = spawnCFrame
+    self.spawnCFrame = nil
+    self.forcedRigType = nil
     self.animations = {}
     self.tracks = {}
     self.animNamesToTrack = {}
@@ -42,8 +43,15 @@ function Clone.new(playerOrCharacterOrUserId, spawnCFrame)
     self.humanoidDescriptionToApply = nil
     self.applyingHumanoidDescription = false
     self.humanoidDescriptionQueue = {}
+    self.height = 5.2
+
+    if properties then
+        for key, value in pairs(properties) do
+            self[key] = value
+        end
+    end
     
-	self:become(playerOrCharacterOrUserId)
+    self:become(playerOrCharacterOrUserId)
     
 	return self
 end
@@ -61,7 +69,12 @@ function Clone:become(item)
     --]]
     local IsAHumanoidDesc = typeof(item) == "Instance" and item:IsA("HumanoidDescription")
     if typeof(item) == "Instance" and item:IsA("Player") then
-        item = item.Character
+        local humanoid = main.modules.PlayerUtil.getHumanoid(item)
+        if humanoid and (humanoid.RigType == self.forcedRigType or self.forcedRigType == nil) then
+            item = item.Character
+        else
+            item = item.UserId
+        end
     end
     self.character = typeof(item) == "Instance" and not IsAHumanoidDesc and item
 	self.userId = typeof(item) == "number" and item
@@ -101,7 +114,7 @@ function Clone:become(item)
             local hrp = self.character:FindFirstChild("HumanoidRootPart")
             local archivable = self.character.Archivable
             self.character.Archivable = true
-            clone = self._maid:give(self.character:Clone())
+            clone = self.maid:give(self.character:Clone())
             self.character.Archivable = archivable
             clone.Archivable = true
             clone.HumanoidRootPart.CFrame = self.spawnCFrame or (hrp and hrp.CFrame * SPAWN_OFFSET) or CFrame.new()
@@ -111,8 +124,8 @@ function Clone:become(item)
             
         else
             local randomPlayer = main.Players:GetPlayers()[1]
-            local rigType
-            if randomPlayer then
+            local rigType = self.forcedRigType
+            if not rigType and randomPlayer then
                 local randomChar = randomPlayer.Character
                 local randomHumanoid = randomChar and randomChar:FindFirstChildOfClass("Humanoid")
                 if randomHumanoid then
@@ -122,7 +135,7 @@ function Clone:become(item)
             if not rigType then
                 rigType = "R15"
             end
-            clone = self._maid:give(main.shared.Assets.Rigs[rigType]:Clone())
+            clone = self.maid:give(main.shared.Assets.Rigs[rigType]:Clone())
             clone.HumanoidRootPart.CFrame = self.spawnCFrame or CFrame.new()
             if item then
                 local inServerPlayer = (self.userId and main.Players:GetPlayerByUserId(self.userId)) or main.Players:FindFirstChild(self.username)
@@ -159,7 +172,7 @@ function Clone:become(item)
         end 
 
         clone.Parent = Clone.workspaceStorage
-        self._maid:give(clone:GetPropertyChangedSignal("Parent"):Connect(function()
+        self.maid:give(clone:GetPropertyChangedSignal("Parent"):Connect(function()
             if clone.Parent == nil then
                 self:destroy()
             end
@@ -170,7 +183,7 @@ function Clone:become(item)
 
         -- This destroys the clone if it goes below -500 studs
         local nextHeightCheck = 0
-        self._maid:give(main.RunService.Heartbeat:Connect(function()
+        self.maid:give(main.RunService.Heartbeat:Connect(function()
             local timeNow = os.clock()
             if timeNow >= nextHeightCheck then
                 nextHeightCheck = timeNow + 1
@@ -181,7 +194,7 @@ function Clone:become(item)
         end))
 
         local animateScript = (main.isClient and main.shared.Assets.AnimateClient:Clone()) or main.server.Assets.AnimateServer:Clone()
-        self._maid:give(animateScript)
+        self.maid:give(animateScript)
         if main.isServer then
             animateScript.Parent = clone
         else
@@ -245,6 +258,8 @@ function Clone:become(item)
         end
     end
 
+    self:_updateHeight()
+    
 end
 
 function Clone:setName(name)
@@ -265,7 +280,7 @@ function Clone:hide()
 end
 
 function Clone:setCFrame(cframe)
-    local cloneHRP = self.clone:FindFirstChild("HumanoidRootPart")
+    local cloneHRP = self.hrp or self.clone:FindFirstChild("HumanoidRootPart")
     if cloneHRP then
         cloneHRP.CFrame = cframe
     end
@@ -277,6 +292,14 @@ function Clone:setCollidable(bool)
 end
 
 function Clone:setAnchored(bool)
+    for _, part in pairs(self.clone:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Anchored = bool
+        end
+    end
+end
+
+function Clone:anchorHRP(bool)
     local cloneHRP = self.clone:FindFirstChild("HumanoidRootPart")
     if cloneHRP then
         cloneHRP.Anchored = bool
@@ -288,7 +311,7 @@ function Clone:setTransparency(value)
     if tMaid then
         tMaid:clean()
     else
-        tMaid = self._maid:give(main.modules.Maid.new())
+        tMaid = self.maid:give(main.modules.Maid.new())
         self.transparencyMaid = tMaid
     end
     local function changeTransparency(part)
@@ -320,7 +343,7 @@ function Clone:regenerate(bool, regenRate, regenStep)
     local regen = bool ~= false
     local regenMaid = self.regenMaid
     if not regenMaid and regen then
-        regenMaid = self._maid:give(main.modules.Maid.new())
+        regenMaid = self.maid:give(main.modules.Maid.new())
         self.regenMaid = regenMaid
         local nextStep = os.clock()
         local REGEN_RATE = regenRate or (1/100)
@@ -354,7 +377,7 @@ function Clone:loadTrack(animationId, animationName)
         if not track then
             local animation = self.animations[animIdString]
             if not animation then
-                animation = self._maid:give(Instance.new("Animation"))
+                animation = self.maid:give(Instance.new("Animation"))
                 animation.AnimationId = "rbxassetid://"..animationId
                 if animationName then
                     animation.Name = animationName
@@ -387,7 +410,7 @@ end
 function Clone:face(playerOrBasePart, power, dampening)
     
     local faceMaid = main.modules.Maid.new()
-    self._maid.faceMaid = faceMaid
+    self.maid.faceMaid = faceMaid
 
     local BODY_GYRO_NAME = "NanobloxBodyGyro"
     local DEFAULT_POWER = 800--3000
@@ -421,7 +444,7 @@ function Clone:face(playerOrBasePart, power, dampening)
             nextCheck = timeNow + 1
             local stillPresent = basePart:FindFirstAncestorWhichIsA("Workspace") or basePart:FindFirstAncestorWhichIsA("ReplicatedStorage")
             if not stillPresent then
-                self._maid.faceMaid = nil
+                self.maid.faceMaid = nil
             end
         end
     end))
@@ -430,7 +453,7 @@ function Clone:face(playerOrBasePart, power, dampening)
 end
 
 function Clone:unface()
-    self._maid.faceMaid = nil
+    self.maid.faceMaid = nil
 end
 
 function Clone:watch(playerOrBasePart)
@@ -444,7 +467,7 @@ function Clone:watch(playerOrBasePart)
     if not neck then return end
 
     local watchMaid = main.modules.Maid.new()
-    self._maid.watchMaid = watchMaid
+    self.maid.watchMaid = watchMaid
 
     local movementDetails = {
 		neck = {YMultiplier = 1.5, Alpha = 0.2, Joint = neck, OriginC0 = neck.C0},
@@ -484,7 +507,7 @@ function Clone:watch(playerOrBasePart)
             if basePart then
                 local stillPresent = basePart:FindFirstAncestorWhichIsA("Workspace") or basePart:FindFirstAncestorWhichIsA("ReplicatedStorage")
                 if not stillPresent then
-                    self._maid.watchMaid = nil
+                    self.maid.watchMaid = nil
                     return
                 end
             end
@@ -526,7 +549,7 @@ function Clone:watch(playerOrBasePart)
 end
 
 function Clone:unwatch()
-	self._maid.watchMaid = nil
+	self.maid.watchMaid = nil
 end
 
 function Clone:modifyHumanoidDescription(propertyName, value)
@@ -558,6 +581,7 @@ function Clone:modifyHumanoidDescription(propertyName, value)
             self.humanoidDescriptionToApply:Destroy()
 			self.humanoidDescriptionToApply = nil
             self.applyingHumanoidDescription = false
+            self:_updateHeight()
             if watchingPart then
                 self:watch(watchingPart)
             end
@@ -580,10 +604,15 @@ function Clone:applyHumanoidDescription(newDesc)
     end
 end
 
+function Clone:_updateHeight()
+    local head = self.clone:FindFirstChild("Head")
+    self.height = self.hrp.Size.Y*2 + (head.Size.Y or 1.2)
+end
+
 function Clone:_setScale(propertyName, value)
     local sMaidName = ("scaleMaid%s"):format(propertyName)
     local sMaid = main.modules.Maid.new()
-    self._maid[sMaidName] = sMaid
+    self.maid[sMaidName] = sMaid
     
     local function updateScaleValue()
         self:modifyHumanoidDescription(propertyName, value)
@@ -646,7 +675,7 @@ end
 function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
 	
     local pathMaid = main.modules.Maid.new()
-    self._maid.pathMaid = pathMaid
+    self.maid.pathMaid = pathMaid
     studsAwayToStop = studsAwayToStop or 0
 
     local agentHrpSize = self.hrp.Size
@@ -676,7 +705,7 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
             local waypointsAway = #waypoints - currentWaypointIndex
             if distanceFromClone <= studsAwayToStop and waypointsAway < math.ceil(studsAwayToStop / 3) then
                 self.reachedTarget = true
-                self._maid.pathMaid = nil
+                self.maid.pathMaid = nil
                 cloneHumanoid:MoveTo(self.hrp.Position)
             end
         end
@@ -734,7 +763,7 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
         else
             main.modules.Thread.delay(1, function()
                 self.reachedTarget = true
-                self._maid.pathMaid = nil
+                self.maid.pathMaid = nil
                 cloneHumanoid:MoveTo(self.hrp.Position)
             end)
         end
@@ -743,7 +772,7 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
     local function onWaypointReached(reached)
         if currentWaypointIndex == #waypoints then
             self.reachedTarget = true
-            self._maid.pathMaid = nil
+            self.maid.pathMaid = nil
             return
         end
         if reached then
@@ -768,7 +797,7 @@ end
 
 function Clone:follow(playerOrBasePart, studsAwayToStop)
     local followMaid = main.modules.Maid.new()
-    self._maid.followMaid = followMaid
+    self.maid.followMaid = followMaid
 
 	local basePart
     if playerOrBasePart:IsA("Player") then
@@ -788,7 +817,7 @@ function Clone:follow(playerOrBasePart, studsAwayToStop)
     local function stillPresentCheck()
         local stillPresent = basePart:FindFirstAncestorWhichIsA("Workspace") or basePart:FindFirstAncestorWhichIsA("ReplicatedStorage")
         if not stillPresent then
-            self._maid.followMaid = nil
+            self.maid.followMaid = nil
             return false
         end
         return true
@@ -842,13 +871,13 @@ function Clone:getDistanceFromClone(positionOfTarget)
 end
 
 function Clone:unfollow()
-	self._maid.followMaid = nil
+	self.maid.followMaid = nil
 end
 
 function Clone:destroy()
     if not self.destroyed then
         self.destroyed = true
-        self._maid:clean()
+        self.maid:clean()
         self.destroyedSignal:Fire()
         self.destroyedSignal:Destroy()
         for k, v in pairs(self) do

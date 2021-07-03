@@ -284,6 +284,31 @@ function State:remove(pos)
 	return true
 end
 
+function State:removeValue(valueToRemove)
+	local newArray = {}
+	for index, value in pairs(self) do
+		if value == valueToRemove then
+			self:set(index, nil)
+		else
+			table.insert(newArray, {value, index})
+		end
+	end
+	for index, detail in pairs(newArray) do
+		local value, originalIndex = unpack(detail)
+		if originalIndex ~= index then
+			self:set(index, value)
+		end
+	end
+	local totalItems = #newArray
+	for k, _ in pairs(self) do
+		if k > totalItems then
+			self:set(k, nil)
+		end
+	end
+	print("newArray = ", newArray)
+	return true
+end
+
 function State:clear()
 	for k,v in pairs(self) do
 		self:set(k, nil)

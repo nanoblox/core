@@ -89,13 +89,13 @@ Modifiers.array = {
 		description = "Revokes all tasks that match the given command name(s) (and associated player targets if specified). To revoke a task across all servers, the 'global' modifier must be included.",
 		preAction = function(callerUserId, statement)
 			local Args = main.modules.Parser.Args
-			local targets = Args.get("player"):parse(statement.qualifiers, callerUserId)
 			for commandName, _ in pairs(statement.commands) do
 				local command = main.services.CommandService.getCommand(commandName)
 				if command then
 					local firstCommandArg = command.args[1]
 					local firstArgItem = Args.get(firstCommandArg)
-					if firstArgItem.playerArg then
+					if firstArgItem.playerArg and firstArgItem.executeForEachPlayer then
+						local targets = Args.get("player"):parse(statement.qualifiers, callerUserId)
 						for _, plr in pairs(targets) do
 							main.services.TaskService.removeTasksWithCommandNameAndPlayerUserId(commandName, plr.UserId)
 						end
