@@ -45,7 +45,13 @@ end
 
 function PlayerUtil.getHumanoid(playerOrUserId)
 	local character = PlayerUtil.getCharacter(playerOrUserId)
-	local humanoid = character and character:FindFirstChild("Humanoid")
+	local humanoid = character and (character:FindFirstChild("Humanoid") or character:FindFirstChildOfClass("Humanoid"))
+	return humanoid
+end
+
+function PlayerUtil.getAnimator(playerOrUserId)
+	local humanoid = PlayerUtil.getHumanoid(playerOrUserId)
+	local animator = humanoid and (humanoid:FindFirstChild("Animator") or humanoid:FindFirstChildOfClass("Animator"))
 	return humanoid
 end
 

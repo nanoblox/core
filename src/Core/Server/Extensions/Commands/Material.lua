@@ -14,16 +14,25 @@ Command.blockPeers = false
 Command.blockJuniors = false
 Command.autoPreview = false
 Command.requiresRig = main.enum.HumanoidRigType.None
-Command.revokeRepeats = true
+Command.revokeRepeats = false
 Command.preventRepeats = main.enum.TriStateSetting.False
 Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerRespawns
-Command.args = {"Player", "Material"}
+Command.args = {"Player", "Material", "BodyParts"}
 
 function Command.invoke(task, args)
-	local _, color = unpack(args)
-	if color then
-		task:buffPlayer("BodyMaterial"):set(color)
+	local _, material = unpack(args)
+	if material then
+		local bodyParts = task:getOriginalArg("BodyParts")
+		if bodyParts then
+			for _, bodyPartName in pairs(bodyParts) do
+				if bodyPartName ~= "Accessories" then
+					task:buffPlayer("BodyMaterial", bodyPartName):set(material)
+				end
+			end
+		else
+			task:buffPlayer("BodyMaterial"):set(material)
+		end
 	end
 end
 

@@ -44,6 +44,8 @@ function Clone.new(playerOrCharacterOrUserId, properties)
     self.applyingHumanoidDescription = false
     self.humanoidDescriptionQueue = {}
     self.height = 5.2
+    self.animateScript = nil
+    self.animateScriptDisabled = false
 
     if properties then
         for key, value in pairs(properties) do
@@ -121,6 +123,11 @@ function Clone:become(item)
             clone.Name = self.character.Name
             local charHumanoid = self.character:FindFirstChild("Humanoid")
             clone.Humanoid.DisplayName = self.displayName or (charHumanoid and charHumanoid.DisplayName) or self.character.Name
+            for _, instance in pairs(clone:GetChildren()) do
+                if instance:IsA("Script") or instance:IsA("LocalScript") then
+                    instance:Destroy()
+                end
+            end
             
         else
             local randomPlayer = main.Players:GetPlayers()[1]
@@ -194,7 +201,9 @@ function Clone:become(item)
         end))
 
         local animateScript = (main.isClient and main.shared.Assets.AnimateClient:Clone()) or main.server.Assets.AnimateServer:Clone()
+        animateScript.Disabled = true
         self.maid:give(animateScript)
+        self.animateScript = animateScript
         if main.isServer then
             animateScript.Parent = clone
         else
@@ -209,7 +218,9 @@ function Clone:become(item)
             animateScript.CloneCharacter.Value = clone
             animateScript.Parent = clientAnimateStorage
         end
-        animateScript.Disabled = false
+        main.modules.Thread.spawn(function()
+            self:disableAnimateScript(self.animateScriptDisabled)
+        end)
     
 
     elseif self.clone then
@@ -267,6 +278,14 @@ function Clone:setName(name)
     self.humanoid.DisplayName = stringName
     self.displayName = name
     self.clone.Name = stringName
+end
+
+function Clone:disableAnimateScript(bool)
+    local disableBool = (bool == true or bool == nil)
+    if self.animateScript then
+        self.animateScript.Disabled = disableBool
+    end
+    self.animateScriptDisabled = disableBool
 end
 
 function Clone:show()

@@ -220,6 +220,27 @@ Args.array = {
 
 	-----------------------------------
 	{
+		name = "bodyParts",
+		aliases = {"bodyGroups"},
+		displayName = "bodyGroup",
+		description = "Accepts a bodyGroup, such as 'Head', 'LeftArm', 'RightLeg', 'Torso', 'Legs', 'Arms', etc.",
+		defaultValue = false,
+		parse = function(self, stringToParse)
+			local stringLower = stringToParse:lower()
+			local fullname = main.modules.Agent.Buff.BodyUtil.bodyGroupsLower[stringLower]
+			if fullname then
+				return {fullname}
+			elseif stringLower == "legs" then
+				return {"LeftLeg", "RightLeg"}
+			elseif stringLower == "arms" then
+				return {"LeftArm", "RightArm"}
+			end
+			return
+		end,
+	},
+
+	-----------------------------------
+	{
 		name = "unfilteredtext",
 		aliases = {"code", "lua"},
 		description = "Accepts a string and returns it unfiltered.",
@@ -476,7 +497,7 @@ Args.array = {
 		name = "color", -- have a predefined list of colors such as 'red', 'blue', etc which the user can reference. also consider rgb capsules
 		aliases = {"colour", "color3", "uigradient", "colorgradient", "gradient"},
 		description = "Accepts a color name (such as 'red'), a hex code (such as '#FF0000') or an RGB capsule (such as '[255,0,0]') and returns a Color3.",
-		defaultValue = Color3.fromRGB(255, 255, 255),
+		defaultValue = false,
 		parse = function(self, stringToParse)
 			-- This checks for a predefined color term within SystemSettings.colors, such as 'blue', 'red', etc
 			local lowerCaseColors = main.services.SettingService.getLowerCaseColors()
@@ -650,7 +671,7 @@ Args.array = {
 		name = "material",
 		aliases = {},
 		description = "Accepts a valid material and returns a Material enum.",
-		defaultValue = Enum.Material.Plastic,
+		defaultValue = false,
 		parse = function(self, stringToParse)
 			local enumItem = materialEnumNamesLowercase[stringToParse:lower()]
 			if enumItem then

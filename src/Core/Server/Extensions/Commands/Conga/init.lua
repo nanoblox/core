@@ -9,7 +9,7 @@ Command.aliases	= {"CopyCat"}
 Command.opposites = {}
 Command.tags = {"Fun"}
 Command.prefixes = {}
-Command.contributors = {82347291}
+Command.contributors = {82347291, 24670328}
 Command.blockPeers = false
 Command.blockJuniors = false
 Command.autoPreview = false
@@ -18,7 +18,7 @@ Command.revokeRepeats = false
 Command.preventRepeats = main.enum.TriStateSetting.False
 Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilRevoked
-Command.args = {"Players", "TargetPlayer"}
+Command.args = {"Players", "TargetPlayer"} --!!! this will change, not finished yet!!
 
 function Command.invoke(task, args)
 	local players = args[1]
@@ -38,7 +38,7 @@ function Command.invoke(task, args)
 		return task:kill()
 	end
 
-	-- This ends the task if the targetPlayer dies or leaves
+	-- This ends the task if the targetPlayer dies, respawns or leaves --!!! REMOVE THIS AFTERWARDS AND SET Command.persistence = main.enum.Persistence.UntilPlayerRespawns (or dies, test)
 	local humanoid = main.modules.PlayerUtil.getHumanoid(targetPlayer)
 	if not humanoid or humanoid.Health <= 0 then
 		task:kill()
@@ -53,7 +53,7 @@ function Command.invoke(task, args)
 		end
 	end))
 
-	-- This removes a player from a conga line if they die
+	-- This removes a player from a conga line if they die --!!! ADD PLAYER LEAVING AND RESPAWNING DETECTION
 	local trackingPlayers = {}
 	local function trackPlayer(player)
 		if not trackingPlayers[player] then

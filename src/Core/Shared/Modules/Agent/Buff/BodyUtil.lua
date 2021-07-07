@@ -40,6 +40,10 @@ local bodyGroups = {
     },
 }
 BodyUtil.bodyGroups = bodyGroups
+BodyUtil.bodyGroupsLower = {}
+for key, value in pairs(bodyGroups) do
+    BodyUtil.bodyGroupsLower[key:lower()] = key
+end
 
 local FAKE_GROUP_NAME = "AgentFakeBodyParts"
 

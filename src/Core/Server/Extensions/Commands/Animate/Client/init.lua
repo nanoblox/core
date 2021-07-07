@@ -10,21 +10,19 @@ function ClientCommand.invoke(task, player, animationId, speed, isLooped)
 	if not animTrack then
 		return
 	end
+	local weight = (isLooped and 98) or 99
 	task:give(animTrack)
 	task:give(animation)
-	animTrack:AdjustWeight(100)
 	animTrack.Looped = isLooped
 	animTrack.Priority = Enum.AnimationPriority.Action
-	animTrack:Play(fadeTime, nil, speed)
+	animTrack:Play(fadeTime, weight, speed)
 	task:give(function()
 		animTrack:Stop(fadeTime)
 	end)
-	if player == main.localPlayer then
-		animTrack.Stopped:Connect(function()
-			task:kill()
-		end)
-		player.Character.Humanoid.Died:Wait()
-	end
+	animTrack.Stopped:Connect(function()
+		task:kill()
+	end)
+	player.Character.Humanoid.Died:Wait()
 end
 
 

@@ -39,7 +39,7 @@ function Role:destroy()
 	end
 end
 
-function Role:give(user, roleType)
+function Role:giveTo(user, roleType)
 	user.temp:getOrSetup("roles"):set(self.settings.UID, true)
 	main.services.RoleService.updateRoleInformation(user)
 end
@@ -48,7 +48,7 @@ function Role:setRoleType(user, roleType)
 
 end
 
-function Role:take(user)
+function Role:takeFrom(user)
 
 	main.services.RoleService.updateRoleInformation(user)
 end
@@ -78,7 +78,7 @@ end
 function Role:destroy()
 	local users = self:getUsers()
 	for _, user in pairs(users) do
-		Role:take(user)
+		Role:takeFrom(user)
 	end
 end
 

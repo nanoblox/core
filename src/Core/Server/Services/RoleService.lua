@@ -548,7 +548,7 @@ function RoleService.giveRoles(user, arrayOfRoleNamesOrUIDs, roleType)
 	for _, roleNameOrUID in pairs(arrayOfRoleNamesOrUIDs) do
 		local role = RoleService.getRole(roleNameOrUID)
 		if role then
-			role:give(user, roleType)
+			role:giveTo(user, roleType)
 		else
 			warn(("Nanoblox: failed to give role '%s'; role does not exist!"):format(roleNameOrUID))
 		end
