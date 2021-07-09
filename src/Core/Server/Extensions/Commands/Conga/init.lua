@@ -55,6 +55,7 @@ function Command.invoke(task, args)
 
 	-- This removes a player from a conga line if they die --!!! ADD PLAYER LEAVING AND RESPAWNING DETECTION
 	local trackingPlayers = {}
+	local playerChattedRemote = task:give(main.modules.Remote.new("PlayerChatted-"..task.UID))
 	local function trackPlayer(player)
 		if not trackingPlayers[player] then
 			trackingPlayers[player] = true
@@ -70,8 +71,29 @@ function Command.invoke(task, args)
 			task:give(humanoid.Died:Connect(function()
 				untrackPlayer()
 			end))
+
+			-- This listens for the players chat messages
+			main.modules.ChatUtil.getSpeaker(player)
+				:andThen(function(speaker)
+					task:give(speaker.SaidMessage:Connect(function(chatMessage)
+						local message = tostring(chatMessage.FilterResult)
+						if message == "Instance" then
+							message = chatMessage.FilterResult:GetChatForUserAsync(player.UserId)
+						end
+						if main.Chat.BubbleChatEnabled and chatMessage.MessageType == "Message" then
+							playerChattedRemote:fireAllClients(player, message)
+						end
+					end))
+				end)
+				:catch(warn)
 		end
 	end
+
+	-- This adds a tag to the targetPlayer's Humanoid to indicate they are a conga leader
+	local tag = task:give(Instance.new("BoolValue"))
+	tag.Name = "NanobloxCongaLeader"
+	tag.Value = true
+	tag.Parent = humanoid
 
 	-- This creates the conga list and adds the players to it
 	congaList = targetUser.temp:set("congaCommandList", {})
@@ -81,11 +103,11 @@ function Command.invoke(task, args)
 	end
 	
 	-- This listens for changes (i.e. players being added or removed from the conga line) and updates the clients
-	local remote = task:give(main.modules.Remote.new(task.UID))
+	local congaListRemote = task:give(main.modules.Remote.new("CongaList-"..task.UID))
 	task:give(congaList.changed:Connect(function(index, playerOrNil)
 		print("index, playerOrNil = ", index, playerOrNil)
 		trackPlayer(playerOrNil)
-		remote:fireAllClients(index, playerOrNil)
+		congaListRemote:fireAllClients(index, playerOrNil)
 	end))
 	task:invokeAllAndFutureClients(targetPlayer, congaList)
 

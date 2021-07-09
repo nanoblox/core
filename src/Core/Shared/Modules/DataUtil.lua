@@ -138,6 +138,11 @@ function DataUtil.getPathwayDictionary(pathwayString, value)
 	return {[pathwayString] = value}, pathwayString, value
 end
 
+function DataUtil.round(number, decimalPlaces)
+	decimalPlaces = decimalPlaces or 0
+	return math.round(number * 10^decimalPlaces) * 10^-decimalPlaces
+end
+
 
 
 return DataUtil

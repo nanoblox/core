@@ -98,6 +98,56 @@ function PlayerUtil.loadTrack(player, animationId)
 	return animator:LoadAnimation(animation)
 end
 
+local hiddenCharacters = {}
+function PlayerUtil.hideCharacter(playerOrCharacter)
+	local storageName = "NanobloxHiddenCharacters"
+	local hiddenStorage = main.ReplicatedStorage:FindFirstChild(storageName)
+	if not hiddenStorage then
+		hiddenStorage = Instance.new("Folder")
+		hiddenStorage.Name = storageName
+		hiddenStorage.Parent = main.ReplicatedStorage
+	end
+	if main.isClient and playerOrCharacter == nil then
+		playerOrCharacter = main.localPlayer
+	end
+	local character = (playerOrCharacter:IsA("Player") and playerOrCharacter.Character) or playerOrCharacter
+	local hiddenKey = main.modules.DataUtil.generateUID()
+	local hiddenDetail = hiddenCharacters[character]
+	if character then
+		if hiddenDetail == nil then
+			hiddenCharacters[character] = {(character.Parent or workspace), hiddenKey}
+			character.Parent = hiddenStorage
+		else
+			hiddenDetail[2] = hiddenKey
+		end
+	end
+	return hiddenKey
+end
+
+function PlayerUtil.showCharacter(playerOrCharacter)
+	if main.isClient and playerOrCharacter == nil then
+		playerOrCharacter = main.localPlayer
+	end
+	local character = (playerOrCharacter:IsA("Player") and playerOrCharacter.Character) or playerOrCharacter
+	local hiddenDetail = hiddenCharacters[character]
+	if hiddenDetail then
+		hiddenCharacters[character] = nil
+		character.Parent = hiddenDetail[1]
+	end
+end
+
+function PlayerUtil.isHidden(playerOrCharacter)
+	if main.isClient and playerOrCharacter == nil then
+		playerOrCharacter = main.localPlayer
+	end
+	local character = (playerOrCharacter:IsA("Player") and playerOrCharacter.Character) or playerOrCharacter
+	local hiddenDetail = hiddenCharacters[character]
+	if hiddenDetail then
+		return true, hiddenDetail[2]
+	end
+	return false
+end
+
 
 
 return PlayerUtil

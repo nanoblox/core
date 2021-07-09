@@ -19,6 +19,7 @@ Command.preventRepeats = main.enum.TriStateSetting.Default
 Command.cooldown = 0
 Command.persistence = main.enum.Persistence.None
 Command.args = {"Player", "Speed"}
+
 Command.emoteId = 3576823880
 
 function Command.invoke(task, args)

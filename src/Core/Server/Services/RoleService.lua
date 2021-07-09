@@ -142,6 +142,7 @@ function RoleService.generateRecord()
 			toAllowlistedIDs = false,
 			whenQualifierTargetCapEnabled = false,
 			qualifierTargetCapAmount = 1,
+			roleModifiersToOnlyRoleCommands = false, -- if true, this limits all the modifiers to its select role. for this,  
 		},
 		
 		-- Individual Powers

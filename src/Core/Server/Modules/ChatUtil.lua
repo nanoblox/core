@@ -46,6 +46,19 @@ function ChatUtil.filterText(fromUserId, toUserId, textToFilter)
 		end)
 end
 
+function ChatUtil.getSpeaker(player)
+	return main.modules.Promise.new(function(resolve, reject)
+		local ChatService = require(game:GetService("ServerScriptService"):WaitForChild("ChatServiceRunner").ChatService)
+		local speaker = ChatService:GetSpeaker(player.Name)
+    	local checkPlayer = speaker and speaker:GetPlayer()
+		if not checkPlayer then
+			reject(("Speaker '%s' does not exist"):format(tostring(player.Name)))
+		end
+		resolve(speaker)
+	end)
+end
+	
+
 
 
 return ChatUtil

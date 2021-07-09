@@ -15,12 +15,7 @@ function main.initiate(loader)
 	-- To index a service, do main.ServiceName (e.g. main.Players, main.TeleportService, main.TweenService, etc)
 	setmetatable(main, {
 		__index = function(this, index)
-			local pass, service
-			if index == "ChatService" then
-				pass, service = true, require(main.ServerScriptService:WaitForChild("ChatServiceRunner"):WaitForChild("ChatService"))
-			else
-				pass, service = pcall(game.GetService, game, index)
-			end
+			local pass, service = pcall(game.GetService, game, index)
 			if pass then
 				this[index] = service
 				return service

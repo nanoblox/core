@@ -7,8 +7,6 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 
 	-- This command could have been a few lines long, although I really wanted to provide the ability to customise the ANIMATION_DELAY and GAP, hence
 	-- it became this mammoth instead (due to the additional details like jumps, motors, positions, etc that require tracking)
-
-	-- This records the targetPlayers details
 	local ANIMATION_DELAY = 0.3
 	local GAP = 4
 
@@ -31,30 +29,14 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 	local movementHistory = {}
 	local totalMovementHistory = 0
 	local prevTargetPos
+	local prevDistanceTravelledThisFrame = 0
+	local prevTargetMoveMagnitude = 0
 	local targetMotorValues = {}
 	local targetIsOnlyRunningOrWalking = false
-	local targetIsJumpingFromStanding = false
-	local targetIsJumping = false
-	local targetJumpHeight = 0
-	local targetJumpingStartPositionY
-	local movingAfterStandingJump
-	local STANDING_DISTANCE = 0.2
+	local targetIsStationaryJumping
 	local targetIsStanding = false
-	--if targetPlayer == main.localPlayer then
-		targetPlayerHumanoid.StateChanged:Connect(function(old, new)
-			--print("old, new = ", old, new)
-			if new == Enum.HumanoidStateType.Jumping or (new == Enum.HumanoidStateType.Freefall and not targetIsJumping) then
-				--print("Target jumped!")
-				targetJumpingStartPositionY = targetPlayerHRP.Position.Y
-				targetIsJumping = true
-				targetIsJumpingFromStanding = targetIsStanding
-			elseif old == Enum.HumanoidStateType.Landed or (old == Enum.HumanoidStateType.Freefall and new ~= Enum.HumanoidStateType.Landed) then
-				--print("Target jump ended!")
-				targetIsJumping = false
-				targetIsJumpingFromStanding = false
-			end
-		end)
-	--end
+	local stopCooldown = 0
+	
 	local movementAnims = {
 		["WalkAnim"] = 2,
 		["RunAnim"] = 2,
@@ -124,36 +106,39 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 
 		--
 		local newTargetPos = targetPlayerHRP.Position
-		local distanceTravelledThisFrame = (prevTargetPos and (prevTargetPos - newTargetPos).Magnitude) or 0
-		local xAndZDistanceTravelledThisFrame = (prevTargetPos and (Vector3.new(prevTargetPos.X, 0, prevTargetPos.Z) - Vector3.new(newTargetPos.X, 0, newTargetPos.Z)).Magnitude) or 0
-		prevTargetPos = newTargetPos
-		targetIsStanding = xAndZDistanceTravelledThisFrame <= STANDING_DISTANCE
-		if targetIsJumping then
-			targetJumpHeight = newTargetPos.Y - targetJumpingStartPositionY
-		end
-		if targetJumpHeight ~= 0 and not targetIsJumping and firstAnimName ~= "FallAnim" then
-			targetJumpHeight = 0
-		end
-		print("targetIsJumping, targetJumpHeight, targetIsJumpingFromStanding = ", targetIsJumping, targetJumpHeight, targetIsJumpingFromStanding)
+		local distanceTravelledThisFrame = main.modules.DataUtil.round((prevTargetPos and (prevTargetPos - newTargetPos).Magnitude) or 0, 4)
+		local xAndZDistanceTravelledThisFrame = main.modules.DataUtil.round((prevTargetPos and (Vector3.new(prevTargetPos.X, 0, prevTargetPos.Z) - Vector3.new(newTargetPos.X, 0, newTargetPos.Z)).Magnitude) or 0, 4)
+		targetIsStanding = xAndZDistanceTravelledThisFrame <= 0 -- prev 0.2
 		
-		-- This cancels any fixed animations if a player jumps (while standing) then moves
-		local finalJumpHeight = targetJumpHeight
-		movingAfterStandingJump = targetIsJumpingFromStanding and xAndZDistanceTravelledThisFrame > 0
-		if targetIsJumpingFromStanding then
+		-- This determines if the player is jumping while stationary
+		if not targetIsStationaryJumping and xAndZDistanceTravelledThisFrame == 0 and prevDistanceTravelledThisFrame == 0 and distanceTravelledThisFrame > 0 then
+			targetIsStationaryJumping = true
+		end
+		if targetIsStationaryJumping and (xAndZDistanceTravelledThisFrame > 0 or distanceTravelledThisFrame == 0) then
+			targetIsStationaryJumping = false
+		end
+		if targetIsStationaryJumping then
 			isFixedAnim = false
 			fixedMotors = nil
-			finalJumpHeight = 0
 		end
 
-		if not targetIsJumpingFromStanding or movingAfterStandingJump then
-			local targetIsMoving = targetPlayerHumanoid.MoveDirection.Magnitude > 0 or distanceTravelledThisFrame > STANDING_DISTANCE
+		-- This prevents the second clone bunching up to the conga leader when stopping
+		local targetMoveMagnitude = math.round(targetPlayerHumanoid.MoveDirection.Magnitude)
+		if stopCooldown == 0 and targetMoveMagnitude == 0 and prevTargetMoveMagnitude == 1 then
+			stopCooldown = 4
+		elseif stopCooldown > 0 then
+			stopCooldown -= 1
+		end
+
+		if not targetIsStationaryJumping then
+			local targetIsMoving = targetMoveMagnitude > 0 or (distanceTravelledThisFrame > 0 and stopCooldown == 0)
 			if targetIsMoving then
 				totalMovementHistory += 1
 				table.insert(movementHistory, {
-					cf = targetPlayerHRP.CFrame * CFrame.new(0, -targetJumpHeight, 0),
+					cf = targetPlayerHRP.CFrame, -- * CFrame.new(0, -targetJumpHeight, 0),
 					hs = targetPlayerHRP.Size.Y*1.5,
 					fm = fixedMotors,
-					jh = finalJumpHeight,
+					--jh = finalJumpHeight,
 				})
 			elseif isFixedAnim and not targetIsStanding then
 				totalMovementHistory += 1
@@ -162,15 +147,22 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 				})
 			end
 		end
+
+		prevDistanceTravelledThisFrame = distanceTravelledThisFrame
+		prevTargetPos = newTargetPos
+		prevTargetMoveMagnitude = targetMoveMagnitude
 	end))
 
 	-- This constructs the clone
+	local playerChattedRemote = task:give(main.modules.Remote.new("PlayerChatted-"..task.UID))
 	local cloneStartIndex = 1
 	local function createClone(index, player)
+		-- This creates and modifies the clone
 		local clone = task:give(main.modules.Clone.new(player, {forcedRigType = rigType}))
 		clone:anchorHRP(true)
 		clone:setSize(1)
 		clone:setCollidable(false)
+		clone.congaPlayer = player
 		function clone:setIndex(index)
 			self.index = index
 			self.congaDelay = index*ANIMATION_DELAY
@@ -187,6 +179,49 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 			end
 		end
 		
+		-- This updates the clients camera if they are that clone (and not the leader) and dont already have a clone in that line
+		-- This is also responsible for hiding/showing a players real character
+		local playerAlreadyExistsInLine = false
+		for i, otherClone in pairs(playerClones) do
+			if otherClone.congaPlayer == player and i ~= index then
+				playerAlreadyExistsInLine = true
+			end
+		end
+		local CameraUtil = main.modules.CameraUtil
+		local PlayerUtil = main.modules.PlayerUtil
+		local playerHumanoid = main.modules.PlayerUtil.getHumanoid(player)
+		local isCongaLeader = playerHumanoid and playerHumanoid:FindFirstChild("NanobloxCongaLeader")
+		local isLocalPlayer = main.localPlayer == player
+		if not isCongaLeader and not playerAlreadyExistsInLine then
+			local hiddenKey = PlayerUtil.hideCharacter(player)
+			if isLocalPlayer then
+				CameraUtil.setSubject(clone.humanoid)
+			end
+			task:give(function()
+				playerHumanoid = PlayerUtil.getHumanoid(main.localPlayer)
+				local _, newHiddenKey = PlayerUtil.isHidden(player)
+				if playerHumanoid and hiddenKey == newHiddenKey then
+					PlayerUtil.showCharacter(player)
+					if isLocalPlayer then
+						CameraUtil.setSubject(playerHumanoid)
+					end
+				end
+			end)
+		elseif isCongaLeader then
+			PlayerUtil.showCharacter(player)
+			if isLocalPlayer then
+				CameraUtil.setSubject(playerHumanoid)
+			end
+		end
+
+		-- This mimics the players bubble chat above the clones head
+		playerChattedRemote.onClientEvent:Connect(function(forPlayer, message)
+			local cloneHead = clone.clone:FindFirstChild("Head")
+			if cloneHead and forPlayer == player then
+				main.Chat:Chat(cloneHead, message, Enum.ChatColor.White)
+			end
+		end)
+
 		local TableUtil = main.modules.TableUtil
 		local cloneStepId = 0
 		local cloneStepOverrideDetails
@@ -226,11 +261,24 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 			-- This is important for tracking what frame we wish to update a Motor6D
 			cloneStepId += 1
 
+			-- This calculates the relative rotation of the lead clone
+			local rotationOffset = 0
+			local jumpOffset = 0
+			local leadRecord = movementHistory[totalMovementHistory]
+			local leadHistoryCFrame = leadRecord and leadRecord.cf
+			if leadHistoryCFrame then
+				local projectedVector = targetPlayerHRP.CFrame:VectorToObjectSpace(leadHistoryCFrame.lookVector) * Vector3.new(1, 0, 1)
+				rotationOffset = ((math.deg(math.atan2(projectedVector.Z, projectedVector.X)) + 270) % 360) - 180
+				jumpOffset = targetPlayerHRP.Position.Y - leadHistoryCFrame.Position.Y
+			end
+
 			-- This handles the relative positioning of the clone
-			local offset
+			local sizeOffset = 0
 			local fixedCFrame
-			local function setCFrame(value)
-				clone:setCFrame(value * CFrame.new(0, offset, 0))
+			local function setCFrame(value, rotation, jumpHeight)
+				local finalRotation = rotation or rotationOffset or 0
+				local finalJumpOffset = jumpHeight or jumpOffset or 0
+				clone:setCFrame(value * CFrame.new(0, sizeOffset+finalJumpOffset, 0) * CFrame.Angles(0, math.rad(finalRotation), 0))
 			end
 			local function updateHistoryIndex()
 				local newIndex = cloneHistoryIndex + 1
@@ -256,20 +304,13 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 					updateHistoryIndex()
 					return historyFixedMotors
 				end
-				offset = clone.hrp.Size.Y*1.5 - historyRecord.hs
-				if targetIsJumpingFromStanding and not movingAfterStandingJump then
-					-- This handles standing jumps
-					local myPos = clone.hrp.Position
-					local baseCFrame = clone.hrp.CFrame * CFrame.new(0, historyCFrame.Position.Y - myPos.Y, 0)
-					fixedCFrame = baseCFrame * CFrame.new(0, targetJumpHeight, 0)
-					return
-				end
+				sizeOffset = clone.hrp.Size.Y*1.5 - historyRecord.hs
 				if totalMovementHistory - cloneHistoryIndex < clone.congaGap - 1 then
 					return
 				end
 				if historyRecord.jh then
 					-- This handles moving jumps
-					historyCFrame = historyCFrame*CFrame.new(0, historyRecord.jh, 0)
+					--historyCFrame = historyCFrame*CFrame.new(0, historyRecord.jh, 0)
 				end
 				setCFrame(historyCFrame)
 				updateHistoryIndex()
@@ -277,7 +318,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 			end
 
 			-- This handles the mimicking of animations
-			local function updateAnimValues(motorValues, fixedCFrameValue)
+			local function updateAnimValues(motorValues, fixedCFrameValue, rotation, jumpHeight)
 				for name, value in pairs(motorValues) do
 					local motor = clone.motors[name]
 					if motor then
@@ -285,13 +326,19 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 					end
 				end
 				if fixedCFrameValue then
-					setCFrame(fixedCFrameValue)
+					setCFrame(fixedCFrameValue, rotation, jumpHeight)
+				else--if tmath.abs(rotation) > 0.5 then
+					local historyRecord = movementHistory[cloneHistoryIndex]
+					local cframe = historyRecord and historyRecord.cf
+					if cframe then
+						setCFrame(cframe, rotation, jumpHeight)
+					end
 				end
 			end
 
 			local fixedMotors = handlePositioning()
 			local cloneMotorValues = fixedMotors or targetMotorValues
-			
+
 			local overrideDetails = cloneStepOverrideDetails and cloneStepOverrideDetails[tostring(cloneStepId)]
 			if targetIsOnlyRunningOrWalking then
 				-- This ensures the cancelling of all stationary delayed animations if the player begins walking again
@@ -307,19 +354,21 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 					cloneStepOverrideDetails[tostring(newStepId)] = {
 						cloneMotorValues = TableUtil.copy(targetMotorValues),
 						fixedCFrame = fixedCFrame,
+						rotation = rotationOffset or 0,
+						jumpHeight = jumpOffset,
 					}
 					if overrideDetails then
-						updateAnimValues(overrideDetails.cloneMotorValues, overrideDetails.fixedCFrame)
+						updateAnimValues(overrideDetails.cloneMotorValues, overrideDetails.fixedCFrame, overrideDetails.rotation, overrideDetails.jumpHeight)
 						return
 					end
 					return
 				end
 			end
 			if overrideDetails then
-				updateAnimValues(overrideDetails.cloneMotorValues, overrideDetails.fixedCFrame)
+				updateAnimValues(overrideDetails.cloneMotorValues, overrideDetails.fixedCFrame, overrideDetails.rotation, overrideDetails.jumpHeight)
 				return
 			end
-			updateAnimValues(cloneMotorValues, fixedCFrame)
+			updateAnimValues(cloneMotorValues, fixedCFrame, rotationOffset, jumpOffset)
 
 		end))
 	end
@@ -329,8 +378,8 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 		createClone(index, player)
 	end
 
-	local remote = task:give(main.modules.Remote.new(task.UID))
-	remote.onClientEvent:Connect(function(index, playerOrNil)
+	local congaListRemote = task:give(main.modules.Remote.new("CongaList-"..task.UID))
+	congaListRemote.onClientEvent:Connect(function(index, playerOrNil)
 		local existingClone = playerClones[index]
 		if playerOrNil == nil then
 			existingClone:Destroy()

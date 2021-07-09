@@ -66,29 +66,42 @@ end
 
 -- METAMETHODS
 function Remote:__index(index)
-	local newIndex = Remote[index]
-	if not newIndex then
-		local remoteType, remoteInstance, indexFormatted = self:_checkRemoteInstance(index)
-		if remoteType then
-			if remoteInstance then
-				newIndex = remoteInstance[indexFormatted]
-			else
-				newIndex = {}
-				local events = {}
-				function newIndex:Connect(event)
-					table.insert(events, event)
-				end
-				self:_continueWhenRemoteInstanceLoaded(remoteType, function(newRemoteInstance)
-					self._maid:give(newRemoteInstance[indexFormatted]:Connect(function(...)
-						for _, event in pairs(events) do
-							event(...)
-						end
-					end))
-				end)
-			end
-		end
+	local indexResult = Remote[index]
+	if indexResult then
+		return indexResult
 	end
-	return newIndex
+	local remoteType, remoteInstance, indexFormatted = self:_checkRemoteInstance(index)
+	if remoteType then
+		local newIndex = {}
+		local eventsName = "events-"..index
+		local events = self[eventsName]
+		if not events then
+			events = {}
+			self[eventsName] = events
+			self:_continueWhenRemoteInstanceLoaded(remoteType, function(newRemoteInstance)
+				self._maid:give(newRemoteInstance[indexFormatted]:Connect(function(...)
+					for _, event in pairs(events) do
+						event(...)
+					end
+				end))
+			end)
+		end
+		function newIndex:Connect(event)
+			local connection = {}
+			function connection:Disconnect()
+				for i, eventToCheck in pairs(events) do
+					if eventToCheck == event then
+						table.remove(events, i)
+						break
+					end
+				end
+			end
+			connection.Destroy = connection.Disconnect
+			table.insert(events, event)
+			return connection
+		end
+		return newIndex
+	end
 end
 
 function Remote:__newindex(index, customFunction)

@@ -170,6 +170,7 @@ function User:saveAsync()
 	local backupAction = false
 	local success = self:_protectedCall(callType, function(finalAttempt)
 		return self.dataStore:UpdateAsync(self.key, function(previousData)
+			print("previousData = ", previousData)
 			previousData = previousData or self._data
 			if previousData._dataId == self._data._dataId then
 				-- DataIds match, generate new unique DataId
@@ -303,11 +304,6 @@ function User:destroy()
 	self._maid:clean()
 	self.destroyed:Fire()
 	self.destroyed:Destroy()
-	for k, v in pairs(self) do
-		if typeof(v) == "table" then
-			self[k] = nil
-		end
-	end
 	self.isDestroyed = true
 end
 
