@@ -313,7 +313,11 @@ function Task:execute()
 						self.originalArgReturnValues[argItem.name] = returnValue
 						self.originalArgReturnValuesFromIndex[iNow] = returnValue
 						if returnValue == nil then
-							returnValue = argItem.defaultValue
+							local defaultValue = argItem.defaultValue
+							if typeof(defaultValue) == "table" then
+								defaultValue = main.modules.TableUtil.copy(argItem.defaultValue)
+							end
+							returnValue = defaultValue
 						end
 						parsedArgs[iNow] = returnValue
 					end)
@@ -356,7 +360,7 @@ function Task:execute()
 		end
 
 		-- If the task has no associated player *but* does contain qualifiers (such as in ;globalKill all)
-		local targetPlayers = firstArgItem:parse(self.qualifiers, self.callerUserId)
+		local targetPlayers = firstArgItem:parse(self.qualifiers, self.callerUserId) or {}
 		if firstArgItem.executeForEachPlayer then -- If the firstArg has executeForEachPlayer, convert the task into subtasks for each player returned by the qualifiers
 			for i, plr in pairs(targetPlayers) do
 				--self:track(main.modules.Thread.delayUntil(function() return self.filteredAllArguments == true end, function()

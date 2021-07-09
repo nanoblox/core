@@ -125,10 +125,15 @@ Args.array = {
 		name = "players",
 		aliases = {},
 		description = "Accepts qualifiers (e.g. 'raza', '@ForeverHD', 'others' from ';paint raza,@ForeverHD,others') and returns an array of Player instances.",
+		defaultValue = {},
 		playerArg = true,
 		executeForEachPlayer = false,
 		parse = function(self, qualifiers, callerUserId)
-			return main.modules.Parser.Args.get("player"):parse(qualifiers, callerUserId, {ignoreDefault = true})
+			if main.modules.TableUtil.isQualifiersEmpty(qualifiers) then
+				return nil
+			end
+			local players = main.modules.Parser.Args.get("player"):parse(qualifiers, callerUserId, {ignoreDefault = true})
+			return players
 		end,
 	},
 
@@ -137,12 +142,13 @@ Args.array = {
 		name = "targetPlayer",
 		aliases = {},
 		description = "Accepts qualifiers (e.g. 'raza', '@ForeverHD', 'others' from ';paint raza,@ForeverHD,others') and returns a single Player instance (or false).",
+		defaultValue = false,
 		playerArg = true,
 		executeForEachPlayer = true,
 		parse = function(self, qualifiers, callerUserId)
 			print("Getting...")
 			local players = main.modules.Parser.Args.get("player"):parse(qualifiers, callerUserId, {ignoreDefault = true})
-			return players[1] or false
+			return players[1]
 		end,
 	},
 
@@ -168,11 +174,13 @@ Args.array = {
 		name = "optionalplayers",
 		aliases = {},
 		description = "Hides the players argument for general use and only displays it within the preview menu.",
+		defaultValue = {},
 		playerArg = true,
 		hidden = true,
 		executeForEachPlayer = false,
 		parse = function(self, qualifiers, callerUserId)
-			return main.modules.Parser.Args.get("optionalplayer"):parse(qualifiers, callerUserId)
+			local players = main.modules.Parser.Args.get("optionalplayer"):parse(qualifiers, callerUserId)
+			return players
 		end,
 	},
 
@@ -254,7 +262,7 @@ Args.array = {
 	-----------------------------------
 	{
 		name = "number",
-		aliases = {"integer", "studs", "speed", "intensity"},
+		aliases = {"integer", "studs", "speed", "intensity", "delay", "gap"},
 		description = "Accepts a number string and returns a Number",
 		defaultValue = 0,
 		parse = function(self, stringToParse)

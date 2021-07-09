@@ -382,12 +382,16 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 	congaListRemote.onClientEvent:Connect(function(index, playerOrNil)
 		local existingClone = playerClones[index]
 		if playerOrNil == nil then
-			existingClone:Destroy()
+			if existingClone then
+				existingClone:Destroy()
+			end
 			if index < totalClones then
 				for i = index+1, totalClones do
 					local clone = playerClones[i]
 					local newIndex = i-1
-					clone:setIndex(newIndex)
+					if clone then
+						clone:setIndex(newIndex)
+					end
 					playerClones[newIndex] = clone -- CLONE SHIFT
 				end
 			end
