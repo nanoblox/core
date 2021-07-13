@@ -184,12 +184,12 @@ Modifiers.array = {
 			local targetPlayer = targetUser and targetUser.player
 			if targetPlayer then
 				task.persistence = main.enum.Persistence.UntilLeave
-				task.maid:give(targetPlayer.CharacterAdded:Connect(function(char)
+				task.janitor:add(targetPlayer.CharacterAdded:Connect(function(char)
 					main.RunService.Heartbeat:Wait()
 					char:WaitForChild("HumanoidRootPart")
 					char:WaitForChild("Humanoid")
 					task:execute()
-				end))
+				end), "Disconnect")
 				local thread = main.modules.Thread.delayLoopUntil(0.1, function()
 					return targetUser.isDestroyed == true
 				end)

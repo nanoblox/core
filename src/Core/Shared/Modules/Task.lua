@@ -8,7 +8,7 @@ A task is an object which runs for the duration of a command. If you applied a w
 
 -- LOCAL
 local main = require(game.Nanoblox)
-local Maid = main.modules.Maid
+local Janitor = main.modules.Janitor
 local Signal = main.modules.Signal
 local Task = {}
 Task.__index = Task
@@ -20,8 +20,8 @@ function Task.new(properties)
 	local self = {}
 	setmetatable(self, Task)
 	
-	local maid = Maid.new()
-	self.maid = maid
+	local janitor = Janitor.new()
+	self.janitor = janitor
 	for k,v in pairs(properties or {}) do
 		self[k] = v
 	end
@@ -35,9 +35,9 @@ function Task.new(properties)
 	self.begun = false
 	self.executing = false
 	self.totalExecutionThreads = 0
-	self.executionThreadsCompleted = maid:give(Signal.new())
-	self.executionCompleted = maid:give(Signal.new())
-	self.callerLeft = maid:give(Signal.new())
+	self.executionThreadsCompleted = janitor:add(Signal.new(), "destroy")
+	self.executionCompleted = janitor:add(Signal.new(), "destroy")
+	self.callerLeft = janitor:add(Signal.new(), "destroy")
 	self.persistence = self.command.persistence
 	self.cooldown = (main.isServer and tonumber(self.command.cooldown) or 0)
 	self.trackingClients = {}
@@ -48,7 +48,7 @@ function Task.new(properties)
 	self.originalArgReturnValuesFromIndex = {}
 	self.trackingItems = {}
 	self.anchoredParts = {}
-	maid:give(function()
+	janitor:add(function()
 		self.anchoredParts = nil
 	end)
 
@@ -98,13 +98,13 @@ function Task.new(properties)
 			self:kill()
 		end
 	end
-	maid:give(main.Players.PlayerRemoving:Connect(function(plr)
+	janitor:add(main.Players.PlayerRemoving:Connect(function(plr)
 		local userId = plr.UserId
 		playerOrCallerRemoving(userId, true)
-	end))
-	maid:give(self.callerLeft:Connect(function()
+	end), "Disconnect")
+	janitor:add(self.callerLeft:Connect(function()
 		playerOrCallerRemoving(self.callerUserId)
-	end))
+	end), "Disconnect")
 
 	local function setupPersistenceEnum(playerInstance, playerType)
 		if not main.isServer or not playerInstance then
@@ -122,21 +122,21 @@ function Task.new(properties)
 				if humanoid.Health <= 0 then
 					died()
 				else
-					maid:give(humanoid.Died:Connect(function()
+					janitor:add(humanoid.Died:Connect(function()
 						died()
-					end))
+					end), "Disconnect")
 				end
 			end
 		end
 		if playerInstance then
-			maid:give(playerInstance.CharacterAdded:Connect(function(char)
+			janitor:add(playerInstance.CharacterAdded:Connect(function(char)
 				local enumItemName = ("Until%sRespawns"):format(playerType)
 				if self.persistence == main.enum.Persistence[enumItemName] then
 					self:kill()
 					return
 				end
 				registerCharacter(char)
-			end))
+			end), "Disconnect")
 			main.modules.Thread.spawn(registerCharacter, playerInstance.Character)
 		end
 	end
@@ -412,7 +412,7 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 		self[newCountPropertyName] = 0
 	end
 	if not self[newCompletedSignalName] then
-		self[newCompletedSignalName] = self.maid:give(Signal.new())
+		self[newCompletedSignalName] = self.janitor:add(Signal.new(), "destroy")
 	end
 	local promiseIsStarting = isAPromise and threadOrTween:getStatus() == main.modules.Promise.Status.Started
 	if isAPromise then
@@ -426,7 +426,7 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 		elseif self.isPaused then
 			threadOrTween:Pause() --thread:pause()
 		end
-		threadOrTween = self.maid:give(threadOrTween)
+		threadOrTween = self.janitor:addObject(threadOrTween)
 	end
 	self[newCountPropertyName] += 1
 	local function declareDead()
@@ -443,22 +443,26 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 		if promiseIsStarting then
 			local task = self
 			local newPromise = threadOrTween:andThen(function(...)
-				-- This ensures all objects within the promise are given to the task maid
+				-- This ensures all objects within the promise are given to the task janitor
 				local items = {...}
-				local function maybeAddItemToMaid(potentialItem)
+				local function maybeAddItemToJanitor(potentialItem)
 					if typeof(potentialItem) == "table" then
 						for potentialItemA, potentialItemB in pairs(potentialItem) do
-							maybeAddItemToMaid(potentialItemA)
-							maybeAddItemToMaid(potentialItemB)
+							maybeAddItemToJanitor(potentialItemA)
+							maybeAddItemToJanitor(potentialItemB)
 						end
 					end
-					if main.modules.Maid.isValidType(potentialItem) then
-						self:give(potentialItem)
-					end
+
+					self:give(potentialItem)
+
+					-- TODO: Figure out how to port this properly. Don't think Janitor can assume *that* well.
+					-- if main.modules.Janitor.isValidType(potentialItem) then
+					-- 	self:give(potentialItem)
+					-- end
 				end
-				maybeAddItemToMaid(items)
+				maybeAddItemToJanitor(items)
 				if task.isDead then
-					self.maid:clean()
+					self.janitor:cleanup()
 					threadOrTween:cancel()
 					return
 				end
@@ -495,7 +499,7 @@ function Task:_setItemAnchored(item, bool)
 				part.Anchored = originalValue
 			end
 		end
-		for _, child in pairs(part:GetChildren()) do
+		for _, child in ipairs(part:GetChildren()) do
 			setAnchored(child)
 		end
 	end
@@ -565,7 +569,7 @@ function Task:kill()
 		removeClientAgent(self.player)
 		removeClientAgent(self.caller)
 	end
-	self.maid:clean()
+	self.janitor:cleanup()
 end
 Task.destroy = Task.kill
 Task.Destroy = Task.kill
@@ -578,11 +582,11 @@ function Task:hijackCommand(commandName, argsTable)
 	end
 end
 
--- An abstraction of ``task.maid:give(...)``
+-- An abstraction of ``task.janitor:addObject(...)``
 function Task:give(item)
 	if self.isDead then
 		main.modules.Thread.spawn(function()
-			self.maid:clear()
+			self.janitor:cleanup()
 		end)
 	end
 	local function trackInstance(instance)
@@ -590,7 +594,7 @@ function Task:give(item)
 		if instance:IsA("Tool") then
 			-- It's important to unequp the humanoid and delay the destroyal of tools to give enough
 			-- time for the gears effects to reset (as tools often contain Scripts and LocalScripts directly inside)
-			self.maid:give(function()
+			self.janitor:add(function()
 				local humanoid = instance.Parent and instance.Parent:FindFirstChild("Humanoid")
 				if humanoid then
 					humanoid:UnequipTools()
@@ -599,12 +603,12 @@ function Task:give(item)
 					end
 				end
 				instance:Destroy()
-			end)
+			end, true)
 			return
 		end
-		self.maid:give(function()
+		self.janitor:add(function()
 			self.trackingItems[instance] = nil
-		end)
+		end, true)
 	end
 	local itemType = typeof(item)
 	-- trackInstance() tracks all relavent instances so that they can be Anchored/Unanchored when a task is paused/resumed
@@ -631,7 +635,7 @@ function Task:give(item)
 		end
 		trackSurfaceLevelInstances(item)
 	end
-	return self.maid:give(item)
+	return self.janitor:addObject(item)
 end
 
 -- An abstraction of ``task:track(main.modules.Thread.spawn(func, ...))``
@@ -834,9 +838,9 @@ end
 
 function Task:invokeFutureClients(...)
 	local args = table.pack(...)
-	self.maid:give(main.Players.PlayerAdded:Connect(function(player)
+	self.janitor:add(main.Players.PlayerAdded:Connect(function(player)
 		self:invokeClient(player, unpack(args))
-	end))
+	end), "Disconnect")
 end
 
 function Task:invokeAllAndFutureClients(...)

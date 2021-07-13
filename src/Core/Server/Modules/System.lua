@@ -61,8 +61,8 @@ function System.new(name, ignoreTempChanges)
 	local self = {}
 	setmetatable(self, System)
 	
-	local maid = main.modules.Maid.new()
-	self._maid = maid
+	local janitor = main.modules.Janitor.new()
+	self._janitor = janitor
 	local user = main.modules.SystemStore:createUser(name)
 	local userLoadedFirstTime = false
 	user.onlySaveDataWhenChanged = false
@@ -210,9 +210,9 @@ function System.new(name, ignoreTempChanges)
 		----
 		self.records = main.modules.State.new(nil, true)
 		----
-		self.recordAdded = maid:give(Signal.new())
-		self.recordRemoved = maid:give(Signal.new())
-		self.recordChanged = maid:give(Signal.new())
+		self.recordAdded = janitor:add(Signal.new(), "destroy")
+		self.recordRemoved = janitor:add(Signal.new(), "destroy")
+		self.recordChanged = janitor:add(Signal.new(), "destroy")
 		self.recordsActionDelay = 0.1
 		self.originalRecordsActionDelay = self.recordsActionDelay
 		local changedUIDs = {}

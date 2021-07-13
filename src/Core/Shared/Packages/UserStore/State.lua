@@ -1,7 +1,7 @@
 -- LOCAL
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local Signal = require(script.Parent.Signal)
-local Maid = require(script.Parent.Maid)
+local Janitor = require(script.Parent.Janitor)
 local activeTables = {}
 local State = {}
 setmetatable(State, {
@@ -71,22 +71,22 @@ end
 function State.new(props, convertDescendantsToTables, parentTable)
 	
 	local newTable = {}
-	local maid = Maid.new()
+	local janitor = Janitor.new()
 	if typeof(props) == "table" and (convertDescendantsToTables or props._convertDescendantsToTables) then
 		for k,v in pairs(props) do
 			if typeof(v) == "table" then
-				v = maid:give(State.new(v, convertDescendantsToTables, newTable))
+				v = janitor:add(State.new(v, convertDescendantsToTables, newTable), "destroy")
 			end
 			newTable[k] = v
 		end
 	end
 	
 	local hiddenKeys = {}
-	hiddenKeys["_tables"] = {}
-	hiddenKeys["_convertDescendantsToTables"] = convertDescendantsToTables
-	hiddenKeys["changedFirst"] = "signal"
-	hiddenKeys["changed"] = "signal"
-	hiddenKeys["_parentTable"] = parentTable
+	hiddenKeys._tables = {}
+	hiddenKeys._convertDescendantsToTables = convertDescendantsToTables
+	hiddenKeys.changedFirst = "signal"
+	hiddenKeys.changed = "signal"
+	hiddenKeys._parentTable = parentTable
 	setmetatable(newTable, {
 		__index = function(this, index)
 			local newIndex = State[index]
@@ -94,7 +94,7 @@ function State.new(props, convertDescendantsToTables, parentTable)
 				local hiddenValue = hiddenKeys[index]
 				if hiddenValue ~= nil then
 					if hiddenValue == "signal" then
-						hiddenValue = maid:give(Signal.new())
+						hiddenValue = janitor:add(Signal.new(), "destroy")
 						hiddenKeys[index] = hiddenValue
 					end
 					newIndex = hiddenValue
@@ -104,7 +104,7 @@ function State.new(props, convertDescendantsToTables, parentTable)
 		end
 	})
 
-	activeTables[newTable] = {maid = maid, hiddenKeys = hiddenKeys} 
+	activeTables[newTable] = {janitor = janitor, hiddenKeys = hiddenKeys} 
 	
 	return newTable
 end
@@ -199,8 +199,8 @@ function State:set(stat, value, forceConvertTableToState)
 	local oldValue = self[stat]
 	if type(value) == "table" and (self._convertDescendantsToTables or forceConvertTableToState) then
 		-- Convert tables and descending tables into States if permitted
-		local thisMaid = activeTables[self].maid
-		value = thisMaid:give(State.new(value, self._convertDescendantsToTables, self))
+		local thisJanitor = activeTables[self].janitor
+		value = thisJanitor:add(State.new(value, self._convertDescendantsToTables, self), "destroy")
 	elseif value == nil and type(oldValue) == "table" and oldValue.isState then
 		-- Destroy State and descending States
 		oldValue:destroy()
@@ -380,8 +380,8 @@ end
 -- called, from the listening table, by doing
 -- ``self:get(pathwayArray)``
 function State:createDescendantChangedSignal(includeSelf)
-	local maid = activeTables[self].maid
-	local signal = maid:give(Signal.new())
+	local janitor = activeTables[self].janitor
+	local signal = janitor:add(Signal.new(), "destroy")
 	local function connectToTable(tab, pathwayArray, onlyListenToDescendants)
 		local function connectChild(key, value)
 			if type(value) == "table" then
@@ -424,12 +424,12 @@ end
 function State:setTable(tableName, sortFunction, changeFirst)
 	local activeTable = activeTables[self]
 	if activeTable then
-		local maid = activeTable.maid
+		local janitor = activeTable.janitor
 		local hiddenKeys = activeTable.hiddenKeys
 		local event = (changeFirst and self.changedFirst) or self.changed
-		maid:give(event:Connect(function()
+		janitor:add(event:Connect(function()
 			hiddenKeys._tables[tableName] = sortFunction()
-		end))
+		end), "Disconnect")
 		hiddenKeys._tables[tableName] = sortFunction()
 	end
 end
@@ -448,7 +448,7 @@ end
 function State:destroy()
 	local activeTable = activeTables[self]
 	if activeTable then
-		activeTable.maid:clean()
+		activeTable.janitor:destroy()
 		for k, v in pairs(self) do
 			if typeof(v) == "table" then
 				self[k] = nil
