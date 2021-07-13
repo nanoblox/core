@@ -1,6 +1,6 @@
 -- LOCAL
 local replicatedStorage = game:GetService("ReplicatedStorage")
-local Maid = require(script.Maid)
+local Janitor = require(script.Janitor)
 local User = require(script.User)
 local UserStore = {}
 UserStore.__index = UserStore
@@ -116,12 +116,12 @@ end
 
 -- *Player key specific
 function UserStore:createLeaderstat(player, statToBind)
-	local maidName = "_maid"..player.Name..tostring(statToBind)
-	if self[maidName] then
+	local janitorName = "_janitor"..player.Name..tostring(statToBind)
+	if self[janitorName] then
 		return
 	end
-	local maid = Maid.new()
-	self[maidName] = maid
+	local janitor = Janitor.new()
+	self[janitorName] = janitor
 	local dataTypes = {"perm", "temp"}
 	local user = self:getUser(player)
 	if not user then
@@ -133,7 +133,7 @@ function UserStore:createLeaderstat(player, statToBind)
 		leaderstats.Name = "leaderstats"
 		leaderstats.Parent = player
 	end
-	local statInstance = maid:give(Instance.new("StringValue"))
+	local statInstance = janitor:add(Instance.new("StringValue"), "Destroy")
 	statInstance.Name = statToBind
 	statInstance.Value = "..."
 	coroutine.wrap(function()
@@ -144,27 +144,27 @@ function UserStore:createLeaderstat(player, statToBind)
 	end)()
 	statInstance.Parent = leaderstats
 	for _, dataName in pairs(dataTypes) do
-		maid:give(user[dataName].changed:Connect(function(stat, value, oldValue)
+		janitor:add(user[dataName].changed:Connect(function(stat, value, oldValue)
 			if statInstance and statInstance.Value and stat == statToBind then
 				statInstance.Value = tostring(value)
 			end
-		end))
+		end), "Disconnect")
 	end
 	return statInstance
 end
 
 -- *Player key specific
 function UserStore:removeLeaderstat(player, statToUnbind)
-	local maidName = "_maid"..player.Name..tostring(statToUnbind)
-	local maid = self[maidName]
-	if maid then
-		maid:clean()
+	local janitorName = "_janitor"..player.Name..tostring(statToUnbind)
+	local janitor = self[janitorName]
+	if janitor then
+		janitor:cleanup()
 		for k, v in pairs(self) do
 			if typeof(v) == "table" then
 				self[k] = nil
 			end
 		end
-		self[maidName] = nil
+		self[janitorName] = nil
 	end
 	return true
 end

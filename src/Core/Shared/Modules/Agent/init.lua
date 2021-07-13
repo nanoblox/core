@@ -5,7 +5,7 @@ Agent.__index = Agent
 
 local main = require(game.Nanoblox)
 local Buff = require(script.Buff)
-local Maid = main.modules.Maid
+local Janitor = main.modules.Janitor
 local sortBuffsByTimeUpdatedFunc = function(buffA, buffB) return buffA.timeUpdated > buffB.timeUpdated end
 local players = game:GetService("Players")
 local tweenService = game:GetService("TweenService")
@@ -34,9 +34,9 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 	local self = {}
 	setmetatable(self, Agent)
 	
-	local maid = Maid.new()
-	self._maid = maid
-	self.reduceMaids = {}
+	local janitor = Janitor.new()
+	self._janitor = janitor
+	self.reduceJanitors = {}
 	self.buffs = {}
 	self.defaultValues = {}
 	self.reapplyBuffsOnRespawn = reapplyBuffsOnRespawn
@@ -49,20 +49,20 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 	self.remainingHumanoidDescriptionBuffs = 0
 	self.destroyed = false
 
-	maid:give(player.CharacterAdded:Connect(function(char)
+	janitor:add(player.CharacterAdded:Connect(function(char)
 		if reapplyBuffsOnRespawn then
 			self:clearDefaultValues()
 			self:reduceAndApplyEffects()
 		else
 			self:assassinateBuffs()
 		end
-	end))
+	end), "Disconnect")
 
-	maid:give(players.PlayerRemoving:Connect(function(leavingPlayer)
+	janitor:add(players.PlayerRemoving:Connect(function(leavingPlayer)
 		if leavingPlayer == player then
 			self:destroy()
 		end
-	end))
+	end), "Disconnect")
 
 	return self
 end
@@ -166,9 +166,9 @@ function Agent:clearDefaultValues()
 	for _, buff in pairs(buffs) do
 		buff.appliedValueTables = {}
 	end
-	for tweenReference, reduceMaid in pairs(self.reduceMaids) do
-		reduceMaid:destroy()
-		self.reduceMaids[tweenReference] = nil
+	for tweenReference, reduceJanitor in pairs(self.reduceJanitors) do
+		reduceJanitor:destroy()
+		self.reduceJanitors[tweenReference] = nil
 	end
 end
 
@@ -212,21 +212,21 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 			-- This determines whether to tween the final value and cancels any other currently tweening values
 			local finalValueTweenInfo = bossBuff.tweenInfo
 			local tweenReference = tostring(effect)..additionalString
-			local reduceTweenMaid = self.reduceMaids[tweenReference]
+			local reduceTweenJanitor = self.reduceJanitors[tweenReference]
 			local forcedBaseValue
-			if reduceTweenMaid then
-				reduceTweenMaid:clean()
-				local validUntilTime = reduceTweenMaid.forcedBaseValueValidUntilTime
+			if reduceTweenJanitor then
+				reduceTweenJanitor:cleanup()
+				local validUntilTime = reduceTweenJanitor.forcedBaseValueValidUntilTime
 				if validUntilTime then
 					if os.clock() < validUntilTime then
-						forcedBaseValue = reduceTweenMaid.forcedBaseValue
+						forcedBaseValue = reduceTweenJanitor.forcedBaseValue
 					end
-					rawset(reduceTweenMaid, "forcedBaseValueValidUntilTime", nil)
-					rawset(reduceTweenMaid, "forcedBaseValue", nil)
+					rawset(reduceTweenJanitor, "forcedBaseValueValidUntilTime", nil)
+					rawset(reduceTweenJanitor, "forcedBaseValue", nil)
 				end
 			elseif tweenReference then
-				reduceTweenMaid = self._maid:give(Maid.new())
-				self.reduceMaids[tweenReference] = reduceTweenMaid
+				reduceTweenJanitor = self._janitor:add(Janitor.new(), "Destroy")
+				self.reduceJanitors[tweenReference] = reduceTweenJanitor
 			end
 
 			-- This retrieves the associated instances then calculates and applies a final value
@@ -292,7 +292,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 									tempBuff:set(unpack(tempBuffDetails[2]))
 									table.insert(bossBuff.tempBuffs, tempBuff)
 									tempBuff.onlyUpdateThisBuff = nil
-									bossBuff._maid:give(tempBuff)
+									bossBuff._janitor:add(tempBuff, "destroy")
 								end
 							end
 							-- Remove temp buffs from others (this means if you do ;morph me chair then ;become matt, the character won't still be enitrely invisible)
@@ -318,19 +318,19 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 									if finalParent then
 										local alreadyExists = finalParent:FindFirstChild(accessory.Name)
 										if not alreadyExists then
-											local accessoryClone = reduceTweenMaid:give(accessory:Clone())
+											local accessoryClone = reduceTweenJanitor:add(accessory:Clone(), "Destroy")
 											local handle = accessoryClone:FindFirstChild("Handle")
 											local forceCanCollide = handle and handle:FindFirstChild("ForceCanCollide")
 											accessoryClone.Parent = finalParent
 											if forceCanCollide and forceCanCollide.Value == true then
 												handle.CanCollide = true
 											end
-											reduceTweenMaid:give(accessoryClone.AncestryChanged:Connect(function()
+											reduceTweenJanitor:add(accessoryClone.AncestryChanged:Connect(function()
 												main.RunService.Heartbeat:Wait()
 												if not bossBuff.isDestroyed then
 													updateAccessory()
 												end
-											end))
+											end), "Disconnect")
 										end
 									end
 								end
@@ -436,18 +436,19 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 							end)
 						end
 						tween:Play()
-						reduceTweenMaid:give(function()
+						reduceTweenJanitor:add(function()
 							if not self.destroyed then
 								if tween.PlaybackState ~= Enum.PlaybackState.Completed then
 									tween:Pause()
 									if type(finalValue) == "number" then
-										rawset(reduceTweenMaid, "forcedBaseValueValidUntilTime", completeTime)
-										rawset(reduceTweenMaid, "forcedBaseValue", finalValue)
+										-- This is really odd behavior.
+										rawset(reduceTweenJanitor, "forcedBaseValueValidUntilTime", completeTime)
+										rawset(reduceTweenJanitor, "forcedBaseValue", finalValue)
 									end
 								end
 								tween:Destroy()
 							end
-						end)
+						end, true)
 					end
 				end
 				
@@ -559,7 +560,7 @@ end
 function Agent:destroy()
 	self.destroyed = true
 	self:clearBuffs()
-	self._maid:clean()
+	self._janitor:destroy()
 end
 Agent.Destroy = Agent.destroy
 

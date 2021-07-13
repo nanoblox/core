@@ -23,8 +23,8 @@ function Clone.new(playerOrCharacterOrUserId, properties)
 	local self = {}
 	setmetatable(self, Clone)
 	
-    local maid = main.modules.Maid.new()
-    self.maid = maid
+    local janitor = main.modules.Janitor.new()
+    self.janitor = janitor
     self.userId = nil
     self.character = nil
     self.clone = nil
@@ -116,7 +116,7 @@ function Clone:become(item)
             local hrp = self.character:FindFirstChild("HumanoidRootPart")
             local archivable = self.character.Archivable
             self.character.Archivable = true
-            clone = self.maid:give(self.character:Clone())
+            clone = self.janitor:add(self.character:Clone(), "Destroy")
             self.character.Archivable = archivable
             clone.Archivable = true
             clone.HumanoidRootPart.CFrame = self.spawnCFrame or (hrp and hrp.CFrame * SPAWN_OFFSET) or CFrame.new()
@@ -142,7 +142,7 @@ function Clone:become(item)
             if not rigType then
                 rigType = "R15"
             end
-            clone = self.maid:give(main.shared.Assets.Rigs[rigType]:Clone())
+            clone = self.janitor:add(main.shared.Assets.Rigs[rigType]:Clone(), "Destroy")
             clone.HumanoidRootPart.CFrame = self.spawnCFrame or CFrame.new()
             if item then
                 local inServerPlayer = (self.userId and main.Players:GetPlayerByUserId(self.userId)) or main.Players:FindFirstChild(self.username)
@@ -179,18 +179,18 @@ function Clone:become(item)
         end 
 
         clone.Parent = Clone.workspaceStorage
-        self.maid:give(clone:GetPropertyChangedSignal("Parent"):Connect(function()
+        self.janitor:add(clone:GetPropertyChangedSignal("Parent"):Connect(function()
             if clone.Parent == nil then
                 self:destroy()
             end
-        end))
+        end), "Disconnect")
         self.hrp = clone.HumanoidRootPart
         self.humanoid = clone.Humanoid
         self.clone = clone
 
         -- This destroys the clone if it goes below -500 studs
         local nextHeightCheck = 0
-        self.maid:give(main.RunService.Heartbeat:Connect(function()
+        self.janitor:add(main.RunService.Heartbeat:Connect(function()
             local timeNow = os.clock()
             if timeNow >= nextHeightCheck then
                 nextHeightCheck = timeNow + 1
@@ -198,11 +198,10 @@ function Clone:become(item)
                     clone:destroy()
                 end
             end
-        end))
+        end), "Disconnect")
 
-        local animateScript = (main.isClient and main.shared.Assets.AnimateClient:Clone()) or main.server.Assets.AnimateServer:Clone()
+        local animateScript = self.janitor:add((main.isClient and main.shared.Assets.AnimateClient:Clone()) or main.server.Assets.AnimateServer:Clone(), "Destroy")
         animateScript.Disabled = true
-        self.maid:give(animateScript)
         self.animateScript = animateScript
         if main.isServer then
             animateScript.Parent = clone
@@ -326,28 +325,28 @@ function Clone:anchorHRP(bool)
 end
 
 function Clone:setTransparency(value)
-    local tMaid = self.transparencyMaid
-    if tMaid then
-        tMaid:clean()
+    local tJanitor = self.transparencyJanitor
+    if tJanitor then
+        tJanitor:cleanup()
     else
-        tMaid = self.maid:give(main.modules.Maid.new())
-        self.transparencyMaid = tMaid
+        tJanitor = self.janitor:add(main.modules.Janitor.new(), "Destroy")
+        self.transparencyJanitor = tJanitor
     end
     local function changeTransparency(part)
         if (part:IsA("BasePart") or part:IsA("Decal")) and part.Name ~= "HumanoidRootPart" then
             part.Transparency = value
-            tMaid:give(part:GetPropertyChangedSignal("Transparency"):Connect(function()
+            tJanitor:add(part:GetPropertyChangedSignal("Transparency"):Connect(function()
                 part.Transparency = value
-            end))
+            end), "Disconnect")
         end
     end
-    for _, part in pairs(self.clone:GetDescendants()) do
+    for _, part in ipairs(self.clone:GetDescendants()) do
         changeTransparency(part)
     end
-    tMaid:give(self.clone.DescendantAdded:Connect(function(descendant)
+    tJanitor:add(self.clone.DescendantAdded:Connect(function(descendant)
         main.RunService.Heartbeat:Wait()
         changeTransparency(descendant)
-    end))
+    end), "Disconnect")
 end
 
 function Clone:damage(number)
@@ -360,25 +359,25 @@ end
 
 function Clone:regenerate(bool, regenRate, regenStep)
     local regen = bool ~= false
-    local regenMaid = self.regenMaid
-    if not regenMaid and regen then
-        regenMaid = self.maid:give(main.modules.Maid.new())
-        self.regenMaid = regenMaid
+    local regenJanitor = self.regenJanitor
+    if not regenJanitor and regen then
+        regenJanitor = self.janitor:add(main.modules.Janitor.new(), "Destroy")
+        self.regenJanitor = regenJanitor
         local nextStep = os.clock()
         local REGEN_RATE = regenRate or (1/100)
         local REGEN_STEP = regenStep or 1
-        regenMaid:give(main.RunService.Heartbeat:Connect(function()
+        regenJanitor:add(main.RunService.Heartbeat:Connect(function()
             local timeNow = os.clock()
             if self.destroyed or self.humanoid.Health >= self.humanoid.MaxHealth then
-                regenMaid:clean()
+                regenJanitor:cleanup()
             elseif timeNow >= nextStep then
                 nextStep = timeNow + REGEN_STEP
                 local dh = REGEN_STEP * REGEN_RATE * self.humanoid.MaxHealth
                 self.humanoid.Health = math.min(self.humanoid.Health + dh, self.humanoid.MaxHealth)
             end
-        end))
-    elseif regenMaid and not regen then
-        regenMaid:clean()
+        end), "Disconnect")
+    elseif regenJanitor and not regen then
+        regenJanitor:cleanup()
     end
 end
 
@@ -396,7 +395,7 @@ function Clone:loadTrack(animationId, animationName)
         if not track then
             local animation = self.animations[animIdString]
             if not animation then
-                animation = self.maid:give(Instance.new("Animation"))
+                animation = self.janitor:add(Instance.new("Animation"), "Destroy")
                 animation.AnimationId = "rbxassetid://"..animationId
                 if animationName then
                     animation.Name = animationName
@@ -428,13 +427,14 @@ end
 
 function Clone:face(playerOrBasePart, power, dampening)
     
-    local faceMaid = main.modules.Maid.new()
-    self.maid.faceMaid = faceMaid
+    local faceJanitor = self.janitor:add(main.modules.Janitor.new(), "Destroy", "faceJanitor")
 
     local BODY_GYRO_NAME = "NanobloxBodyGyro"
     local DEFAULT_POWER = 800--3000
     local DEFAULT_DAMPENING = 100--500
-    local bodyGyro = faceMaid:give(Instance.new("BodyGyro"))
+
+    --- @type BodyGyro
+    local bodyGyro = faceJanitor:add(Instance.new("BodyGyro"), "Destroy")
     bodyGyro.Name = BODY_GYRO_NAME
     bodyGyro.D = dampening or DEFAULT_DAMPENING
     bodyGyro.MaxTorque = Vector3.new(0, power or DEFAULT_POWER, 0)
@@ -447,15 +447,15 @@ function Clone:face(playerOrBasePart, power, dampening)
             local currentChar = playerOrBasePart.Character or playerOrBasePart.CharacterAdded:Wait()
             basePart = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:WaitForChild("HumanoidRootPart", 3)
         end)
-        faceMaid:give(playerOrBasePart.CharacterAdded:Connect(function(newChar)
+        faceJanitor:add(playerOrBasePart.CharacterAdded:Connect(function(newChar)
             basePart = newChar:WaitForChild("HumanoidRootPart", 3)
-        end))
+        end), "Disconnect")
     else
         basePart = playerOrBasePart
     end
     
     local nextCheck = 0
-    faceMaid:give(main.RunService.Heartbeat:Connect(function()
+    faceJanitor:add(main.RunService.Heartbeat:Connect(function()
         if not basePart or not basePart.Parent then return end
         bodyGyro.CFrame = CFrame.new(self.hrp.Position, basePart.Position)
         local timeNow = os.clock()
@@ -463,16 +463,16 @@ function Clone:face(playerOrBasePart, power, dampening)
             nextCheck = timeNow + 1
             local stillPresent = basePart:FindFirstAncestorWhichIsA("Workspace") or basePart:FindFirstAncestorWhichIsA("ReplicatedStorage")
             if not stillPresent then
-                self.maid.faceMaid = nil
+                self.janitor:remove("faceJanitor")
             end
         end
-    end))
+    end), "Disconnect")
 
     return bodyGyro
 end
 
 function Clone:unface()
-    self.maid.faceMaid = nil
+    self.janitor:remove("faceJanitor")
 end
 
 function Clone:watch(playerOrBasePart)
@@ -485,8 +485,7 @@ function Clone:watch(playerOrBasePart)
     local nextTorsoCheck = os.clock()
     if not neck then return end
 
-    local watchMaid = main.modules.Maid.new()
-    self.maid.watchMaid = watchMaid
+    local watchJanitor = self.janitor:add(main.modules.Janitor.new(), "Destroy", "watchJanitor")
 
     local movementDetails = {
 		neck = {YMultiplier = 1.5, Alpha = 0.2, Joint = neck, OriginC0 = neck.C0},
@@ -502,15 +501,15 @@ function Clone:watch(playerOrBasePart)
             local currentChar = playerOrBasePart.Character or playerOrBasePart.CharacterAdded:Wait()
             basePart = currentChar:FindFirstChild("Head") or currentChar:WaitForChild("Head", 3)
         end)
-        watchMaid:give(playerOrBasePart.CharacterAdded:Connect(function(newChar)
+        watchJanitor:add(playerOrBasePart.CharacterAdded:Connect(function(newChar)
             basePart = newChar:WaitForChild("Head", 3)
-        end))
+        end), "Disconnect")
     else
         basePart = playerOrBasePart
     end
     self.watchingPlayerOrBasePart = playerOrBasePart
 
-    watchMaid:give(main.RunService.Stepped:Connect(function()
+    watchJanitor:add(main.RunService.Stepped:Connect(function()
         local timeNow = os.clock()
         if timeNow >= nextTorsoCheck then
             nextTorsoCheck = timeNow + 1
@@ -526,16 +525,16 @@ function Clone:watch(playerOrBasePart)
             if basePart then
                 local stillPresent = basePart:FindFirstAncestorWhichIsA("Workspace") or basePart:FindFirstAncestorWhichIsA("ReplicatedStorage")
                 if not stillPresent then
-                    self.maid.watchMaid = nil
+                    self.janitor:remove("watchJanitor")
                     return
                 end
             end
         end
         if (isR15 and not waist) or not basePart then return end
         local point = basePart.Position
-        local torsoLookVector = torso.CFrame.lookVector
-        local headPosition = head.CFrame.p
-        local distance = (head.CFrame.p - point).magnitude
+        local torsoLookVector = torso.CFrame.LookVector
+        local headPosition = head.CFrame.Position
+        local distance = (head.CFrame.Position - point).Magnitude
         local difference = head.CFrame.Y - point.Y
         for detailName, detail in pairs(movementDetails) do
             local angle =
@@ -555,20 +554,20 @@ function Clone:watch(playerOrBasePart)
             })
 
             local goal = detail.OriginC0 * CFrame.Angles(angle.X, angle.Y, angle.Z)
-            detail.Joint.C0 = detail.Joint.C0:lerp(goal, detail.Alpha)
+            detail.Joint.C0 = detail.Joint.C0:Lerp(goal, detail.Alpha)
         end
-    end))
-    watchMaid:give(function()
+    end), "Disconnect")
+    watchJanitor:add(function()
         for _, detail in pairs(movementDetails) do
             if detail.Joint then
                 detail.Joint.C0 = detail.OriginC0
             end
         end
-    end)
+    end, true)
 end
 
 function Clone:unwatch()
-	self.maid.watchMaid = nil
+	self.janitor:remove("watchJanitor")
 end
 
 function Clone:modifyHumanoidDescription(propertyName, value)
@@ -629,29 +628,28 @@ function Clone:_updateHeight()
 end
 
 function Clone:_setScale(propertyName, value)
-    local sMaidName = ("scaleMaid%s"):format(propertyName)
-    local sMaid = main.modules.Maid.new()
-    self.maid[sMaidName] = sMaid
+    local sJanitorName = ("scaleJanitor%s"):format(propertyName)
+    local sJanitor = self.janitor:add(main.modules.Janitor.new(), "Destroy", sJanitorName)
     
     local function updateScaleValue()
         self:modifyHumanoidDescription(propertyName, value)
     end
 
     local function trackHumanoidValueInstance(humanoidValueInstance)
-        sMaid:give(humanoidValueInstance.Changed:Connect(function()
+        sJanitor:add(humanoidValueInstance.Changed:Connect(function()
             main.RunService.Heartbeat:Wait()
             updateScaleValue()
-        end))
+        end), "Disconnect")
     end
     local humanoidValueInstance = self.humanoid:FindFirstChild(propertyName) or self.humanoid:FindFirstChild("Body"..propertyName)
     if humanoidValueInstance then
         trackHumanoidValueInstance(humanoidValueInstance)
     end
-    sMaid:give(self.humanoid.ChildAdded:Connect(function(child)
+    sJanitor:add(self.humanoid.ChildAdded:Connect(function(child)
         if child.Name == propertyName or child.Name == "Body"..propertyName then
             trackHumanoidValueInstance(child)
         end
-    end))
+    end), "Disconnect")
     
     updateScaleValue()
 end
@@ -693,8 +691,7 @@ end
 
 function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
 	
-    local pathMaid = main.modules.Maid.new()
-    self.maid.pathMaid = pathMaid
+    local pathJanitor = self.janitor:add(main.modules.Janitor.new(), "Destroy", "pathJanitor")
     studsAwayToStop = studsAwayToStop or 0
 
     local agentHrpSize = self.hrp.Size
@@ -704,7 +701,7 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
         AgentHeight = (agentHrpSize.Y  *2) + agentHead.Size.Y,
         AgentCanJump = true,
     }
-    local path = pathMaid:give(main.PathfindingService:CreatePath(pathParams))
+    local path = pathJanitor:add(main.PathfindingService:CreatePath(pathParams), "Destroy")
     local cloneHRP = self.clone.HumanoidRootPart
     local cloneHumanoid = self.humanoid
     
@@ -714,7 +711,7 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
     local nextCheck = 0
     local previousPosition
     local nextIdleCheck = 0
-    pathMaid:give(main.RunService.Heartbeat:Connect(function()
+    pathJanitor:add(main.RunService.Heartbeat:Connect(function()
         -- This prevents the clone completely walking on top of the target position
         local timeNow = os.clock()
         if timeNow >= nextCheck then
@@ -724,7 +721,7 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
             local waypointsAway = #waypoints - currentWaypointIndex
             if distanceFromClone <= studsAwayToStop and waypointsAway < math.ceil(studsAwayToStop / 3) then
                 self.reachedTarget = true
-                self.maid.pathMaid = nil
+                self.janitor:remove("pathJanitor")
                 cloneHumanoid:MoveTo(self.hrp.Position)
             end
         end
@@ -738,7 +735,7 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
             end
             previousPosition = self.hrp.Position
         end
-    end))
+    end), "Disconnect")
 
     self.reachedTarget = false
 
@@ -766,7 +763,7 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
             local g = math.random(1, 255)
             local b = math.random(1, 255)
             for i, waypoint in pairs(waypoints) do
-                local part = pathMaid:give(Instance.new("Part"))
+                local part = pathJanitor:add(Instance.new("Part"), "Destroy")
                 part.Name = "Waypoint"..i
                 part.Color = Color3.fromRGB(r, g, b)
                 part.Anchored = true
@@ -782,7 +779,7 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
         else
             main.modules.Thread.delay(1, function()
                 self.reachedTarget = true
-                self.maid.pathMaid = nil
+                self.janitor:remove("pathJanitor")
                 cloneHumanoid:MoveTo(self.hrp.Position)
             end)
         end
@@ -791,7 +788,7 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
     local function onWaypointReached(reached)
         if currentWaypointIndex == #waypoints then
             self.reachedTarget = true
-            self.maid.pathMaid = nil
+            self.janitor:remove("pathJanitor")
             return
         end
         if reached then
@@ -810,13 +807,12 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
 
     main.modules.Thread.spawn(computeWaypoints)
 
-    pathMaid:give(path.Blocked:Connect(onPathBlocked))
-    pathMaid:give(cloneHumanoid.MoveToFinished:Connect(onWaypointReached))
+    pathJanitor:add(path.Blocked:Connect(onPathBlocked), "Disconnect")
+    pathJanitor:add(cloneHumanoid.MoveToFinished:Connect(onWaypointReached), "Disconnect")
 end
 
 function Clone:follow(playerOrBasePart, studsAwayToStop)
-    local followMaid = main.modules.Maid.new()
-    self.maid.followMaid = followMaid
+    local followJanitor = self.janitor:add(main.modules.Janitor.new(), "Destroy", "followJanitor")
 
 	local basePart
     if playerOrBasePart:IsA("Player") then
@@ -824,9 +820,9 @@ function Clone:follow(playerOrBasePart, studsAwayToStop)
             local currentChar = playerOrBasePart.Character or playerOrBasePart.CharacterAdded:Wait()
             basePart = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:WaitForChild("HumanoidRootPart", 3)
         end)
-        followMaid:give(playerOrBasePart.CharacterAdded:Connect(function(newChar)
+        followJanitor:add(playerOrBasePart.CharacterAdded:Connect(function(newChar)
             basePart = newChar:WaitForChild("HumanoidRootPart", 3)
-        end))
+        end), "Disconnect")
     else
         basePart = playerOrBasePart
     end
@@ -836,7 +832,7 @@ function Clone:follow(playerOrBasePart, studsAwayToStop)
     local function stillPresentCheck()
         local stillPresent = basePart:FindFirstAncestorWhichIsA("Workspace") or basePart:FindFirstAncestorWhichIsA("ReplicatedStorage")
         if not stillPresent then
-            self.maid.followMaid = nil
+            self.janitor:remove("followJanitor")
             return false
         end
         return true
@@ -847,7 +843,7 @@ function Clone:follow(playerOrBasePart, studsAwayToStop)
     local MAXIMUM_DISTANCE_DRIFT = 5
     local finalStudsAwayToStop = studsAwayToStop or STUDS_AWAY_TO_STOP
     local finalReactiveDistance = finalStudsAwayToStop + REACTIVATE_DISTANCE
-    followMaid:give(self.humanoid.MoveToFinished:Connect(function()
+    followJanitor:add(self.humanoid.MoveToFinished:Connect(function()
         if not stillPresentCheck() then return end
         local newTargetPosition = basePart.Position
         local distanceFromPreviousTarget = (newTargetPosition - targetPosition).Magnitude
@@ -858,7 +854,7 @@ function Clone:follow(playerOrBasePart, studsAwayToStop)
             self:moveTo(targetPosition, finalStudsAwayToStop, basePart)
         elseif self.reachedTarget then
             local nextCheck = 0
-            followMaid.positionChangedChecker = main.RunService.Heartbeat:Connect(function()
+            followJanitor:add(main.RunService.Heartbeat:Connect(function()
                 local timeNow = os.clock()
                 if timeNow >= nextCheck then
                     nextCheck = timeNow + 0.5
@@ -867,19 +863,19 @@ function Clone:follow(playerOrBasePart, studsAwayToStop)
                         newTargetPosition = basePart.Position
                         distanceFromClone = self:getDistanceFromClone(newTargetPosition)
                         if distanceFromClone > finalReactiveDistance then
-                            followMaid.positionChangedChecker = nil
+                            followJanitor:remove("positionChangedChecker")
                             self:moveTo(newTargetPosition, finalStudsAwayToStop, basePart)
                         end
                     end
                 end
-            end)
+            end), "Disconnect", "positionChangedChecker")
         end
-    end))
+    end), "Disconnect")
 
-    followMaid:give(main.modules.Thread.delayUntil(function() return basePart end, function()
+    followJanitor:add(main.modules.Thread.delayUntil(function() return basePart end, function()
         targetPosition = basePart.Position
         self:moveTo(targetPosition)
-    end))
+    end), "Disconnect")
 end
 
 function Clone:getDistanceFromClone(positionOfTarget)
@@ -890,13 +886,13 @@ function Clone:getDistanceFromClone(positionOfTarget)
 end
 
 function Clone:unfollow()
-	self.maid.followMaid = nil
+	self.janitor:remove("followJanitor")
 end
 
 function Clone:destroy()
     if not self.destroyed then
         self.destroyed = true
-        self.maid:clean()
+        self.janitor:destroy()
         self.destroyedSignal:Fire()
         self.destroyedSignal:Destroy()
         for k, v in pairs(self) do

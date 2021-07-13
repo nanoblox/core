@@ -52,27 +52,27 @@ function Command.invoke(task, args)
 	local function trackPlayer(player)
 		if not trackingPlayers[player] then
 			trackingPlayers[player] = true
-			local trackingMaid = task:give(main.modules.Maid.new())
-			trackingMaid:give(function()
+			local trackingJanitor = task:give(main.modules.Janitor.new())
+			trackingJanitor:add(function()
 				trackingPlayers[player] = nil
 				congaList:removeValue(player)
-			end)
+			end, true)
 			local humanoid = main.modules.PlayerUtil.getHumanoid(player)
 			if not humanoid or humanoid.Health <= 0 then
-				trackingMaid:clean()
+				trackingJanitor:cleanup()
 				return
 			end
-			trackingMaid:give(humanoid.Died:Connect(function()
-				trackingMaid:clean()
-			end))
-			trackingMaid:give(player.CharacterAdded:Connect(function()
-				trackingMaid:clean()
-			end))
-			trackingMaid:give(main.Players.PlayerRemoving:Connect(function(leavingPlayer)
+			trackingJanitor:add(humanoid.Died:Connect(function()
+				trackingJanitor:clean()
+			end), "Disconnect")
+			trackingJanitor:add(player.CharacterAdded:Connect(function()
+				trackingJanitor:clean()
+			end), "Disconnect")
+			trackingJanitor:add(main.Players.PlayerRemoving:Connect(function(leavingPlayer)
 				if player == leavingPlayer then
-					trackingMaid:clean()
+					trackingJanitor:clean()
 				end
-			end))
+			end), "Disconnect")
 
 			-- This listens for the players chat messages
 			main.modules.ChatUtil.getSpeaker(player)

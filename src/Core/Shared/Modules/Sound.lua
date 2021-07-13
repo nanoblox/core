@@ -73,16 +73,16 @@ function Sound.new(soundId, soundType)
         end,
     }
     
-    local maid = main.modules.Maid.new()
+    local janitor = main.modules.Janitor.new()
     local settingModule = (main.isServer and main.services.SettingService) or main.controllers.SettingController
     local soundIdParsed = objectPropertiesToUpdate.SoundId(soundId)
-    local soundInstance = maid:give(Instance.new("Sound"))
+    local soundInstance = janitor:add(Instance.new("Sound"), "Destroy")
     local soundTypeFinal = soundType or (main.isServer and main.enum.SoundType.Command) or (main.isClient and main.enum.SoundType.Interface)
     local soundTypeName = main.enum.SoundType.getName(soundTypeFinal)
     soundInstance.SoundId = "rbxassetid://"..soundIdParsed
     soundInstance:SetAttribute("NanobloxSoundType", soundTypeName)
     
-    self.maid = maid
+    self.janitor = janitor
     self.soundId = soundIdParsed
     self.soundInstance = soundInstance
     self.soundType = soundTypeFinal
@@ -90,7 +90,7 @@ function Sound.new(soundId, soundType)
     self.destroyed = false
     self.originalValues = {}
     self.settingModule = settingModule
-    self.changedMaid = maid:give(main.modules.Maid.new())
+    self.changedJanitor = janitor:add(main.modules.Janitor.new(), "Destroy")
     self.updateSoundFunction = false
     
     setmetatable(self, meta)
@@ -111,11 +111,11 @@ function Sound.new(soundId, soundType)
         local soundProperties = settingModule.getPlayerSetting("soundProperties")
         for propertyName, typeValues in pairs(soundProperties) do
             self.updateSoundFunction(propertyName, typeValues[self.soundTypeName])
-            maid:give(typeValues.changed:Connect(function(settingName, value)
+            janitor:add(typeValues.changed:Connect(function(settingName, value)
                 if settingName == self.soundTypeName then
                     self.updateSoundFunction(propertyName, value)
                 end
-            end))
+            end), "Disconnect")
         end
     end
 
@@ -143,20 +143,20 @@ function Sound.new(soundId, soundType)
                 local soundProperties = settingModule.getUsersPlayerSetting(user, "soundProperties")
                 for propertyName, typeValues in pairs(soundProperties) do
                     self.updateSoundFunction(propertyName, typeValues[self.soundTypeName], player)
-                    maid:give(typeValues.changed:Connect(function(settingName, value)
+                    janitor:add(typeValues.changed:Connect(function(settingName, value)
                         if settingName == self.soundTypeName then
                             self.updateSoundFunction(propertyName, value, player)
                         end
-                    end))
+                    end), "Disconnect")
                 end
             end)
         end
         for _, player in pairs(main.Players:GetPlayers()) do
             updateSounds(player)
         end
-        maid:give(main.Players.PlayerAdded:Connect(function(player)
+        janitor:add(main.Players.PlayerAdded:Connect(function(player)
             updateSounds(player)
-        end))
+        end), "Disconnect")
     end
 
     self:trackChanges()
@@ -186,7 +186,7 @@ function Sound:trackChanges(specificPropertyName)
     for propertyName, _ in pairs(defaultSoundProperties) do
         if specificPropertyName == nil or propertyName == specificPropertyName then
             local totalChangesThisFrame = 0
-            self.changedMaid[propertyName] = self.soundInstance:GetPropertyChangedSignal(propertyName):Connect(function(a,b,c)
+            self.changedJanitor:add(self.soundInstance:GetPropertyChangedSignal(propertyName):Connect(function(a,b,c)
                 -- Clients can modify sounds on a scale between 0-2, therefore we cap properties at half their limit
                 local value = self.soundInstance[propertyName]
                 local cap = propertyCaps[propertyName] or propertyCaps.Default
@@ -211,7 +211,7 @@ function Sound:trackChanges(specificPropertyName)
                 if not only1ChangeSoFar then
                     self.originalValues[propertyName] = value
                 end
-            end)
+            end), "Disconnect", propertyName)
         end
     end
 end
@@ -220,14 +220,14 @@ function Sound:untrackChanges(specificPropertyName)
     local defaultSoundProperties = self.settingModule.getPlayerSetting("soundProperties")
     for propertyName, _ in pairs(defaultSoundProperties) do
         if specificPropertyName == nil or propertyName == specificPropertyName then
-            self.changedMaid[propertyName] = nil
+            self.changedJanitor:remove(propertyName)
         end
     end
 end
 
 function Sound:destroy()
     Sound.sounds[self.soundInstance] = nil
-    self.maid:clean()
+    self.janitor:destroy()
     self.destroyed = true
 end
 Sound.Destroy = Sound.destroy
