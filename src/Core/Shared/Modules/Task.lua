@@ -310,7 +310,8 @@ function Task:execute()
 					end)
 					:catch(warn)
 					:andThen(function(returnValue)
-						self.originalArgReturnValues[argItem.name] = returnValue
+						local argNameLower = tostring(argName):lower()
+						self.originalArgReturnValues[argNameLower] = returnValue
 						self.originalArgReturnValuesFromIndex[iNow] = returnValue
 						if returnValue == nil then
 							local defaultValue = argItem.defaultValue
@@ -355,13 +356,13 @@ function Task:execute()
 		end
 		
 		-- If the task has no associated player or qualifiers (such as in ;music <musicId>) then simply execute right away
-		if not firstArgItem.playerArg then
+		if firstArgItem and not firstArgItem.playerArg then
 			return invokeCommand(true, {})
 		end
 
 		-- If the task has no associated player *but* does contain qualifiers (such as in ;globalKill all)
-		local targetPlayers = firstArgItem:parse(self.qualifiers, self.callerUserId) or {}
-		if firstArgItem.executeForEachPlayer then -- If the firstArg has executeForEachPlayer, convert the task into subtasks for each player returned by the qualifiers
+		local targetPlayers = (firstArgItem and firstArgItem:parse(self.qualifiers, self.callerUserId)) or {}
+		if firstArgItem and firstArgItem.executeForEachPlayer then -- If the firstArg has executeForEachPlayer, convert the task into subtasks for each player returned by the qualifiers
 			for i, plr in pairs(targetPlayers) do
 				--self:track(main.modules.Thread.delayUntil(function() return self.filteredAllArguments == true end, function()
 					local TaskService = main.services.TaskService
@@ -582,7 +583,7 @@ end
 function Task:give(item)
 	if self.isDead then
 		main.modules.Thread.spawn(function()
-			self.maid:clear()
+			self.maid:clean()
 		end)
 	end
 	local function trackInstance(instance)
@@ -752,7 +753,8 @@ function Task:getOriginalArg(argNameOrIndex)
 		return self.originalArgReturnValuesFromIndex[index]
 	end
 	local argItem = main.modules.Parser.Args.get(argNameOrIndex)
-	local originalValue = self.originalArgReturnValues[argItem.name]
+	local argNameLower = tostring(argNameOrIndex):lower()
+	local originalValue = self.originalArgReturnValues[argNameLower]
 	return originalValue
 end
 

@@ -3,13 +3,14 @@ local ClientCommand =	{}
 
 
 
-function ClientCommand.invoke(task, targetPlayer, congaList)
+function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 
-	-- This command could have been a few lines long, although I really wanted to provide the ability to customise the ANIMATION_DELAY and GAP, hence
+	-- This command could have been a few lines long, although I really wanted to provide the ability to customise the configuration.delay and configuration.gap, hence
 	-- it became this mammoth instead (due to the additional details like jumps, motors, positions, etc that require tracking)
-	local ANIMATION_DELAY = 0.3
-	local GAP = 4
-
+	local configuration = {
+		delay = delay,
+		gap = gap,
+	}
 	local framesPerSecond = 60
 	local playerClones = {}
 	local totalClones = 0
@@ -25,10 +26,28 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 		end
 	end
 
+	-- This listens for changes to DELAY or configuration.gap
+	local tag = targetPlayerHumanoid:FindFirstChild("NanobloxCongaLeader")
+	if tag then
+		local tagAttributeValues = {
+			NanobloxCongaDelay = "delay",
+			NanobloxCongaGap = "gap",
+		}
+		task:give(tag.AttributeChanged:Connect(function(attributeName)
+			local configKey = tagAttributeValues[attributeName]
+			if configKey then
+				configuration[configKey] = tag:GetAttribute(attributeName)
+				for index, clone in pairs(playerClones) do
+					clone:setIndex(index)
+				end
+			end
+		end))
+	end
+
 	-- This records the targetPlayers CFrames
 	local movementHistory = {}
 	local totalMovementHistory = 0
-	local prevTargetPos
+	local prevTargetPos = targetPlayerHRP.Position
 	local prevDistanceTravelledThisFrame = 0
 	local prevTargetMoveMagnitude = 0
 	local targetMotorValues = {}
@@ -36,6 +55,8 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 	local targetIsStationaryJumping
 	local targetIsStanding = false
 	local stopCooldown = 0
+	local lastTargetStopPosition = targetPlayerHRP.Position
+	local totalFramesCompletelyStill = 0
 	
 	local movementAnims = {
 		["WalkAnim"] = 2,
@@ -67,6 +88,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 		local currentAnimsOriginal = targetPlayerAnimator:GetPlayingAnimationTracks()
 		local currentAnims = {}
 		local currentAnimNames = {}
+		local totalAnims = 0
 		for _, animTrack in pairs(currentAnimsOriginal) do
 			local success = true
 			if animTrack.Name == "Animation" then
@@ -83,10 +105,11 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 			end
 			if success then
 				table.insert(currentAnims, animTrack)
-				--table.insert(currentAnimNames, animTrack.Name)
+				totalAnims += 1
+				--table.insert(currentAnimNames, animTrack.Name) --HIDE
 			end
 		end
-		--print(table.concat(currentAnimNames, " | "))
+		--print(table.concat(currentAnimNames, " | ")) --HIDE
 		
 		local firstAnim = currentAnims[1]
 		local firstAnimName = firstAnim and firstAnim.Name
@@ -128,10 +151,31 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 			stopCooldown = 4
 		elseif stopCooldown > 0 then
 			stopCooldown -= 1
+			if stopCooldown == 0 then
+				lastTargetStopPosition = newTargetPos
+			end
 		end
 
+		local targetIsMoving
+		local distanceFromStopPosition = (newTargetPos - lastTargetStopPosition).Magnitude
 		if not targetIsStationaryJumping then
-			local targetIsMoving = targetMoveMagnitude > 0 or (distanceTravelledThisFrame > 0 and stopCooldown == 0)
+			local distanceRequired = 0
+			--------------
+			-- This is here to prevent a dance like 'dance6' causing a movement detection while still allowing a stationary swim float to be detected
+			if totalAnims > 1 and distanceFromStopPosition < 1 then
+				distanceRequired = 0.1
+			end
+			local magFromPrev = (newTargetPos - prevTargetPos).Magnitude
+			if magFromPrev == 0 then
+				totalFramesCompletelyStill += 1
+				if totalFramesCompletelyStill > 60 then
+					lastTargetStopPosition = newTargetPos
+				end
+			elseif totalFramesCompletelyStill > 0 then
+				totalFramesCompletelyStill = 0
+			end
+			--------------
+			targetIsMoving = targetMoveMagnitude > 0 or (distanceTravelledThisFrame > distanceRequired and stopCooldown == 0)
 			if targetIsMoving then
 				totalMovementHistory += 1
 				table.insert(movementHistory, {
@@ -156,6 +200,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 	-- This constructs the clone
 	local playerChattedRemote = task:give(main.modules.Remote.new("PlayerChatted-"..task.UID))
 	local cloneStartIndex = 1
+	local clonePastHistoryIndexes = {}
 	local function createClone(index, player)
 		-- This creates and modifies the clone
 		local clone = task:give(main.modules.Clone.new(player, {forcedRigType = rigType}))
@@ -165,8 +210,8 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 		clone.congaPlayer = player
 		function clone:setIndex(index)
 			self.index = index
-			self.congaDelay = index*ANIMATION_DELAY
-			self.congaGap = index*GAP*4
+			self.congaDelay = index*configuration.delay
+			self.congaGap = index*configuration.gap*4
 			playerClones[index] = clone
 			totalClones = #playerClones
 		end
@@ -226,35 +271,41 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 		local cloneStepId = 0
 		local cloneStepOverrideDetails
 		
-		-- This extends the pathway backwards so the clone instantly begins moving
-		local extendBackwardsAmount = clone.congaGap/index
-		local cloneHistoryIndex = cloneStartIndex - extendBackwardsAmount
-		local baseRecord = movementHistory[cloneHistoryIndex+1]
-		if not baseRecord then
-			baseRecord = {
-				cf = targetPlayerHRP.CFrame,
-			}
-		end
-		local zGap = 0
-		local zGapIncrement = GAP/15
-		for i = cloneStartIndex, cloneHistoryIndex, -1 do
-			local existingRecord = movementHistory[i]
-			if existingRecord then
-				baseRecord = existingRecord
-			else
-				local newRecord = {
-					cf = baseRecord.cf * CFrame.new(0, 0, zGap),
-					hs = targetPlayerHRP.Size.Y*1.5,
-					fm = nil,
-					jh = 0,
+		-- This extends the pathway backwards so the clone instantly begins moving (if the very back clone)
+		local cloneIndexString = tostring(index)
+		local cloneHistoryIndex = clonePastHistoryIndexes[cloneIndexString]
+		if not cloneHistoryIndex then
+			local extendBackwardsAmount = clone.congaGap/index
+			cloneHistoryIndex = cloneStartIndex - extendBackwardsAmount
+			local baseRecord = movementHistory[cloneHistoryIndex+1]
+			if not baseRecord then
+				baseRecord = {
+					cf = targetPlayerHRP.CFrame,
 				}
-				movementHistory[i] = newRecord
 			end
-			zGap += zGapIncrement
+			local zGap = 0
+			local zGapIncrement = configuration.gap/15
+			for i = cloneStartIndex, cloneHistoryIndex, -1 do
+				local existingRecord = movementHistory[i]
+				if existingRecord then
+					baseRecord = existingRecord
+				else
+					local newRecord = {
+						cf = baseRecord.cf * CFrame.new(0, 0, zGap),
+						hs = targetPlayerHRP.Size.Y*1.5,
+						fm = nil,
+						jh = 0,
+					}
+					movementHistory[i] = newRecord
+				end
+				zGap += zGapIncrement
+			end
+			cloneStartIndex = cloneHistoryIndex
 		end
 		local firstRecord = movementHistory[cloneHistoryIndex]
-		clone:setCFrame(firstRecord.cf)
-		cloneStartIndex = cloneHistoryIndex
+		if firstRecord then
+			clone:setCFrame(firstRecord.cf)
+		end
 
 		clone.maid:give(main.RunService.Heartbeat:Connect(function()
 
@@ -288,6 +339,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 					movementHistory[cloneHistoryIndex] = false
 				end
 				cloneHistoryIndex = newIndex
+				clonePastHistoryIndexes[cloneIndexString] = newIndex
 			end
 			local function handlePositioning()
 				local historyRecord = movementHistory[cloneHistoryIndex]
@@ -348,7 +400,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 			elseif not targetIsOnlyRunningOrWalking and not fixedMotors then
 				local yieldTime = framesPerSecond*clone.congaDelay
 				if yieldTime > 0 then
-					-- This delays animations based upon ANIMATION_DELAY
+					-- This delays animations based upon configuration.delay
 					local newStepId = cloneStepId + yieldTime
 					cloneStepOverrideDetails = cloneStepOverrideDetails or {}
 					cloneStepOverrideDetails[tostring(newStepId)] = {
@@ -380,11 +432,14 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 
 	local congaListRemote = task:give(main.modules.Remote.new("CongaList-"..task.UID))
 	congaListRemote.onClientEvent:Connect(function(index, playerOrNil)
+		print("Client received: ", index, playerOrNil)
 		local existingClone = playerClones[index]
 		if playerOrNil == nil then
 			if existingClone then
 				existingClone:Destroy()
 			end
+			playerClones[index] = nil
+			--[[
 			if index < totalClones then
 				for i = index+1, totalClones do
 					local clone = playerClones[i]
@@ -396,25 +451,17 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 				end
 			end
 			playerClones[totalClones] = nil
+			--]]
 			return
 
-		elseif existingClone == nil then
+		elseif existingClone and existingClone.congaPlayer ~= playerOrNil then
+			existingClone:destroy()
 			createClone(index, playerOrNil)
+
+		elseif not existingClone then
+			createClone(index, playerOrNil)
+
 		end
-		--[[
-			ben		matt	sam		tom
-			1    	2    	3   	4
-
-			ben		false	sam		tom
-			1    	2    	3   	4
-
-			ben		sam		tom		tom
-			1    	2    	3   	4
-
-			ben		sam		tom
-			1    	2    	3 
-		--]]
-		--print("CLIENT index, playerOrNil = ", index, playerOrNil)
 	end)
 
 end

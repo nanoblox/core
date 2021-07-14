@@ -28,6 +28,9 @@ function CommandService.start()
 				local command = require(instance)
 				local commandName = instance.Name
 				local commandNameLower = commandName:lower()
+				if commandNameLower == "" then
+					continue
+				end
 				command.tags = (typeof(command.tags == "table") and command.tags) or {}
 				command.aliases = (typeof(command.aliases == "table") and command.aliases) or {}
 				command.name = commandName
@@ -226,20 +229,23 @@ function CommandService.generateRecord(key)
 		cooldown = 0,
 		persistence = main.enum.Persistence.None,
 		args = {},
+		invoke = function(task, args)
+			warn(("Nanoblox command '%s' failed to load."):format(tostring(task.commandName)))
+		end
 	}
 end
 
 function CommandService.createCommand(name, properties)
-	local key = properties.name
-	if not key then
-		key = name
-		properties.name = key
-	end
+	local key = string.lower(tostring((properties.name or name)))
+	properties.name = key
 	local record = CommandService:createRecord(key, false, properties)
 	return record
 end
 
 function CommandService.getCommand(name)
+	if name == "" then
+		return
+	end
 	local command = CommandService:getRecord(name)
 	if not command then
 		command = CommandService.getTable("lowerCaseNameAndAliasToCommandDictionary")[name:lower()]
@@ -480,7 +486,6 @@ function CommandService.verifyStatement(callerUser, statement)
 		local statementCommands = statement.commands
 		local modifiers = statement.modifiers
 		local qualifiers = statement.qualifiers
-		print("statementCommands = ", statementCommands)
 		
 		if not statementCommands then
 			return resolve(false, {{"notice", {
@@ -599,7 +604,6 @@ function CommandService.executeStatement(callerUserId, statement)
 			if playerDefinedSearch == main.enum.PlayerSearch.UserName or playerDefinedSearch == main.enum.PlayerSearch.UserNameAndDisplayName then
 				local playerIdentifier = main.services.SettingService.getUsersPlayerSetting(callerUser, "playerIdentifier")
 				playerName = tostring(playerIdentifier)..playerName
-				print("FINALLLLLLLLL playerName = ", playerName)
 			end
 			statement.qualifiers[qualifierKey] = nil
 			statement.qualifiers[playerName] = qualifierTable
@@ -644,14 +648,14 @@ function CommandService.executeStatement(callerUserId, statement)
 	for commandName, arguments in pairs(statement.commands) do
 		
 		local command = CommandService.getCommand(commandName)
-		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(command.args[1])]
+		local firstArgName = command.args[1] or ""
+		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(firstArgName)]
 		local TaskService = main.services.TaskService
 		local properties = TaskService.generateRecord()
 		properties.callerUserId = callerUserId
 		properties.commandName = commandName
 		properties.args = arguments or properties.args
 		properties.modifiers = statement.modifiers
-
 		-- Its important to split commands into specific users for most cases so that the command can
 		-- be easily reapplied if the player rejoins (for ones where the perm modifier is present)
 		-- The one exception for this is when a global modifier is present. In this scenerio, don't save

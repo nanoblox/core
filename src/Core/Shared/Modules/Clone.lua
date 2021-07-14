@@ -625,7 +625,9 @@ end
 
 function Clone:_updateHeight()
     local head = self.clone:FindFirstChild("Head")
-    self.height = self.hrp.Size.Y*2 + (head.Size.Y or 1.2)
+    if head then
+        self.height = self.hrp.Size.Y*2 + (head.Size.Y or 1.2)
+    end
 end
 
 function Clone:_setScale(propertyName, value)

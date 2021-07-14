@@ -32,16 +32,23 @@ function Command.invoke(task, args)
 	end
 
 	-- If players table is empty, then kill task as there are no lines to form
-	print("players = ", players)
 	if #players == 0 then
 		return task:kill()
 	end
 
 	-- If a conga list is already present, update it then end this task (we let the first task handle everything)
 	local congaList = leadUser.temp:get("congaCommandList")
+	local leadPlayerHumanoid = main.modules.PlayerUtil.getHumanoid(leadPlayer)
+	local delay = task:getOriginalArg("Delay") or 0.3
+	local gap = task:getOriginalArg("Gap") or 4
 	if congaList then
 		for _, plr in pairs(players) do
 			congaList:insert(plr)
+		end
+		local tag = leadPlayerHumanoid:FindFirstChild("NanobloxCongaLeader")
+		if tag then
+			tag:SetAttribute("NanobloxCongaDelay", delay)
+			tag:SetAttribute("NanobloxCongaGap", gap)
 		end
 		return task:kill()
 	end
@@ -50,12 +57,14 @@ function Command.invoke(task, args)
 	local trackingPlayers = {}
 	local playerChattedRemote = task:give(main.modules.Remote.new("PlayerChatted-"..task.UID))
 	local function trackPlayer(player)
-		if not trackingPlayers[player] then
+		if not trackingPlayers[player] and congaList then
 			trackingPlayers[player] = true
 			local trackingMaid = task:give(main.modules.Maid.new())
 			trackingMaid:give(function()
-				trackingPlayers[player] = nil
-				congaList:removeValue(player)
+				if congaList then
+					trackingPlayers[player] = nil
+					congaList:removeValue(player)
+				end
 			end)
 			local humanoid = main.modules.PlayerUtil.getHumanoid(player)
 			if not humanoid or humanoid.Health <= 0 then
@@ -92,10 +101,11 @@ function Command.invoke(task, args)
 	end
 
 	-- This adds a tag to the leadPlayer's Humanoid to indicate they are a conga leader
-	local leadPlayerHumanoid = main.modules.PlayerUtil.getHumanoid(leadPlayer)
 	local tag = task:give(Instance.new("BoolValue"))
 	tag.Name = "NanobloxCongaLeader"
 	tag.Value = true
+	tag:SetAttribute("NanobloxCongaDelay", delay)
+	tag:SetAttribute("NanobloxCongaGap", gap)
 	tag.Parent = leadPlayerHumanoid
 
 	-- This creates the conga list and adds the players to it
@@ -104,28 +114,32 @@ function Command.invoke(task, args)
 		trackPlayer(player)
 		congaList:insert(player)
 	end
-	
+
 	-- This listens for changes (i.e. players being added or removed from the conga line) and updates the clients
 	local congaListRemote = task:give(main.modules.Remote.new("CongaList-"..task.UID))
 	task:give(congaList.changed:Connect(function(index, playerOrNil)
-		print("index, playerOrNil = ", index, playerOrNil)
 		if playerOrNil ~= nil then
 			trackPlayer(playerOrNil)
 		end
+		if #congaList == 0 then
+			task:kill()
+			return
+		end
 		if not task.isDead then
-			congaListRemote:fireAllClients(index, playerOrNil)
+			print("Conga list changed (1): ", index, playerOrNil)
+			task:delay(0.1, function() -- We delay by a frame so the client can setup their corresponding remote
+				print("Conga list changed (2): ", index, playerOrNil)
+				congaListRemote:fireAllClients(index, playerOrNil)
+			end)
 		end
 	end))
-	task:invokeAllAndFutureClients(leadPlayer, congaList)
+	task:invokeAllAndFutureClients(leadPlayer, congaList, delay, gap)
 
 	-- This removes the conga list When the task is revoked
 	task:give(function()
+		congaList = nil
 		leadUser.temp:set("congaCommandList", nil)
 	end)
-end
-
-function Command.revoke(task)
-	print("Conga was revoked!")
 end
 
 

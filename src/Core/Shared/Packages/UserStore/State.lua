@@ -449,12 +449,7 @@ function State:destroy()
 	local activeTable = activeTables[self]
 	if activeTable then
 		activeTable.maid:clean()
-		for k, v in pairs(self) do
-			if typeof(v) == "table" then
-				self[k] = nil
-			end
-		end
-		setmetatable(self, {__index = nil})
+		--setmetatable(self, {__index = nil})
 		return true
 	end
 	return false
