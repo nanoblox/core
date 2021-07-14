@@ -65,6 +65,10 @@ Janitor.is = Janitor.Is
 	@returns [t:any] The object that was passed.
 **--]]
 function Janitor.__index:Add(Object, MethodName, Index)
+	if Index == nil then
+		Index = newproxy(false)
+	end
+
 	if Index then
 		self:Remove(Index)
 
@@ -77,13 +81,24 @@ function Janitor.__index:Add(Object, MethodName, Index)
 		This[Index] = Object
 	end
 
+	if Promise.is(Object) then
+		local Id = newproxy(false)
+		if Object:getStatus() == Promise.Status.Started then
+			local NewPromise = self:Add(Promise.resolve(Object), "cancel", Id)
+			NewPromise:finallyCall(self.Remove, self, Id)
+			return NewPromise, Id
+		else
+			return Object
+		end
+	end
+
 	MethodName = MethodName or TypeDefaults[typeof(Object)] or "Destroy"
 	if type(Object) ~= "function" and not Object[MethodName] then
 		warn(string.format(METHOD_NOT_FOUND_ERROR, tostring(Object), tostring(MethodName), debug.traceback(nil, 2)))
 	end
 
 	self[Object] = MethodName
-	return Object
+	return Object, Index
 end
 
 Janitor.__index.Give = Janitor.__index.Add
