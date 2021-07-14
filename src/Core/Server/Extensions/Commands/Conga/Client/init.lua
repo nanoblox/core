@@ -256,7 +256,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 		clone:setCFrame(firstRecord.cf)
 		cloneStartIndex = cloneHistoryIndex
 
-		clone.maid:give(main.RunService.Heartbeat:Connect(function()
+		clone.janitor:add(main.RunService.Heartbeat:Connect(function()
 
 			-- This is important for tracking what frame we wish to update a Motor6D
 			cloneStepId += 1
@@ -370,7 +370,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList)
 			end
 			updateAnimValues(cloneMotorValues, fixedCFrame, rotationOffset, jumpOffset)
 
-		end))
+		end), "Disconnect")
 	end
 
 	-- This creates default clones
