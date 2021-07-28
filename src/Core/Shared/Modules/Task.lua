@@ -130,8 +130,11 @@ function Task.new(properties)
 		end
 		if playerInstance then
 			maid:give(playerInstance.CharacterAdded:Connect(function(char)
-				local enumItemName = ("Until%sRespawns"):format(playerType)
-				if self.persistence == main.enum.Persistence[enumItemName] then
+				local validRespawnEnumItemNames = {
+					[("Until%sDies"):format(playerType)] = true,
+					[("Until%sRespawns"):format(playerType)] = true,
+				}
+				if validRespawnEnumItemNames[main.enum.Persistence.getName(self.persistence)] then
 					self:kill()
 					return
 				end
@@ -148,25 +151,7 @@ function Task.new(properties)
 		if not agentPlayer then
 			return
 		end
-		if main.isServer then
-			-- This determines the tasks agent when the player arg is present as the first arg
-			local agentUser = main.modules.PlayerStore:getUser(agentPlayer)
-			if agentUser then
-				self[propertyName] = agentUser.agent
-			end
-		else
-			-- This dynamically creates agents for client commands
-			local agentDetail = main.clientCommandAgents[agentPlayer]
-			if not agentDetail then
-				agentDetail = {
-					agent = main.modules.Agent.new(agentPlayer, true),
-					activeAreas = 0,
-				}
-				main.clientCommandAgents[agentPlayer] = agentDetail
-			end
-			agentDetail.activeAreas +=1
-			self[propertyName] = agentDetail.agent
-		end
+		self[propertyName] = main.modules.PlayerUtil.getAgent(agentPlayer)
 	end
 	setupAgent(self.player, "playerAgent")
 	setupAgent(self.caller, "callerAgent")
@@ -337,7 +322,7 @@ function Task:execute()
 			xpcall(command.invoke, function(errorMessage)
 				-- This enables the task to be cleaned up even if the command throws an error
 				self:kill()
-				warn(debug.traceback(("Nanoblox command error: %s"):format(tostring(errorMessage)), 2))
+				warn(debug.traceback(tostring(errorMessage), 2))
 			end, self, unpack(additional))
 			finishedInvokingCommand = true
 		end))
@@ -548,23 +533,6 @@ function Task:kill()
 			end
 			main.modules.Thread.delay(self.cooldown, main.services.TaskService.removeTask, self.UID)
 		end
-	else
-		-- This dynamically removes agents for client commands
-		local function removeClientAgent(agentPlayer)
-			if not agentPlayer then
-				return
-			end
-			local agentDetail = main.clientCommandAgents[agentPlayer]
-			if agentDetail then
-				agentDetail.activeAreas -=1
-				if agentDetail.activeAreas <= 0 then
-					agentDetail.agent:destroy()
-					main.clientCommandAgents[agentPlayer] = nil
-				end
-			end
-		end
-		removeClientAgent(self.player)
-		removeClientAgent(self.caller)
 	end
 	self.maid:clean()
 end

@@ -87,7 +87,7 @@ function Sound.new(soundId, soundType)
     self.soundInstance = soundInstance
     self.soundType = soundTypeFinal
     self.soundTypeName = soundTypeName
-    self.destroyed = false
+    self.isDestroyed = false
     self.originalValues = {}
     self.settingModule = settingModule
     self.changedMaid = maid:give(main.modules.Maid.new())
@@ -137,7 +137,7 @@ function Sound.new(soundId, soundType)
                     return
                 end
                 user:waitUntilLoaded()
-                if self.destroyed then
+                if self.isDestroyed then
                     return
                 end
                 local soundProperties = settingModule.getUsersPlayerSetting(user, "soundProperties")
@@ -228,7 +228,7 @@ end
 function Sound:destroy()
     Sound.sounds[self.soundInstance] = nil
     self.maid:clean()
-    self.destroyed = true
+    self.isDestroyed = true
 end
 Sound.Destroy = Sound.destroy
 

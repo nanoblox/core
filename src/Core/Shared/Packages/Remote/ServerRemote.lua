@@ -2,6 +2,7 @@
 -- This is important!!
 -- This defines the folder to store all remotes
 -- It must be present before the game initiates
+local main = require(game.Nanoblox)
 local remotesStorage = require(game.Nanoblox).shared.Remotes
 local REQUESTS_EXCEEDED_MESSAGE = "Exceeded request limit for remote '%s'. Cooldown = %s."
 local DATALIMIT_EXCEEDED_MESSAGE = "Exceeded data size limit of %s bytes for remote '%s'."
@@ -63,6 +64,7 @@ function Remote.new(name, requestLimit, refreshInterval, dataLimit)
 	self.requestLimit = requestLimit or 12
 	self.refreshInterval = refreshInterval or 3
 	self.dataLimit = tonumber(dataLimit)
+	self.deferFireClient = true
 	
 	assert(remotes[name] == nil, ("Remote %s already exits!"):format(name))
 	remotes[name] = self
@@ -156,6 +158,14 @@ function Remote:_getRemoteInstance(remoteType)
 	local remoteInstance = self.container[remoteType]
 	if not remoteInstance then
 		remoteInstance = Instance.new(remoteType)
+		if remoteType == "RemoteEvent" then
+			coroutine.wrap(function()
+				-- Remote instances are constructed upon first call, so we do this to ensure the client first connects to the remote instances before firing
+				self._maid:give(main.modules.Thread.delay(0.05, function()
+					self.deferFireClient = false
+				end))
+			end)()
+		end
 		remoteInstance.Parent = self.remoteFolder
 		self.container[remoteType] = self._maid:give(remoteInstance)
 	end
@@ -164,6 +174,14 @@ end
 
 function Remote:fireClient(player, ...)
 	local remoteInstance = self:_getRemoteInstance("RemoteEvent")
+	if self.deferFireClient then
+		local args = table.pack(...)
+		self._maid:give(main.modules.Thread.delay(0.05, function()
+			self.deferFireClient = false
+			remoteInstance:FireClient(player, unpack(args))
+		end))
+		return
+	end
 	remoteInstance:FireClient(player, ...)
 end
 
@@ -171,6 +189,14 @@ function Remote:fireAllClients(...)
 	for _, player in pairs(players:GetPlayers()) do
 		self:fireClient(player, ...)
 	end
+end
+
+function Remote:fireAllAndFutureClients(...)
+	self:fireAllClients(...)
+	local args = table.pack(...)
+	return self._maid:give(main.Players.PlayerAdded:Connect(function(player)
+		self:invokeClient(player, unpack(args))
+	end))
 end
 
 function Remote:fireNearbyClients(origin, radius, ...)

@@ -127,10 +127,11 @@ function Command.invoke(task, args)
 		end
 		if not task.isDead then
 			print("Conga list changed (1): ", index, playerOrNil)
-			task:delay(0.1, function() -- We delay by a frame so the client can setup their corresponding remote
+			local thread = main.modules.Thread.delay(0.1, function()--task:delay(0.1, function() -- We delay by a frame so the client can setup their corresponding remote
 				print("Conga list changed (2): ", index, playerOrNil)
 				congaListRemote:fireAllClients(index, playerOrNil)
 			end)
+			thread.name = "congaList"..index..tostring(playerOrNil)
 		end
 	end))
 	task:invokeAllAndFutureClients(leadPlayer, congaList, delay, gap)
@@ -140,6 +141,7 @@ function Command.invoke(task, args)
 		congaList = nil
 		leadUser.temp:set("congaCommandList", nil)
 	end)
+
 end
 
 

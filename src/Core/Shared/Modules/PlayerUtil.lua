@@ -31,11 +31,12 @@ function PlayerUtil.getHeadPos(playerOrUserId)
 	return headPos
 end
 
-function PlayerUtil.getHRP(playerOrUserId)
+function PlayerUtil.getHumanoidRootPart(playerOrUserId)
 	local character = PlayerUtil.getCharacter(playerOrUserId)
 	local hrp = character and character:FindFirstChild("HumanoidRootPart")
 	return hrp
 end
+PlayerUtil.getHRP = PlayerUtil.getHumanoidRootPart
 
 function PlayerUtil.getHRPPosition(playerOrUserId)
 	local hrp = PlayerUtil.getHRP(playerOrUserId)
@@ -98,25 +99,38 @@ function PlayerUtil.loadTrack(player, animationId)
 	return animator:LoadAnimation(animation)
 end
 
-local hiddenCharacters = {}
-function PlayerUtil.hideCharacter(playerOrCharacter)
-	local storageName = "NanobloxHiddenCharacters"
-	local hiddenStorage = main.ReplicatedStorage:FindFirstChild(storageName)
-	if not hiddenStorage then
-		hiddenStorage = Instance.new("Folder")
-		hiddenStorage.Name = storageName
-		hiddenStorage.Parent = main.ReplicatedStorage
+local agents = {}
+function PlayerUtil.getAgent(player)
+	local agent = agents[player]
+	if not agent then
+		-- Agents automatically destroy themselves when their associated player leaves so we don't need to worry about cleaning them up
+		agent = main.modules.Agent.new(player, true)
+		agents[player] = agent
 	end
-	if main.isClient and playerOrCharacter == nil then
-		playerOrCharacter = main.localPlayer
+	return agent
+end
+
+local hiddenAgents = {}
+function PlayerUtil.hidePlayer(player)
+	if main.isClient and player == nil then
+		player = main.localPlayer
 	end
-	local character = (playerOrCharacter:IsA("Player") and playerOrCharacter.Character) or playerOrCharacter
 	local hiddenKey = main.modules.DataUtil.generateUID()
-	local hiddenDetail = hiddenCharacters[character]
-	if character then
+	local agent = PlayerUtil.getAgent(player)
+	if agent then
+		-- We make the player invisible and freeze them, instead of parenting them to ReplicatedStorage, so that they can still perform actions such as resetting
+		local hiddenDetail = hiddenAgents[agent]
 		if hiddenDetail == nil then
-			hiddenCharacters[character] = {(character.Parent or workspace), hiddenKey}
-			character.Parent = hiddenStorage
+			local buffs = {}
+			table.insert(buffs, agent:buff("BodyTransparency"):set(1):setWeight(999))
+			table.insert(buffs, agent:buff("Humanoid", "WalkSpeed"):set(0):setWeight(999))
+			main.modules.Thread.delay(0.1, function() -- This allows enough time for the Humanoid to register as 'stopped'
+				if hiddenAgents[agent] then
+					table.insert(buffs, agent:buff("HumanoidRootPart", "Anchored"):set(true):setWeight(999))
+				end
+			end)
+			main.modules.ChatUtil.hideChat(player)
+			hiddenAgents[agent] = {buffs, hiddenKey}
 		else
 			hiddenDetail[2] = hiddenKey
 		end
@@ -124,24 +138,28 @@ function PlayerUtil.hideCharacter(playerOrCharacter)
 	return hiddenKey
 end
 
-function PlayerUtil.showCharacter(playerOrCharacter)
-	if main.isClient and playerOrCharacter == nil then
-		playerOrCharacter = main.localPlayer
+function PlayerUtil.showPlayer(player)
+	if main.isClient and player == nil then
+		player = main.localPlayer
 	end
-	local character = (playerOrCharacter:IsA("Player") and playerOrCharacter.Character) or playerOrCharacter
-	local hiddenDetail = hiddenCharacters[character]
+	local agent = PlayerUtil.getAgent(player)
+	local hiddenDetail = hiddenAgents[agent]
 	if hiddenDetail then
-		hiddenCharacters[character] = nil
-		character.Parent = hiddenDetail[1]
+		hiddenAgents[agent] = nil
+		local buffs = hiddenDetail[1]
+		for _, buff in pairs(buffs) do
+			buff:destroy()
+		end
+		main.modules.ChatUtil.showChat(player)
 	end
 end
 
-function PlayerUtil.isHidden(playerOrCharacter)
-	if main.isClient and playerOrCharacter == nil then
-		playerOrCharacter = main.localPlayer
+function PlayerUtil.isPlayerHidden(player)
+	if main.isClient and player == nil then
+		player = main.localPlayer
 	end
-	local character = (playerOrCharacter:IsA("Player") and playerOrCharacter.Character) or playerOrCharacter
-	local hiddenDetail = hiddenCharacters[character]
+	local agent = PlayerUtil.getAgent(player)
+	local hiddenDetail = hiddenAgents[agent]
 	if hiddenDetail then
 		return true, hiddenDetail[2]
 	end

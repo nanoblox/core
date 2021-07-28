@@ -10,7 +10,7 @@ Buff.__index = Buff
 
 
 -- CONSTRUCTOR
-function Buff.new(effect, property, weight)
+function Buff.new(effect, property, weight, additional)
     local self = {}
 	setmetatable(self, Buff)
 
@@ -19,14 +19,14 @@ function Buff.new(effect, property, weight)
         error(("'%s' is not a valid Buff Effect!"):format(tostring(effect)))
     end
 
-    local buffId = httpService:GenerateGUID(true)
+    local buffId = (additional and additional.customBuffId) or main.modules.DataUtil.generateUID()
     self.buffId = buffId
     self.timeUpdated = os.clock()
     local maid = Maid.new()
     self._maid = maid
     self.isDestroyed = false
     self.effect = effect
-    self.additional = property
+    self.property = property
     self.weight = weight or 1
     self.updated = maid:give(Signal.new())
     self.agent = nil
@@ -36,6 +36,45 @@ function Buff.new(effect, property, weight)
     self.accessories = {}
     self.tempBuffs = {}
     self.tempBuffDetails = {}
+    self.assignedTempBuffs = {}
+    self.readyToUpdateClient = false
+
+    if additional then
+		for k, v in pairs(additional) do
+			self[k] = v
+		end
+	end
+
+    if self.effect == "HideCharacter" then
+        table.insert(self.tempBuffDetails, {{"BodyTransparency"}, {1}})
+        table.insert(self.tempBuffDetails, {{"Humanoid", "WalkSpeed"}, {0}})
+        main.modules.Thread.delay(0.1, function()
+            -- This allows enough time for the Humanoid to register as 'stopped'
+            if not self.isDestroyed then
+                local collisionId = main.modules.CollisionUtil.getIdFromName("NanobloxPlayersWithNoCollision") or 0
+                table.insert(self.tempBuffDetails, {{"CollisionGroupId"}, {collisionId}})
+                table.insert(self.tempBuffDetails, {{"HumanoidRootPart", "Anchored"}, {true}})
+                self:_update(true)
+            end
+        end)
+        self:set(true)
+        self:setWeight(self.weight+999)
+        main.modules.Thread.spawn(self._update, self, true)
+    end
+
+    if main.isServer then
+        self._maid:give(main.modules.Thread.spawn(function()
+            -- We delay by 1 frame as a buff method (such as :set, :setWeight, etc) may be called immediately afterwards
+            if not self.isDestroyed then
+                self.readyToUpdateClient = true
+                local remote = self.agent.createClientBuffRemote
+                remote:fireAllClients(buffId, self.effect, self.property, self.weight, self.setterMethodName, self.value)
+                self._maid:give(main.Players.PlayerAdded:Connect(function(player)
+                    remote:fireClient(player, buffId, self.effect, self.property, self.weight, self.setterMethodName, self.value)
+                end))
+            end
+        end))
+    end
 
 	return self
 end
@@ -45,8 +84,12 @@ end
 -- METHODS
 function Buff:_changeValue(value)
     local newValue = value
+
     if typeof(value) == "BrickColor" then
         newValue = Color3.new(value.r, value.g, value.b)
+
+    elseif self.effect == "CollisionGroupId" then
+        newValue = tostring(value)
 
     elseif typeof(value) == "Instance" then
         if value:IsA("HumanoidDescription") then
@@ -88,7 +131,11 @@ function Buff:set(value, optionalTweenInfo)
     self.incremental = false
     self.tweenInfo = optionalTweenInfo
     self.value = self:_changeValue(value)
+    self.setterMethodName = "set"
     self.timeUpdated = os.clock()
+    if self.readyToUpdateClient then
+        self.agent.callClientBuffRemote:fireAllClients(self.buffId, "set", value)
+    end
     self:_update(true)
     return self
 end
@@ -99,7 +146,11 @@ function Buff:increment(value, optionalTweenInfo)
     self.incremental = true
     self.tweenInfo = optionalTweenInfo
     self.value = self:_changeValue(value)
+    self.setterMethodName = "increment"
     self.timeUpdated = os.clock()
+    if self.readyToUpdateClient then
+        self.agent.callClientBuffRemote:fireAllClients(self.buffId, "increment", value)
+    end
     self:_update(true)
     return self
 end
@@ -112,13 +163,16 @@ end
 function Buff:setWeight(weight)
     self.weight = weight or 1
     self.timeUpdated = os.clock()
+    if self.readyToUpdateClient then
+        self.agent.callClientBuffRemote:fireAllClients(self.buffId, "setWeight", weight)
+    end
     self:_update()
     return self
 end
 
 function Buff:_update(onlyUpdateThisBuff)
     if onlyUpdateThisBuff or self.onlyUpdateThisBuff then
-        self.updated:Fire(self.effect, self.additional)
+        self.updated:Fire(self.effect, self.property)
     else
         self.updated:Fire()
     end
@@ -141,6 +195,9 @@ end
 function Buff:destroy()
     if self.isDestroyed then return end
     self.isDestroyed = true
+    if self.readyToUpdateClient then
+        self.agent.callClientBuffRemote:fireAllClients(self.buffId, "destroy")
+    end
     main.modules.Thread.delay(0.1, function()
         -- We have this delay here to prevent 'appearance' commands from resetting then immidately snapping to a new buff (as there's slight frame different between killing and executing tasks).
         self:_update()

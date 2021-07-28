@@ -17,7 +17,7 @@ Command.requiresRig = main.enum.HumanoidRigType.None
 Command.revokeRepeats = false
 Command.preventRepeats = main.enum.TriStateSetting.False
 Command.cooldown = 0
-Command.persistence = main.enum.Persistence.UntilPlayerDies
+Command.persistence = main.enum.Persistence.UntilPlayerRespawns
 Command.args = {"Player", "Color", "BodyParts"}
 
 function Command.invoke(task, args)

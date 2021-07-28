@@ -8,16 +8,92 @@
 -- LOCAL
 local main = require(game.Nanoblox)
 local Thread = {}
-local heartbeat = main.RunService.Heartbeat
 local intervalTypes = {
-	["Heartbeat"] = heartbeat,
-	["RenderStepped"] = main.RunService.RenderStepped,
-	["Stepped"] = main.RunService.Stepped,
+	["Heartbeat"] = true,
+	["RenderStepped"] = true,
+	["Stepped"] = true,
+	["PreRender "] = true,
+	["PreAnimation"] = true,
+	["PreSimulation "] = true,
+	["PostSimulation "] = true,
 }
 
 
 
 -- LOCAL FUNCTIONS
+local activeFrameEvents = {}
+local function formConnection(thread)
+	-- This ensures only 1 connectin is formed per server, instead of per thread, so that thread behaviours can be executed in order of construction
+
+	local frameEvent = thread.frameEvent
+	local activeDetail = activeFrameEvents[frameEvent]
+	if not activeDetail then
+		activeDetail = {
+			threadsToCheck = {},
+			threadIndexesToRemove = {},
+			totalThreadsToCheck = 0,
+			runServiceConnection = main.RunService[frameEvent]:Connect(function()
+				-- Deferred events means the connection may not be instantly disconnected
+				if not activeDetail.runServiceConnection then
+					return
+				end
+				-- This executes the threads behaviour
+				local threadsToCheck = activeDetail.threadsToCheck
+				for _, threadToCheck in pairs(threadsToCheck) do
+					local funcToExecute, args = threadToCheck.behaviour()
+					if funcToExecute then
+						main.modules.Thread.spawnNow(funcToExecute, unpack(args, 1, args.n))
+					end
+				end
+				-- This checks if any threads need removing
+				local indexesToRemove = activeDetail.threadIndexesToRemove
+				if #indexesToRemove > 0 then
+					table.sort(indexesToRemove, function(a,b) -- This ensures the values are removed backwards (therefore remain the same index)
+						return a > b
+					end)
+					for _, index in pairs(indexesToRemove) do
+						table.remove(threadsToCheck, index)
+					end
+					activeDetail.threadIndexesToRemove = {}
+				end
+				-- This ends the runServiceConnection if no threads remain
+				if activeDetail.totalThreadsToCheck == 0 then
+					activeDetail.runServiceConnection:Disconnect()
+					activeDetail.runServiceConnection = nil
+					activeFrameEvents[frameEvent] = nil
+				end
+			end),
+		}
+		activeFrameEvents[frameEvent] = activeDetail
+	end
+	activeDetail.totalThreadsToCheck += 1
+	table.insert(activeDetail.threadsToCheck, thread)
+	----------------!!! RMOEVE
+	local tableOfNames = {}
+	for _, threadToCheck in pairs(activeDetail.threadsToCheck) do
+		if threadToCheck.name then
+			table.insert(tableOfNames, ("%s (%s)"):format(threadToCheck.name, thread.executeTime))
+		end
+	end
+	--print("threadsToCheck = ", table.concat(tableOfNames, ", "))
+	----------------!!! RMOEVE
+
+	local connection = {}
+	function connection:Disconnect()
+		for i, threadToCheck in pairs(activeDetail.threadsToCheck) do
+			if threadToCheck.connection == connection then
+				table.insert(activeDetail.threadIndexesToRemove, i)
+				break
+			end
+		end
+		activeDetail.totalThreadsToCheck -= 1
+		thread.connection = nil
+	end
+	thread.connection = connection
+
+	return connection
+end
+
 local function createThread()
 
 	-- Thread has multiple names for properties and methods to accurately mimic items like Tweens
@@ -51,7 +127,7 @@ local function createThread()
 		if not thread.isDead then
 			updateState(main.enum.ThreadState.Playing)
 			thread.executeTime = tick() + (thread.remainingTime or 0)
-			thread.connection = thread.frameEvent:Connect(thread.behaviour)
+			thread.connection = formConnection(thread)--thread.frameEvent:Connect(thread.behaviour)
 		end
 	end
 	thread.Resume = thread.resume
@@ -98,7 +174,7 @@ end
 
 local function loopMaster(intervalTime, thread, behaviour, func, ...)
 	thread.remainingTime = intervalTime
-	thread.frameEvent = intervalTypes[intervalTime] or heartbeat
+	thread.frameEvent = (intervalTypes[intervalTime] and intervalTime) or "Heartbeat"
 	thread.behaviour = behaviour
 	thread:resume()
 	return thread
@@ -120,11 +196,11 @@ end
 function Thread.spawn(func, ...)
 	local args = table.pack(...)
 	local thread = createThread()
-	thread.frameEvent = heartbeat
+	thread.frameEvent = "Heartbeat"
 	thread.behaviour = function()
 		thread:disconnect()
 		if func then
-			func(unpack(args, 1, args.n))
+			return func, args
 		end
 	end
 	thread:resume()
@@ -135,12 +211,12 @@ function Thread.delay(waitTime, func, ...)
 	local args = table.pack(...)
 	local thread = createThread()
 	thread.remainingTime = waitTime
-	thread.frameEvent = heartbeat
+	thread.frameEvent = "Heartbeat"
 	thread.behaviour = function()
 		if (tick() >= thread.executeTime) then
 			thread:disconnect()
 			if func then
-				func(unpack(args, 1, args.n))
+				return func, args
 			end
 		end
 	end
@@ -151,12 +227,12 @@ end
 function Thread.delayUntil(criteria, func, ...)
 	local args = table.pack(...)
 	local thread = createThread()
-	thread.frameEvent = heartbeat
+	thread.frameEvent = "Heartbeat"
 	thread.behaviour = function()
 		if criteria() then
 			thread:disconnect()
 			if func then
-				func(unpack(args, 1, args.n))
+				return func, args
 			end
 		end
 	end
@@ -172,7 +248,7 @@ function Thread.delayLoop(intervalTimeOrType, func, ...)
 		if (tick() >= thread.executeTime) then
 			thread.executeTime = tick() + intervalTime
 			if func then
-				func(unpack(args, 1, args.n))
+				return func, args
 			end
 		end
 	end, func, ...)
@@ -188,7 +264,7 @@ function Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...)
 		elseif (tick() >= thread.executeTime) then
 			thread.executeTime = tick() + intervalTime
 			if func then
-				func(unpack(args, 1, args.n))
+				return func, args
 			end
 		end
 	end, func, ...)
@@ -207,7 +283,8 @@ function Thread.delayLoopFor(intervalTimeOrType, iterations, func, ...)
 			thread.executeTime = tick() + intervalTime
 			i = i + 1
 			if func then
-				func(i, unpack(args, 1, args.n))
+				local newArgs = table.pack(i, unpack(args, 1, args.n))
+				return func, newArgs
 			end
 		end
 	end, func, ...)

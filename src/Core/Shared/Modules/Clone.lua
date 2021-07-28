@@ -25,27 +25,30 @@ function Clone.new(playerOrCharacterOrUserId, properties)
 	
     local maid = main.modules.Maid.new()
     self.maid = maid
-    self.userId = nil
-    self.character = nil
-    self.clone = nil
+    self.userId = false
+    self.character = false
+    self.clone = false
     self.hidden = false
     self.tracks = {}
-    self.spawnCFrame = nil
-    self.forcedRigType = nil
+    self.spawnCFrame = false
+    self.forcedRigType = false
     self.animations = {}
     self.tracks = {}
     self.animNamesToTrack = {}
-    self.hrp = nil
-    self.humanoid = nil
-    self.destroyed = false
-    self.destroyedSignal = main.modules.Signal.new()
+    self.hrp = false
+    self.humanoid = false
+    self.isDestroyed = false
+    self.destroyed = main.modules.Signal.new()
     self.humanoidDescriptionCount = 0
-    self.humanoidDescriptionToApply = nil
+    self.humanoidDescriptionToApply = false
     self.applyingHumanoidDescription = false
     self.humanoidDescriptionQueue = {}
     self.height = 5.2
-    self.animateScript = nil
+    self.animateScript = false
     self.animateScriptDisabled = false
+    self.transparencyMaid = false
+    self.watchingPlayerOrBasePart = false
+    self.displayName = false
 
     if properties then
         for key, value in pairs(properties) do
@@ -72,7 +75,7 @@ function Clone:become(item)
     local IsAHumanoidDesc = typeof(item) == "Instance" and item:IsA("HumanoidDescription")
     if typeof(item) == "Instance" and item:IsA("Player") then
         local humanoid = main.modules.PlayerUtil.getHumanoid(item)
-        if humanoid and (humanoid.RigType == self.forcedRigType or self.forcedRigType == nil) then
+        if humanoid and (humanoid.RigType == self.forcedRigType or not self.forcedRigType) then
             item = item.Character
         else
             item = item.UserId
@@ -105,8 +108,11 @@ function Clone:become(item)
                 self.userId = userId
             end
             local success, description = pcall(function() return main.Players:GetHumanoidDescriptionFromUserId(userId) end)
-            if success and not self.destroyed then
+            if success and not self.isDestroyed then
                 self:applyHumanoidDescription(description)
+                if description.Head == 0 then
+                    description.Head = "99"
+                end
             end
         end)
     end
@@ -128,17 +134,32 @@ function Clone:become(item)
                     instance:Destroy()
                 end
             end
+            ---
+            local player = main.Players:GetPlayerFromCharacter(self.character)
+            local agent = player and main.modules.PlayerUtil.getAgent(player)
+            if agent then
+                local transBuffs = agent:getNonTempBuffsWithEffect("BodyTransparency")
+                local transValue = 0
+                local firstBuff = transBuffs[1]
+                if firstBuff then
+                    transValue = firstBuff.value
+                end
+                self.clone = clone
+                self:setTransparency(transValue)
+            end
+            ---
             
         else
-            local randomPlayer = main.Players:GetPlayers()[1]
+            --local randomPlayer = main.Players:GetPlayers()[1]
             local rigType = self.forcedRigType
+            --[[
             if not rigType and randomPlayer then
                 local randomChar = randomPlayer.Character
                 local randomHumanoid = randomChar and randomChar:FindFirstChildOfClass("Humanoid")
                 if randomHumanoid then
                     rigType = randomHumanoid.RigType.Name
                 end
-            end
+            end--]]
             if not rigType then
                 rigType = "R15"
             end
@@ -164,7 +185,7 @@ function Clone:become(item)
                             local success, newUserId = main.modules.PlayerUtil.getUserIdFromName(username):await()
                             userId = (success and newUserId) or 0
                         end
-                        if not self.destroyed and username then
+                        if not self.isDestroyed and username then
                             clone.Humanoid.DisplayName = self.displayName or username
                             clone.Name = username
                         end
@@ -261,7 +282,7 @@ function Clone:become(item)
                     username = (success and newUsername) or "####"
                     self.username = username
                 end
-                if not self.destroyed and username then
+                if not self.isDestroyed and username then
                     clone.Name = username
                     clone.Humanoid.DisplayName = self.displayName or username
                 end
@@ -306,7 +327,7 @@ function Clone:setCFrame(cframe)
 end
 
 function Clone:setCollidable(bool)
-    local groupName = (bool == false and CollisionUtil.cloneCollisionGroupName) or "Default"
+    local groupName = (bool == false and "NanobloxClones") or "Default"
     CollisionUtil.setCollisionGroup(self.clone, groupName)
 end
 
@@ -327,6 +348,7 @@ end
 
 function Clone:setTransparency(value)
     local tMaid = self.transparencyMaid
+    print("tMaid = ", tMaid)
     if tMaid then
         tMaid:clean()
     else
@@ -369,7 +391,7 @@ function Clone:regenerate(bool, regenRate, regenStep)
         local REGEN_STEP = regenStep or 1
         regenMaid:give(main.RunService.Heartbeat:Connect(function()
             local timeNow = os.clock()
-            if self.destroyed or self.humanoid.Health >= self.humanoid.MaxHealth then
+            if self.isDestroyed or self.humanoid.Health >= self.humanoid.MaxHealth then
                 regenMaid:clean()
             elseif timeNow >= nextStep then
                 nextStep = timeNow + REGEN_STEP
@@ -598,7 +620,7 @@ function Clone:modifyHumanoidDescription(propertyName, value)
                 appliedDesc = humanoid and humanoid:GetAppliedDescription()
 			until propertyName == nil or (appliedDesc and self.humanoidDescriptionToApply and appliedDesc[propertyName] == self.humanoidDescriptionToApply[propertyName]) or iterations == 10
             self.humanoidDescriptionToApply:Destroy()
-			self.humanoidDescriptionToApply = nil
+			self.humanoidDescriptionToApply = false
             self.applyingHumanoidDescription = false
             self:_updateHeight()
             if watchingPart then
@@ -896,16 +918,11 @@ function Clone:unfollow()
 end
 
 function Clone:destroy()
-    if not self.destroyed then
-        self.destroyed = true
+    if not self.isDestroyed then
+        self.isDestroyed = true
         self.maid:clean()
-        self.destroyedSignal:Fire()
-        self.destroyedSignal:Destroy()
-        for k, v in pairs(self) do
-            if typeof(v) == "table" then
-                self[k] = nil
-            end
-        end
+        self.destroyed:Fire()
+        self.destroyed:Destroy()
     end
 end
 Clone.Destroy = Clone.destroy

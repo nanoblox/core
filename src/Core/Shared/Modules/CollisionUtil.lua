@@ -5,14 +5,14 @@ local CollisionUtil = {}
 
 
 -- SETUP
-local PLAYER_COLLISION_GROUP_NAME = "NanobloxPlayers"
-local CLONE_COLLISION_GROUP_NAME = "NanobloxClones"
-CollisionUtil.playerCollisionGroupName = PLAYER_COLLISION_GROUP_NAME
-CollisionUtil.cloneCollisionGroupName = CLONE_COLLISION_GROUP_NAME
+local collisionGroupNames = {"NanobloxPlayers", "NanobloxClones", "NanobloxPlayersWithNoCollision"}
 if main.isServer then
-	main.PhysicsService:CreateCollisionGroup(PLAYER_COLLISION_GROUP_NAME)
-	main.PhysicsService:CreateCollisionGroup(CLONE_COLLISION_GROUP_NAME)
-	main.PhysicsService:CollisionGroupSetCollidable(CLONE_COLLISION_GROUP_NAME, PLAYER_COLLISION_GROUP_NAME, false)
+	for _, name in pairs(collisionGroupNames) do
+		main.PhysicsService:CreateCollisionGroup(name)
+	end
+	main.PhysicsService:CollisionGroupSetCollidable("NanobloxClones", "NanobloxPlayers", false)
+	main.PhysicsService:CollisionGroupSetCollidable("NanobloxPlayersWithNoCollision", "Default", false)
+	main.PhysicsService:CollisionGroupSetCollidable("NanobloxPlayersWithNoCollision", "NanobloxPlayers", false)
 end
 
 
@@ -34,8 +34,12 @@ function CollisionUtil.setCollisionGroup(object, groupName, ignoreDescendantChec
 	end
 end
 
+function CollisionUtil.getIdFromName(collisionGroupName)
+	return main.PhysicsService:GetCollisionGroupId(collisionGroupName)
+end
+
 function CollisionUtil.applyGroupToCharacter(character)
-	CollisionUtil.setCollisionGroup(character, PLAYER_COLLISION_GROUP_NAME)
+	CollisionUtil.setCollisionGroup(character, "NanobloxPlayers")
 end
 
 function CollisionUtil.joinPlayerCollisionGroup(player)

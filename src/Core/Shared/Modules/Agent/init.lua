@@ -6,7 +6,9 @@ Agent.__index = Agent
 local main = require(game.Nanoblox)
 local Buff = require(script.Buff)
 local Maid = main.modules.Maid
-local sortBuffsByTimeUpdatedFunc = function(buffA, buffB) return buffA.timeUpdated > buffB.timeUpdated end
+local sortBuffsByWeightAndTimeUpdated = function(buffA, buffB)
+	return buffA.weight > buffB.weight or (buffA.weight == buffB.weight and buffA.timeUpdated > buffB.timeUpdated)
+end
 local players = game:GetService("Players")
 local tweenService = game:GetService("TweenService")
 local effects = require(script.Buff.Effects)
@@ -47,7 +49,27 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 	self.humanoidDescription = nil
 	self.applyingHumanoidDescription = false
 	self.remainingHumanoidDescriptionBuffs = 0
-	self.destroyed = false
+	self.isDestroyed = false
+	self.buffIdsToBuff = {}
+
+	-- This handles the replication of buffs created on the server to the client
+	-- The buffs will still be applied on the server, this is primarily to inform all clients that 'agent has X buff'
+	self.createClientBuffRemote = maid:give(main.modules.Remote.new("agent-"..player.UserId.."-createClientBuff"))
+	self.callClientBuffRemote = maid:give(main.modules.Remote.new("agent-"..player.UserId.."-callClientBuff"))
+	if main.isClient then
+		self.createClientBuffRemote.onClientEvent:Connect(function(buffId, effect, property, weight, setterMethodName, value)
+			local buff = self:buff(effect, property, weight, {customBuffId = buffId, isFromServer = true})
+			if setterMethodName then
+				buff[setterMethodName](buff, value)
+			end
+		end)
+		self.callClientBuffRemote.onClientEvent:Connect(function(buffId, methodName, ...)
+			local buff = self:getBuffByBuffId(buffId)
+			if buff then
+				buff[methodName](buff, ...)
+			end
+		end)
+	end
 
 	maid:give(player.CharacterAdded:Connect(function(char)
 		if reapplyBuffsOnRespawn then
@@ -70,9 +92,10 @@ end
 
 
 -- METHODS
-function Agent:buff(effect, property, weight)
-	local buff = Buff.new(effect, property, weight)
+function Agent:buff(...)
+	local buff = Buff.new(...)
 	local buffId = buff.buffId
+	self.buffIdsToBuff[tostring(buffId)] = buff
 	buff.agent = self
 	buff.updated:Connect(function(specificEffect, specificProperty)
 		self:reduceAndApplyEffects(specificEffect, specificProperty)
@@ -86,7 +109,7 @@ function Agent:getBuffs()
 	for buffId, buff in pairs(self.buffs) do
 		table.insert(buffs, buff)
 	end
-	table.sort(buffs, sortBuffsByTimeUpdatedFunc)
+	table.sort(buffs, sortBuffsByWeightAndTimeUpdated)
 	return buffs
 end
 
@@ -97,7 +120,22 @@ function Agent:getBuffsWithEffect(effect)
 			table.insert(buffs, buff)
 		end
 	end
-	table.sort(buffs, sortBuffsByTimeUpdatedFunc)
+	table.sort(buffs, sortBuffsByWeightAndTimeUpdated)
+	return buffs
+end
+
+function Agent:getBuffByBuffId(buffId)
+	return self.buffIdsToBuff[tostring(buffId)]
+end
+
+function Agent:getNonTempBuffsWithEffect(effect)
+	local buffs = {}
+	for buffId, buff in pairs(self.buffs) do
+		if buff.effect == effect and not buff.myTempBuffDetail then
+			table.insert(buffs, buff)
+		end
+	end
+	table.sort(buffs, sortBuffsByWeightAndTimeUpdated)
 	return buffs
 end
 
@@ -106,13 +144,17 @@ function Agent:updateBuffGroups()
 	local groupedBuffs = {}
 	self.remainingHumanoidDescriptionBuffs = 0
 	for buffId, buff in pairs(self.buffs) do
+		if buff.isFromServer then
+			continue
+		end
+
 		local effect = buff.effect
 		local group = groupedBuffs[effect]
 		if not group then
 			group = {}
 			groupedBuffs[effect] = group
 		end
-		local additionalString = tostring(buff.additional)
+		local additionalString = tostring(buff.property)
 		local additionalTable = group[additionalString]
 		if not additionalTable then
 			additionalTable = {}
@@ -188,7 +230,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 			if not(specificProperty == nil or additionalString == specificProperty) then
 				continue
 			end
-
+			
 			-- This retrieves a nonincremental buff with the greatest weight. If only incremental buffs exist, the one with the highest weight is chosen.
 			-- The boss then determines how other buffs will be applied (if at all)
 			local bossBuff
@@ -250,13 +292,13 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 				local finalValue = propertyValue
 				local activeAppliedTables = {}
 				local isFinalDestroyedDescBuff = false
-
+				
 				-- We do this as HumanoidDescription properties arent responsive (they are read-only and cant be tweened)
 				if isAHumanoidDescription then
 					isNumerical = false
 					isIncremental = false
 				end
-
+				
 				if not isNumerical then
 					-- For nonnumerical items we simply 'remember' the original value if the first time setting
 					-- This original value is then reapplied when all buffs are removed
@@ -284,21 +326,28 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 						if agentRigType and not updatedAccessories then
 							updatedAccessories = true
 							-- Create temp buffs in not already created
-							if not bossBuff.appliedTempBuffs and #bossBuff.tempBuffDetails > 0 then
-								bossBuff.appliedTempBuffs = true
+							--if not bossBuff.appliedTempBuffs and #bossBuff.tempBuffDetails > 0 then
+							if #bossBuff.tempBuffDetails > 0 then
+								--bossBuff.appliedTempBuffs = true
 								for _, tempBuffDetails in pairs(bossBuff.tempBuffDetails) do
-									local tempBuff = self:buff(unpack(tempBuffDetails[1]))
-									tempBuff.onlyUpdateThisBuff = true
-									tempBuff:set(unpack(tempBuffDetails[2]))
-									table.insert(bossBuff.tempBuffs, tempBuff)
-									tempBuff.onlyUpdateThisBuff = nil
-									bossBuff._maid:give(tempBuff)
+									if not bossBuff.assignedTempBuffs[tempBuffDetails] then
+										local tempBuff = self:buff(unpack(tempBuffDetails[1]))
+										bossBuff.assignedTempBuffs[tempBuffDetails] = true
+										tempBuff.myTempBuffDetail = tempBuffDetails
+										tempBuff.onlyUpdateThisBuff = true
+										tempBuff:set(unpack(tempBuffDetails[2]))
+										tempBuff:setWeight(bossBuff.weight)
+										table.insert(bossBuff.tempBuffs, tempBuff)
+										tempBuff.onlyUpdateThisBuff = nil
+										bossBuff._maid:give(tempBuff)
+									end
 								end
 							end
 							-- Remove temp buffs from others (this means if you do ;morph me chair then ;become matt, the character won't still be enitrely invisible)
 							for _, buff in pairs(buffs) do
-								if not buff.isDestroyed and buff ~= bossBuff and buff.appliedTempBuffs then
+								if not buff.isDestroyed and buff ~= bossBuff then--and buff.appliedTempBuffs then
 									for _, tempBuff in pairs(buff.tempBuffs) do
+										bossBuff.assignedTempBuffs[tempBuff.myTempBuffDetail] = nil
 										tempBuff:destroy()
 									end
 									buff.tempBuffs = {}
@@ -346,7 +395,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 					end
 
 				else
-					-- For numerical items we instead remember the incremental value, only apply it once, the take it off when the buff is destroyed
+					-- For numerical items we instead remember the incremental value, only apply it once, the take it off when the buff is isDestroyed
 					if not isIncremental then
 						-- Since 'set' was called, only 1 buff needs to be applied (i.e. the boss buff)
 						local previousDifference = 0
@@ -437,7 +486,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 						end
 						tween:Play()
 						reduceTweenMaid:give(function()
-							if not self.destroyed then
+							if not self.isDestroyed then
 								if tween.PlaybackState ~= Enum.PlaybackState.Completed then
 									tween:Pause()
 									if type(finalValue) == "number" then
@@ -473,7 +522,7 @@ function Agent:modifyHumanoidDescription(propertyName, value, isFinalDestroyedDe
 	self.humanoidDescription[propertyName] = value
 	local delayAmount = 0
 	if isFinalDestroyedDescBuff then
-		-- Tasks are often destroyed before the next one is executed, meaning
+		-- Tasks are often isDestroyed before the next one is executed, meaning
 		-- the appearance will reset then immidately update again.
 		-- We do this to prevent that snapping-jagged feel.
 		delayAmount = 0.4
@@ -557,7 +606,7 @@ function Agent:clearBuffsWithEffect(effect)
 end
 
 function Agent:destroy()
-	self.destroyed = true
+	self.isDestroyed = true
 	self:clearBuffs()
 	self._maid:clean()
 end

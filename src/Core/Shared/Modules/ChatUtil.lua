@@ -57,6 +57,14 @@ function ChatUtil.getSpeaker(player)
 		resolve(speaker)
 	end)
 end
+
+function ChatUtil.hideChat(player)
+	-- Wait for a response from https://devforum.roblox.com/t/brand-new-bubble-chat-customizations/1252869/139 before supporting this
+end
+
+function ChatUtil.showChat(player)
+	-- Wait for a response from https://devforum.roblox.com/t/brand-new-bubble-chat-customizations/1252869/139 before supporting this
+end
 	
 
 

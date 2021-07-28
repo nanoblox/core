@@ -84,7 +84,7 @@ Args.array = {
 		playerArg = true,
 		executeForEachPlayer = true,
 		parse = function(self, qualifiers, callerUserId, additional)
-			local defaultToMe = qualifiers == nil or main.modules.TableUtil.isEmpty(qualifiers)
+			local defaultToMe = qualifiers == nil or main.modules.TableUtil.isQualifiersEmpty(qualifiers)
 			local ignoreDefault = (additional and additional.ignoreDefault)
 			if defaultToMe and not ignoreDefault then
 				local players = {}
@@ -593,8 +593,8 @@ Args.array = {
 		description = "Accepts an @userName, displayName or userId and returns a userId.",
 		defaultValue = false,
 		parse = function(self, stringToParse, callerUserId)
-			local callerUser = main.modules.PlayerStore:getUser(callerUserId)
-			local playersInServer = main.modules.Parser.getPlayersFromString(stringToParse, callerUser)
+			local callerUser = main.modules.PlayerStore:getUserByUserId(callerUserId)
+			local playersInServer = Args.dictionary.player:parse({[stringToParse] = {}}, callerUserId) --main.modules.Parser.getPlayersFromString(stringToParse, callerUser)
 			local player = playersInServer[1]
 			if player then
 				return player.UserId
@@ -603,9 +603,11 @@ Args.array = {
 			if userId then
 				return userId
 			end
-			local playerIdentifier = main.services.SettingService.getUsersPlayerSetting(callerUser, "playerIdentifier")
-			local username = stringToParse:gsub(playerIdentifier, "")
-			local success, finalUserId = main.modules.PlayerUtil.getUserIdFromName(username):await()
+			local approved, username = main.modules.Parser.verifyAndParseUsername(callerUser, stringToParse)
+			local success, finalUserId
+			if approved then
+				success, finalUserId = main.modules.PlayerUtil.getUserIdFromName(username):await()
+			end
 			if success then
 				return finalUserId
 			end
@@ -620,8 +622,8 @@ Args.array = {
 		description = "Accepts an @userName, displayName or userId and returns a username.",
 		defaultValue = false,
 		parse = function(self, stringToParse, callerUserId)
-			local callerUser = main.modules.PlayerStore:getUser(callerUserId)
-			local playersInServer = main.modules.Parser.getPlayersFromString(stringToParse, callerUser)
+			local callerUser = main.modules.PlayerStore:getUserByUserId(callerUserId)
+			local playersInServer = Args.dictionary.player:parse({[stringToParse] = {}}, callerUserId) --main.modules.Parser.getPlayersFromString(stringToParse, callerUser)
 			local player = playersInServer[1]
 			if player then
 				return player.Name
@@ -633,9 +635,10 @@ Args.array = {
 					return finalUsername
 				end
 			end
-			local playerIdentifier = main.services.SettingService.getUsersPlayerSetting(callerUser, "playerIdentifier")
-			local username = stringToParse:gsub(playerIdentifier, "")
-			return username
+			local approved, username = main.modules.Parser.verifyAndParseUsername(callerUser, stringToParse)
+			if approved then
+				return username
+			end
 		end,
 	},
 

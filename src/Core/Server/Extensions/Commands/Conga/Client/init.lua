@@ -205,7 +205,6 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 		-- This creates and modifies the clone
 		local clone = task:give(main.modules.Clone.new(player, {forcedRigType = rigType}))
 		clone:anchorHRP(true)
-		clone:setSize(1)
 		clone:setCollidable(false)
 		clone.congaPlayer = player
 		function clone:setIndex(index)
@@ -238,22 +237,22 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 		local isCongaLeader = playerHumanoid and playerHumanoid:FindFirstChild("NanobloxCongaLeader")
 		local isLocalPlayer = main.localPlayer == player
 		if not isCongaLeader and not playerAlreadyExistsInLine then
-			local hiddenKey = PlayerUtil.hideCharacter(player)
+			local hiddenKey = PlayerUtil.hidePlayer(player)
 			if isLocalPlayer then
 				CameraUtil.setSubject(clone.humanoid)
 			end
 			task:give(function()
 				playerHumanoid = PlayerUtil.getHumanoid(main.localPlayer)
-				local _, newHiddenKey = PlayerUtil.isHidden(player)
+				local _, newHiddenKey = PlayerUtil.isPlayerHidden(player)
 				if playerHumanoid and hiddenKey == newHiddenKey then
-					PlayerUtil.showCharacter(player)
+					PlayerUtil.showPlayer(player)
 					if isLocalPlayer then
 						CameraUtil.setSubject(playerHumanoid)
 					end
 				end
 			end)
 		elseif isCongaLeader then
-			PlayerUtil.showCharacter(player)
+			PlayerUtil.showPlayer(player)
 			if isLocalPlayer then
 				CameraUtil.setSubject(playerHumanoid)
 			end

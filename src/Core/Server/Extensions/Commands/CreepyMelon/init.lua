@@ -16,7 +16,7 @@ Command.autoPreview = false
 Command.requiresRig = main.enum.HumanoidRigType.None
 Command.revokeRepeats = false
 Command.preventRepeats = main.enum.TriStateSetting.Default
-Command.cooldown = 8
+Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerDies
 Command.args = {"Player"}
 

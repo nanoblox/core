@@ -74,6 +74,7 @@
           <R22>1.0000005</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -168,6 +169,7 @@
           <R22>1.0000002</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -262,6 +264,7 @@
           <R22>1.0000001</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -356,6 +359,7 @@
           <R22>1.0000001</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -450,6 +454,7 @@
           <R22>1</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -544,6 +549,7 @@
           <R22>-0.63807887</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -638,6 +644,7 @@
           <R22>-0.63807905</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -732,6 +739,7 @@
           <R22>0.56255484</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -826,6 +834,7 @@
           <R22>0.5625544</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -920,6 +929,7 @@
           <R22>0.63808435</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -1014,6 +1024,7 @@
           <R22>0.6380843</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -1108,6 +1119,7 @@
           <R22>-0.5625329</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -1202,6 +1214,7 @@
           <R22>-0.56253296</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -1296,6 +1309,7 @@
           <R22>-0.7035455</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -1390,6 +1404,7 @@
           <R22>-0.70354605</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -1484,6 +1499,7 @@
           <R22>-0.47813478</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -1578,6 +1594,7 @@
           <R22>-0.4781348</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -1672,6 +1689,7 @@
           <R22>0.7035674</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -1766,6 +1784,7 @@
           <R22>0.70356715</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -1860,6 +1879,7 @@
           <R22>0.47813934</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -1954,6 +1974,7 @@
           <R22>0.47813952</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -2048,6 +2069,7 @@
           <R22>-0.67214155</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -2142,6 +2164,7 @@
           <R22>-0.6721412</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -2236,6 +2259,7 @@
           <R22>0.5213783</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -2330,6 +2354,7 @@
           <R22>0.52137804</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -2424,6 +2449,7 @@
           <R22>0.67214745</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -2518,6 +2544,7 @@
           <R22>0.6721474</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -2612,6 +2639,7 @@
           <R22>-0.5213568</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -2706,6 +2734,7 @@
           <R22>-0.52135694</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -2800,6 +2829,7 @@
           <R22>-0.8506424</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -2894,6 +2924,7 @@
           <R22>-0.8506423</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -2988,6 +3019,7 @@
           <R22>0.0000016987324</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -3082,6 +3114,7 @@
           <R22>0.0000015795231</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -3176,6 +3209,7 @@
           <R22>0.8506576</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -3270,6 +3304,7 @@
           <R22>0.8506576</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -3364,6 +3399,7 @@
           <R22>0.00001001358</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -3458,6 +3494,7 @@
           <R22>0.000009998679</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -3552,6 +3589,7 @@
           <R22>-0.68817925</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -3646,6 +3684,7 @@
           <R22>-0.68817914</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -3740,6 +3779,7 @@
           <R22>-0.49999723</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -3834,6 +3874,7 @@
           <R22>-0.49999714</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -3928,6 +3969,7 @@
           <R22>0.68820107</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -4022,6 +4064,7 @@
           <R22>0.68820095</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -4116,6 +4159,7 @@
           <R22>0.5000025</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -4210,6 +4254,7 @@
           <R22>0.5000023</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -4304,6 +4349,7 @@
           <R22>-0.80901015</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -4398,6 +4444,7 @@
           <R22>-0.8090103</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -4492,6 +4539,7 @@
           <R22>0.0000017434359</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -4586,6 +4634,7 @@
           <R22>0.000001847744</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -4680,6 +4729,7 @@
           <R22>0.8090264</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -4774,6 +4824,7 @@
           <R22>0.8090265</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -4868,6 +4919,7 @@
           <R22>0.5000022</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -4962,6 +5014,7 @@
           <R22>0.5000025</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -5056,6 +5109,7 @@
           <R22>-0.4999869</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -5150,6 +5204,7 @@
           <R22>-0.49998683</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -5244,6 +5299,7 @@
           <R22>-0.54222214</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -5338,6 +5394,7 @@
           <R22>-0.54222226</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -5432,6 +5489,7 @@
           <R22>0.45580873</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -5526,6 +5584,7 @@
           <R22>0.45580876</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -5620,6 +5679,7 @@
           <R22>0.8239298</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -5714,6 +5774,7 @@
           <R22>0.8239298</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -5808,6 +5869,7 @@
           <R22>0.053422004</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -5902,6 +5964,7 @@
           <R22>0.053421974</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -5996,6 +6059,7 @@
           <R22>-0.79090446</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>
@@ -6090,6 +6154,7 @@
           <R22>-0.7909045</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
+        <bool name="CanQuery">true</bool>
         <bool name="CanTouch">true</bool>
         <bool name="CastShadow">true</bool>
         <int name="CollisionGroupId">0</int>

@@ -56,6 +56,11 @@ function Remote.new(name)
 	self.remoteFolderAdded = Signal.new()
 	self.remoteFolder = nil
 	self:_setupRemoteFolder()
+	--!!!
+	if self.name == "RainTacos" then
+		--print("CREATE REMOTE", self.name)
+	end
+	--
 	
 	remotes[name] = self
 	
