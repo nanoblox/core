@@ -48,10 +48,15 @@ function main.initiate(loader)
 		main.loader = loader
 		main.config = require(loader.Config)
 		main.assetStorage = nil -- This is created within AssetService
+		local workspaceFolder = Instance.new("Folder")
+		workspaceFolder.Name = "Nanoblox"
+		workspaceFolder.Parent = workspace
+		main.workspaceFolder = workspaceFolder
 	elseif isClient then
 		main.locationGroup = main.client
 		main.controllers = {}
 		main.localPlayer = main.Players.LocalPlayer
+		main.workspaceFolder = workspace:FindFirstChild("Nanoblox")
 		--main.clientCommandAgents = {}
 	end
 	

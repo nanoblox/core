@@ -11,7 +11,7 @@ local runService = game:GetService("RunService")
 local ERROR_NO_LISTENER = "Failed to get remoteInstance %s for '%s': no remote is listening on the server."
 local Remote = {}
 local Signal = require(script.Parent.Signal)
-local Maid = require(script.Parent.Maid)
+local Janitor = require(script.Parent.Janitor)
 local Promise = require(script.Parent.Promise)
 
 
@@ -49,8 +49,8 @@ function Remote.new(name)
 	local self = {}
 	setmetatable(self, Remote)
 	
-	local maid = Maid.new()
-	self._maid = maid
+	local janitor = Janitor.new()
+	self.janitor = janitor
 	self.name = name
 	self.container = {}
 	self.remoteFolderAdded = Signal.new()
@@ -84,11 +84,11 @@ function Remote:__index(index)
 			events = {}
 			self[eventsName] = events
 			self:_continueWhenRemoteInstanceLoaded(remoteType, function(newRemoteInstance)
-				self._maid:give(newRemoteInstance[indexFormatted]:Connect(function(...)
+				self.janitor:add(newRemoteInstance[indexFormatted]:Connect(function(...)
 					for _, event in pairs(events) do
 						event(...)
 					end
-				end))
+				end), "Disconnect")
 			end)
 		end
 		function newIndex:Connect(event)
@@ -145,12 +145,12 @@ function Remote:_continueWhenRemoteInstanceLoaded(remoteType, functionToCall)
 			functionToCall(remoteInstance)
 		else
 			local waitForChildRemote
-			waitForChildRemote = self._maid:give(self.remoteFolder.ChildAdded:Connect(function(child)
+			waitForChildRemote = self.janitor:add(self.remoteFolder.ChildAdded:Connect(function(child)
 				if child.Name == remoteType then
 					waitForChildRemote:Disconnect()
 					functionToCall(child)
 				end
-			end))
+			end), "Disconnect")
 		end
 	end
 	local remoteFolder = self.remoteFolder
@@ -158,10 +158,10 @@ function Remote:_continueWhenRemoteInstanceLoaded(remoteType, functionToCall)
 		continueFunc()
 	else
 		local waitForRemoteFolderConnection
-		waitForRemoteFolderConnection = self._maid:give(self.remoteFolderAdded:Connect(function()
+		waitForRemoteFolderConnection = self.janitor:add(self.remoteFolderAdded:Connect(function()
 			waitForRemoteFolderConnection:Disconnect()
 			continueFunc()
-		end))
+		end), "Disconnect")
 	end
 end
 
@@ -172,10 +172,10 @@ function Remote:_setupRemoteFolder()
 			local remoteType = remoteInstance.ClassName
 			self.container[remoteType] = remoteInstance
 		end
-		self._maid:give(remoteFolder.ChildAdded:Connect(function(remoteInstance)
+		self.janitor:add(remoteFolder.ChildAdded:Connect(function(remoteInstance)
 			local remoteType = remoteInstance.ClassName
 			self.container[remoteType] = remoteInstance
-		end))
+		end), "Disconnect")
 		self.remoteFolder = remoteFolder
 		self.remoteFolderAdded:Fire()
 	end
@@ -218,7 +218,7 @@ function Remote:invokeServer(...)
 	local args = table.pack(...)
 	return Promise.defer(function(resolve, reject)
 		if not remoteInstance then
-			local waitForRemoteInstance = self._maid:give(Signal.new())
+			local waitForRemoteInstance = self.janitor:add(Signal.new(), "destroy")
 			self:_continueWhenRemoteInstanceLoaded(remoteType, function(newRemoteInstance)
 				runService.Heartbeat:Wait()
 				waitForRemoteInstance:Fire(newRemoteInstance)
@@ -243,7 +243,7 @@ end
 
 function Remote:destroy()
 	remotes[self.name] = nil
-	self._maid:clean()
+	self.janitor:destroy()
 end
 Remote.Destroy = Remote.destroy
 

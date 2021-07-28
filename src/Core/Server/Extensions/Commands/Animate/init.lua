@@ -28,8 +28,8 @@ function Command.invoke(task, args)
 	if not animTrack then
 		return
 	end
-	task:give(animTrack)
-	task:give(animation)
+	task:add(animTrack, "Destroy")
+	task:add(animation, "Destroy")
 	-- For a bizarre reason, there is no animTrack.Loaded event, so we have to repeat wait until its length is greater than 0 instead
 	task:delayUntil(function() return animTrack.Length > 0 end, function()
 		local isLooped = animTrack.looped

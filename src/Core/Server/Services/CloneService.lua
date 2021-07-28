@@ -8,12 +8,12 @@ function CloneService.start()
     
     local workspaceStorage = Instance.new("Folder")
     workspaceStorage.Name = Clone.storageName
-    workspaceStorage.Parent = workspace
+    workspaceStorage.Parent = main.workspaceFolder
     Clone.workspaceStorage = workspaceStorage
 
     local replicatedStorage = Instance.new("Folder")
     replicatedStorage.Name = Clone.storageName
-    replicatedStorage.Parent = main.ReplicatedStorage
+    replicatedStorage.Parent = main.ReplicatedStorage.Nanoblox
     Clone.replicatedStorage = replicatedStorage
 end
 

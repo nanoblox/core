@@ -333,11 +333,10 @@ function GlobalService.createSender(name)
 		GlobalService.addRecord(record)
 		if isInvocation then
 			local invocationTopic = getInvocationTopic(name, invocationUID)
-			local invocationSignal = Signal.new()
-			sender._maid[invocationTopic] = invocationSignal
+			local invocationSignal = sender.janitor:add(Signal.new(), "destroy", invocationTopic)
 			sender[invocationTopic] = invocationSignal
 			local dataFromServers = invocationSignal:Wait()
-			sender._maid[invocationTopic] = nil
+			sender.janitor:remove(invocationTopic)
 			sender[invocationTopic] = nil
 			return dataFromServers
 		end

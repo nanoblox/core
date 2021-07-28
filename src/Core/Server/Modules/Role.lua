@@ -1,6 +1,6 @@
 -- LOCAL
 local main = require(game.Nanoblox)
-local Maid = main.modules.Maid
+local Janitor = main.modules.Janitor
 local Signal = main.modules.Signal
 local Role = {}
 Role.__index = Role
@@ -12,8 +12,8 @@ function Role.new(properties)
 	local self = {}
 	setmetatable(self, Role)
 	
-	local maid = Maid.new()
-	self._maid = maid
+	local janitor = Janitor.new()
+	self.janitor = janitor
 	self.settings = {
 		commands = {}
 	}
@@ -31,7 +31,7 @@ end
 
 -- METHODS
 function Role:destroy()
-	self._maid:clean()
+	self.janitor:destroy()
 	for k, v in pairs(self) do
 		if typeof(v) == "table" then
 			self[k] = nil

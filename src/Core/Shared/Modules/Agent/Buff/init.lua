@@ -1,7 +1,7 @@
 local main = require(game.Nanoblox)
 local httpService = game:GetService("HttpService")
 local bodyUtilPathway = script.BodyUtil
-local Maid = main.modules.Maid
+local Janitor = main.modules.Janitor
 local Signal = main.modules.Signal
 local Effects = require(script.Effects)
 local Buff = {}
@@ -22,13 +22,13 @@ function Buff.new(effect, property, weight, additional)
     local buffId = (additional and additional.customBuffId) or main.modules.DataUtil.generateUID()
     self.buffId = buffId
     self.timeUpdated = os.clock()
-    local maid = Maid.new()
-    self._maid = maid
+    local janitor = Janitor.new()
+    self.janitor = janitor
     self.isDestroyed = false
     self.effect = effect
     self.property = property
     self.weight = weight or 1
-    self.updated = maid:give(Signal.new())
+    self.updated = janitor:add(Signal.new(), "destroy")
     self.agent = nil
     self.appliedValueTables = {}
     self.incremental = nil
@@ -63,17 +63,17 @@ function Buff.new(effect, property, weight, additional)
     end
 
     if main.isServer then
-        self._maid:give(main.modules.Thread.spawn(function()
+        self.janitor:add(main.modules.Thread.spawn(function()
             -- We delay by 1 frame as a buff method (such as :set, :setWeight, etc) may be called immediately afterwards
             if not self.isDestroyed then
                 self.readyToUpdateClient = true
                 local remote = self.agent.createClientBuffRemote
                 remote:fireAllClients(buffId, self.effect, self.property, self.weight, self.setterMethodName, self.value)
-                self._maid:give(main.Players.PlayerAdded:Connect(function(player)
+                self.janitor:add(main.Players.PlayerAdded:Connect(function(player)
                     remote:fireClient(player, buffId, self.effect, self.property, self.weight, self.setterMethodName, self.value)
-                end))
+                end), "Disconnect")
             end
-        end))
+        end), "destroy")
     end
 
 	return self
@@ -103,7 +103,7 @@ function Buff:_changeValue(value)
                         table.insert(newRigTypePathways.R6, r6Name)
                         setupAccessories(accessory, newRigTypePathways)
                     else
-                        local accessoryClone = self._maid:give(accessory:Clone())
+                        local accessoryClone = self.janitor:add(accessory:Clone(), "Destroy")
                         self.accessories[accessoryClone] = rigTypePathways
                     end
                 end
@@ -201,7 +201,7 @@ function Buff:destroy()
     main.modules.Thread.delay(0.1, function()
         -- We have this delay here to prevent 'appearance' commands from resetting then immidately snapping to a new buff (as there's slight frame different between killing and executing tasks).
         self:_update()
-        self._maid:clean()
+        self.janitor:destroy()
     end)
     return self
 end

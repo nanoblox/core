@@ -3,8 +3,8 @@ local CloneController = {}
 
 function CloneController.start()
     local Clone = main.modules.Clone
-    Clone.workspaceStorage = workspace[Clone.storageName]
-    Clone.replicatedStorage = main.ReplicatedStorage[Clone.storageName]
+    Clone.workspaceStorage = main.workspaceFolder[Clone.storageName]
+    Clone.replicatedStorage = main.ReplicatedStorage.Nanoblox[Clone.storageName]
 
     -- This is to fix an internal Roblox bug that incorrectly creates two Waist joints within a clones torso
     -- when HumanoidDescription:ApplyDescription is called on the server

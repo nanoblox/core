@@ -11,14 +11,14 @@ function ClientCommand.invoke(task, player, animationId, speed, isLooped)
 		return
 	end
 	local weight = (isLooped and 98) or 99
-	task:give(animTrack)
-	task:give(animation)
+	task:add(animTrack, "Destroy")
+	task:add(animation, "Destroy")
 	animTrack.Looped = isLooped
 	animTrack.Priority = Enum.AnimationPriority.Action
 	animTrack:Play(fadeTime, weight, speed)
-	task:give(function()
+	task:add(function()
 		animTrack:Stop(fadeTime)
-	end)
+	end, true)
 	animTrack.Stopped:Connect(function()
 		task:kill()
 	end)

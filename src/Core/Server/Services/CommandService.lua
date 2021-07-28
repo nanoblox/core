@@ -354,7 +354,7 @@ function CommandService.createFakeUser(userId)
 	user.roles = {}
 	CommandService.setupParsePatterns(user)
 	-- if DEFAULT_USER_ID then get creator role, else use RoleService
-	main.services.RoleService.getCreatorRole():give(user, main.enum.RoleType.Server)
+	main.services.RoleService.getCreatorRole():giveTo(user, main.enum.RoleType.Server)
 	return user
 end
 

@@ -169,25 +169,20 @@ end
 ]]
 
 function Parser.verifyAndParseUsername(callerUser, usernameString)
-	print("verifyAndParseUsername 1: ", callerUser, usernameString)
 	if not callerUser or not usernameString then
 		return false
 	end
 	local playerIdentifier = MAIN.services.SettingService.getUsersPlayerSetting(callerUser, "playerIdentifier")
 	if string.sub(usernameString, 1, 1) == playerIdentifier then
-		print("verifyAndParseUsername 2A: ", callerUser, usernameString)
 		-- Is the username defined (e.g @ForeverHD, @ObliviousHD)
 		local playerDefinedSearch = MAIN.services.SettingService.getUsersPlayerSetting(callerUser, "playerDefinedSearch")
 		if playerDefinedSearch == MAIN.enum.PlayerSearch.UserName or playerDefinedSearch == MAIN.enum.PlayerSearch.UserNameAndDisplayName then
-			print("verifyAndParseUsername 3A: ", callerUser, usernameString)
 			return true, string.sub(usernameString, 2)
 		end
 	else
-		print("verifyAndParseUsername 2B: ", callerUser, usernameString)
 		-- Is the username undefined (e.g ForeverHD, ObliviousHD)
 		local playerUndefinedSearch = MAIN.services.SettingService.getUsersPlayerSetting(callerUser, "playerUndefinedSearch")
 		if playerUndefinedSearch == MAIN.enum.PlayerSearch.UserName or playerUndefinedSearch == MAIN.enum.PlayerSearch.UserNameAndDisplayName then
-			print("verifyAndParseUsername 3B: ", callerUser, usernameString)
 			return true, usernameString
 		end
 	end

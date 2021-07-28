@@ -10,7 +10,7 @@ local DATALIMIT_EXCEEDED_MESSAGE = "Exceeded data size limit of %s bytes for rem
 
 
 -- LOCAL
-local Maid = require(script.Parent.Maid)
+local Janitor = require(script.Parent.Janitor)
 local Promise = require(script.Parent.Promise)
 local Remote = {}
 local players = game:GetService("Players")
@@ -51,10 +51,10 @@ function Remote.new(name, requestLimit, refreshInterval, dataLimit)
 	local self = {}
 	setmetatable(self, Remote)
 	
-	local maid = Maid.new()
-	self._maid = maid
+	local janitor = Janitor.new()
+	self.janitor = janitor
 	
-	local remoteFolder = maid:give(Instance.new("Folder"))
+	local remoteFolder = janitor:add(Instance.new("Folder"), "Destroy")
 	remoteFolder.Name = name
 	remoteFolder.Parent = remotesStorage
 	self.remoteFolder = remoteFolder
@@ -127,7 +127,7 @@ function Remote:_checkRemoteInstance(index)
 	local remoteType = remoteTypes[index]
 	if remoteType then
 		local remoteInstance = self:_getRemoteInstance(remoteType)
-		local indexFormatted = index:sub(1,1):upper()..index:sub(2)
+		local indexFormatted = string.upper(string.sub(index,1,1))..string.sub(index,2)
 		return remoteInstance, indexFormatted
 	end
 end
@@ -140,13 +140,13 @@ function Remote:_checkRequest(player, ...)
 		detail.requests = 0
 	end
 	if detail.requests >= self.requestLimit then
-		local errorMessage = (REQUESTS_EXCEEDED_MESSAGE):format(self.name, detail.nextRefresh - currentTime)
+		local errorMessage = string.format(REQUESTS_EXCEEDED_MESSAGE, self.name, detail.nextRefresh - currentTime)
 		return false, errorMessage
 	elseif self.dataLimit then
 		local requestData = table.pack(...)
-		local requestSize = string.len(httpService:JSONEncode(requestData))
+		local requestSize = #httpService:JSONEncode(requestData)
 		if requestSize > self.dataLimit then
-			local errorMessage = (DATALIMIT_EXCEEDED_MESSAGE):format(self.dataLimit, self.name)
+			local errorMessage = string.format(DATALIMIT_EXCEEDED_MESSAGE, self.dataLimit, self.name)
 			return false, errorMessage
 		end
 	end
@@ -161,13 +161,13 @@ function Remote:_getRemoteInstance(remoteType)
 		if remoteType == "RemoteEvent" then
 			coroutine.wrap(function()
 				-- Remote instances are constructed upon first call, so we do this to ensure the client first connects to the remote instances before firing
-				self._maid:give(main.modules.Thread.delay(0.05, function()
+				self.janitor:add(main.modules.Thread.delay(0.05, function()
 					self.deferFireClient = false
-				end))
+				end), "destroy")
 			end)()
 		end
 		remoteInstance.Parent = self.remoteFolder
-		self.container[remoteType] = self._maid:give(remoteInstance)
+		self.container[remoteType] = self.janitor:add(remoteInstance, "Destroy")
 	end
 	return remoteInstance
 end
@@ -176,10 +176,10 @@ function Remote:fireClient(player, ...)
 	local remoteInstance = self:_getRemoteInstance("RemoteEvent")
 	if self.deferFireClient then
 		local args = table.pack(...)
-		self._maid:give(main.modules.Thread.delay(0.05, function()
+		self.janitor:add(main.modules.Thread.delay(0.05, function()
 			self.deferFireClient = false
 			remoteInstance:FireClient(player, unpack(args))
-		end))
+		end), "destroy")
 		return
 	end
 	remoteInstance:FireClient(player, ...)
@@ -194,9 +194,9 @@ end
 function Remote:fireAllAndFutureClients(...)
 	self:fireAllClients(...)
 	local args = table.pack(...)
-	return self._maid:give(main.Players.PlayerAdded:Connect(function(player)
+	return self.janitor:add(main.Players.PlayerAdded:Connect(function(player)
 		self:invokeClient(player, unpack(args))
-	end))
+	end), "Disconnect")
 end
 
 function Remote:fireNearbyClients(origin, radius, ...)
@@ -222,7 +222,7 @@ function Remote:invokeClient(player, ...)
 end
 
 function Remote:destroy()
-	self._maid:clean()
+	self.janitor:destroy()
 end
 
 

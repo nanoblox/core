@@ -5,7 +5,7 @@ Agent.__index = Agent
 
 local main = require(game.Nanoblox)
 local Buff = require(script.Buff)
-local Maid = main.modules.Maid
+local Janitor = main.modules.Janitor
 local sortBuffsByWeightAndTimeUpdated = function(buffA, buffB)
 	return buffA.weight > buffB.weight or (buffA.weight == buffB.weight and buffA.timeUpdated > buffB.timeUpdated)
 end
@@ -36,9 +36,9 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 	local self = {}
 	setmetatable(self, Agent)
 	
-	local maid = Maid.new()
-	self._maid = maid
-	self.reduceMaids = {}
+	local janitor = Janitor.new()
+	self.janitor = janitor
+	self.reduceJanitors = {}
 	self.buffs = {}
 	self.defaultValues = {}
 	self.reapplyBuffsOnRespawn = reapplyBuffsOnRespawn
@@ -54,8 +54,8 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 
 	-- This handles the replication of buffs created on the server to the client
 	-- The buffs will still be applied on the server, this is primarily to inform all clients that 'agent has X buff'
-	self.createClientBuffRemote = maid:give(main.modules.Remote.new("agent-"..player.UserId.."-createClientBuff"))
-	self.callClientBuffRemote = maid:give(main.modules.Remote.new("agent-"..player.UserId.."-callClientBuff"))
+	self.createClientBuffRemote = janitor:add(main.modules.Remote.new("agent-"..player.UserId.."-createClientBuff"), "destroy")
+	self.callClientBuffRemote = janitor:add(main.modules.Remote.new("agent-"..player.UserId.."-callClientBuff"), "destroy")
 	if main.isClient then
 		self.createClientBuffRemote.onClientEvent:Connect(function(buffId, effect, property, weight, setterMethodName, value)
 			local buff = self:buff(effect, property, weight, {customBuffId = buffId, isFromServer = true})
@@ -71,20 +71,20 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 		end)
 	end
 
-	maid:give(player.CharacterAdded:Connect(function(char)
+	janitor:add(player.CharacterAdded:Connect(function(char)
 		if reapplyBuffsOnRespawn then
 			self:clearDefaultValues()
 			self:reduceAndApplyEffects()
 		else
 			self:assassinateBuffs()
 		end
-	end))
+	end), "Disconnect")
 
-	maid:give(players.PlayerRemoving:Connect(function(leavingPlayer)
+	janitor:add(players.PlayerRemoving:Connect(function(leavingPlayer)
 		if leavingPlayer == player then
 			self:destroy()
 		end
-	end))
+	end), "Disconnect")
 
 	return self
 end
@@ -208,9 +208,9 @@ function Agent:clearDefaultValues()
 	for _, buff in pairs(buffs) do
 		buff.appliedValueTables = {}
 	end
-	for tweenReference, reduceMaid in pairs(self.reduceMaids) do
-		reduceMaid:destroy()
-		self.reduceMaids[tweenReference] = nil
+	for tweenReference, reduceJanitor in pairs(self.reduceJanitors) do
+		reduceJanitor:destroy()
+		self.reduceJanitors[tweenReference] = nil
 	end
 end
 
@@ -254,21 +254,21 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 			-- This determines whether to tween the final value and cancels any other currently tweening values
 			local finalValueTweenInfo = bossBuff.tweenInfo
 			local tweenReference = tostring(effect)..additionalString
-			local reduceTweenMaid = self.reduceMaids[tweenReference]
+			local reduceTweenJanitor = self.reduceJanitors[tweenReference]
 			local forcedBaseValue
-			if reduceTweenMaid then
-				reduceTweenMaid:clean()
-				local validUntilTime = reduceTweenMaid.forcedBaseValueValidUntilTime
+			if reduceTweenJanitor then
+				reduceTweenJanitor:cleanup()
+				local validUntilTime = reduceTweenJanitor.forcedBaseValueValidUntilTime
 				if validUntilTime then
 					if os.clock() < validUntilTime then
-						forcedBaseValue = reduceTweenMaid.forcedBaseValue
+						forcedBaseValue = reduceTweenJanitor.forcedBaseValue
 					end
-					rawset(reduceTweenMaid, "forcedBaseValueValidUntilTime", nil)
-					rawset(reduceTweenMaid, "forcedBaseValue", nil)
+					rawset(reduceTweenJanitor, "forcedBaseValueValidUntilTime", nil)
+					rawset(reduceTweenJanitor, "forcedBaseValue", nil)
 				end
 			elseif tweenReference then
-				reduceTweenMaid = self._maid:give(Maid.new())
-				self.reduceMaids[tweenReference] = reduceTweenMaid
+				reduceTweenJanitor = self.janitor:add(Janitor.new(), "Destroy")
+				self.reduceJanitors[tweenReference] = reduceTweenJanitor
 			end
 
 			-- This retrieves the associated instances then calculates and applies a final value
@@ -339,7 +339,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 										tempBuff:setWeight(bossBuff.weight)
 										table.insert(bossBuff.tempBuffs, tempBuff)
 										tempBuff.onlyUpdateThisBuff = nil
-										bossBuff._maid:give(tempBuff)
+										bossBuff.janitor:add(tempBuff, "destroy")
 									end
 								end
 							end
@@ -367,19 +367,19 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 									if finalParent then
 										local alreadyExists = finalParent:FindFirstChild(accessory.Name)
 										if not alreadyExists then
-											local accessoryClone = reduceTweenMaid:give(accessory:Clone())
+											local accessoryClone = reduceTweenJanitor:add(accessory:Clone(), "Destroy")
 											local handle = accessoryClone:FindFirstChild("Handle")
 											local forceCanCollide = handle and handle:FindFirstChild("ForceCanCollide")
 											accessoryClone.Parent = finalParent
 											if forceCanCollide and forceCanCollide.Value == true then
 												handle.CanCollide = true
 											end
-											reduceTweenMaid:give(accessoryClone.AncestryChanged:Connect(function()
+											reduceTweenJanitor:add(accessoryClone.AncestryChanged:Connect(function()
 												main.RunService.Heartbeat:Wait()
 												if not bossBuff.isDestroyed then
 													updateAccessory()
 												end
-											end))
+											end), "Disconnect")
 										end
 									end
 								end
@@ -485,18 +485,19 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 							end)
 						end
 						tween:Play()
-						reduceTweenMaid:give(function()
-							if not self.isDestroyed then
+						reduceTweenJanitor:add(function()
+							if not self.destroyed then
 								if tween.PlaybackState ~= Enum.PlaybackState.Completed then
 									tween:Pause()
 									if type(finalValue) == "number" then
-										rawset(reduceTweenMaid, "forcedBaseValueValidUntilTime", completeTime)
-										rawset(reduceTweenMaid, "forcedBaseValue", finalValue)
+										-- This is really odd behavior.
+										rawset(reduceTweenJanitor, "forcedBaseValueValidUntilTime", completeTime)
+										rawset(reduceTweenJanitor, "forcedBaseValue", finalValue)
 									end
 								end
 								tween:Destroy()
 							end
-						end)
+						end, true)
 					end
 				end
 				
@@ -608,7 +609,7 @@ end
 function Agent:destroy()
 	self.isDestroyed = true
 	self:clearBuffs()
-	self._maid:clean()
+	self.janitor:destroy()
 end
 Agent.Destroy = Agent.destroy
 

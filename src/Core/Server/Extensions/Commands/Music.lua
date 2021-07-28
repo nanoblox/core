@@ -22,9 +22,9 @@ Command.args = {"SoundId"}
 
 function Command.invoke(task, args)
 	local soundId = unpack(args)
-	local sound = task:give(main.modules.Sound.new(soundId, main.enum.SoundType.Music))
+	local sound = task:add(main.modules.Sound.new(soundId, main.enum.SoundType.Music), "destroy")
 	sound.Name = "NanobloxMusic"
-	sound.Parent = workspace
+	sound.Parent = main.workspaceFolder
 	sound:Play()
 end
 

@@ -55,38 +55,38 @@ function Command.invoke(task, args)
 
 	-- This removes a player from a conga line if they die, respawn or leave
 	local trackingPlayers = {}
-	local playerChattedRemote = task:give(main.modules.Remote.new("PlayerChatted-"..task.UID))
+	local playerChattedRemote = task:add(main.modules.Remote.new("PlayerChatted-"..task.UID), "destroy")
 	local function trackPlayer(player)
 		if not trackingPlayers[player] and congaList then
 			trackingPlayers[player] = true
-			local trackingMaid = task:give(main.modules.Maid.new())
-			trackingMaid:give(function()
+			local trackingJanitor = task:add(main.modules.Janitor.new(), "destroy")
+			trackingJanitor:add(function()
 				if congaList then
 					trackingPlayers[player] = nil
 					congaList:removeValue(player)
 				end
-			end)
+			end, true)
 			local humanoid = main.modules.PlayerUtil.getHumanoid(player)
 			if not humanoid or humanoid.Health <= 0 then
-				trackingMaid:clean()
+				trackingJanitor:cleanup()
 				return
 			end
-			trackingMaid:give(humanoid.Died:Connect(function()
-				trackingMaid:clean()
-			end))
-			trackingMaid:give(player.CharacterAdded:Connect(function()
-				trackingMaid:clean()
-			end))
-			trackingMaid:give(main.Players.PlayerRemoving:Connect(function(leavingPlayer)
+			trackingJanitor:add(humanoid.Died:Connect(function()
+				trackingJanitor:clean()
+			end), "Disconnect")
+			trackingJanitor:add(player.CharacterAdded:Connect(function()
+				trackingJanitor:clean()
+			end), "Disconnect")
+			trackingJanitor:add(main.Players.PlayerRemoving:Connect(function(leavingPlayer)
 				if player == leavingPlayer then
-					trackingMaid:clean()
+					trackingJanitor:clean()
 				end
-			end))
+			end), "Disconnect")
 
 			-- This listens for the players chat messages
 			main.modules.ChatUtil.getSpeaker(player)
 				:andThen(function(speaker)
-					task:give(speaker.SaidMessage:Connect(function(chatMessage)
+					task:add(speaker.SaidMessage:Connect(function(chatMessage)
 						local message = tostring(chatMessage.FilterResult)
 						if message == "Instance" then
 							message = chatMessage.FilterResult:GetChatForUserAsync(player.UserId)
@@ -94,14 +94,14 @@ function Command.invoke(task, args)
 						if main.Chat.BubbleChatEnabled and chatMessage.MessageType == "Message" then
 							playerChattedRemote:fireAllClients(player, message)
 						end
-					end))
+					end), "Disconnect")
 				end)
 				:catch(warn)
 		end
 	end
 
 	-- This adds a tag to the leadPlayer's Humanoid to indicate they are a conga leader
-	local tag = task:give(Instance.new("BoolValue"))
+	local tag = task:add(Instance.new("BoolValue"), "Destroy")
 	tag.Name = "NanobloxCongaLeader"
 	tag.Value = true
 	tag:SetAttribute("NanobloxCongaDelay", delay)
@@ -116,8 +116,8 @@ function Command.invoke(task, args)
 	end
 
 	-- This listens for changes (i.e. players being added or removed from the conga line) and updates the clients
-	local congaListRemote = task:give(main.modules.Remote.new("CongaList-"..task.UID))
-	task:give(congaList.changed:Connect(function(index, playerOrNil)
+	local congaListRemote = task:add(main.modules.Remote.new("CongaList-"..task.UID), "destroy")
+	task:add(congaList.changed:Connect(function(index, playerOrNil)
 		if playerOrNil ~= nil then
 			trackPlayer(playerOrNil)
 		end
@@ -133,14 +133,14 @@ function Command.invoke(task, args)
 			end)
 			thread.name = "congaList"..index..tostring(playerOrNil)
 		end
-	end))
+	end), "Disconnect")
 	task:invokeAllAndFutureClients(leadPlayer, congaList, delay, gap)
 
 	-- This removes the conga list When the task is revoked
-	task:give(function()
+	task:add(function()
 		congaList = nil
 		leadUser.temp:set("congaCommandList", nil)
-	end)
+	end, true)
 
 end
 

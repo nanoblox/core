@@ -33,7 +33,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 			NanobloxCongaDelay = "delay",
 			NanobloxCongaGap = "gap",
 		}
-		task:give(tag.AttributeChanged:Connect(function(attributeName)
+		task:add(tag.AttributeChanged:Connect(function(attributeName)
 			local configKey = tagAttributeValues[attributeName]
 			if configKey then
 				configuration[configKey] = tag:GetAttribute(attributeName)
@@ -41,7 +41,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 					clone:setIndex(index)
 				end
 			end
-		end))
+		end), "Disconnect")
 	end
 
 	-- This records the targetPlayers CFrames
@@ -82,12 +82,11 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 		end
 		return requiredTotalAnims == #currentAnims
 	end
-	task:give(main.RunService.Stepped:Connect(function()
+	task:add(main.RunService.Stepped:Connect(function()
 		
 		-- Animation names don't replicate to other clients therefore we have to find the names ourself by comparing AnimationIds
 		local currentAnimsOriginal = targetPlayerAnimator:GetPlayingAnimationTracks()
 		local currentAnims = {}
-		local currentAnimNames = {}
 		local totalAnims = 0
 		for _, animTrack in pairs(currentAnimsOriginal) do
 			local success = true
@@ -195,15 +194,15 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 		prevDistanceTravelledThisFrame = distanceTravelledThisFrame
 		prevTargetPos = newTargetPos
 		prevTargetMoveMagnitude = targetMoveMagnitude
-	end))
+	end), "Disconnect")
 
 	-- This constructs the clone
-	local playerChattedRemote = task:give(main.modules.Remote.new("PlayerChatted-"..task.UID))
+	local playerChattedRemote = task:add(main.modules.Remote.new("PlayerChatted-"..task.UID), "destroy")
 	local cloneStartIndex = 1
 	local clonePastHistoryIndexes = {}
 	local function createClone(index, player)
 		-- This creates and modifies the clone
-		local clone = task:give(main.modules.Clone.new(player, {forcedRigType = rigType}))
+		local clone = task:add(main.modules.Clone.new(player, {forcedRigType = rigType}), "destroy")
 		clone:anchorHRP(true)
 		clone:setCollidable(false)
 		clone.congaPlayer = player
@@ -241,7 +240,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 			if isLocalPlayer then
 				CameraUtil.setSubject(clone.humanoid)
 			end
-			task:give(function()
+			task:add(function()
 				playerHumanoid = PlayerUtil.getHumanoid(main.localPlayer)
 				local _, newHiddenKey = PlayerUtil.isPlayerHidden(player)
 				if playerHumanoid and hiddenKey == newHiddenKey then
@@ -250,7 +249,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 						CameraUtil.setSubject(playerHumanoid)
 					end
 				end
-			end)
+			end, true)
 		elseif isCongaLeader then
 			PlayerUtil.showPlayer(player)
 			if isLocalPlayer then
@@ -306,7 +305,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 			clone:setCFrame(firstRecord.cf)
 		end
 
-		clone.maid:give(main.RunService.Heartbeat:Connect(function()
+		clone.janitor:add(main.RunService.Heartbeat:Connect(function()
 
 			-- This is important for tracking what frame we wish to update a Motor6D
 			cloneStepId += 1
@@ -421,7 +420,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 			end
 			updateAnimValues(cloneMotorValues, fixedCFrame, rotationOffset, jumpOffset)
 
-		end))
+		end), "Disconnect")
 	end
 
 	-- This creates default clones
@@ -429,7 +428,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 		createClone(index, player)
 	end
 
-	local congaListRemote = task:give(main.modules.Remote.new("CongaList-"..task.UID))
+	local congaListRemote = task:add(main.modules.Remote.new("CongaList-"..task.UID), "destroy")
 	congaListRemote.onClientEvent:Connect(function(index, playerOrNil)
 		print("Client received: ", index, playerOrNil)
 		local existingClone = playerClones[index]

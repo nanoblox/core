@@ -720,8 +720,8 @@ Args.array = {
 				return false, warning
 			end
 			-- Check bundle exists
-			local success, warning = main.modules.MorphUtil.loadBundleId(valueToParse):await()
-			return success, warning
+			local success, warning2 = main.modules.MorphUtil.loadBundleId(valueToParse):await()
+			return success, warning2
 		end,
 	},
 

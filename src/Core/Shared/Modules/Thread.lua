@@ -166,7 +166,7 @@ local function createThread()
 		return true
 	end
 	thread.Disconnect = thread.disconnect
-	thread.destroy = thread.disconnect -- this is so Maids can clean
+	thread.destroy = thread.disconnect -- this is so Janitors can clean
 	thread.Destroy = thread.disconnect
 	
 	return thread

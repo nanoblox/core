@@ -1,6 +1,6 @@
 -- LOCAL
 local main = require(game.Nanoblox)
-local Maid = main.modules.Maid
+local Janitor = main.modules.Janitor
 local Signal = main.modules.Signal
 local Sender = {}
 Sender.__index = Sender
@@ -12,10 +12,10 @@ function Sender.new(name)
 	local self = {}
 	setmetatable(self, Sender)
 	
-	local maid = Maid.new()
-	self._maid = maid
+	local janitor = Janitor.new()
+	self.janitor = janitor
 	self.name = name
-	self.addRequest = maid:give(Instance.new("BindableFunction"))
+	self.addRequest = janitor:add(Instance.new("BindableFunction"), "Destroy")
 	self.forceRetry = false
 	
 	return self
@@ -53,7 +53,7 @@ function Sender:invokeOtherServers(...)
 end
 
 function Sender:destroy()
-	self._maid:clean()
+	self.janitor:destroy()
 	for k, v in pairs(self) do
 		if typeof(v) == "table" then
 			self[k] = nil

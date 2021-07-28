@@ -29,7 +29,7 @@ function Command.invoke(task, args)
 	if userId and cloneCFrame then
 		local player = main.Players:GetPlayerByUserId(userId)
 		local playerOrUserId = player or userId
-		local clone = task:give(main.modules.Clone.new(playerOrUserId))
+		local clone = task:add(main.modules.Clone.new(playerOrUserId), "destroy")
 		clone:setCFrame(cloneCFrame)
 	end
 end

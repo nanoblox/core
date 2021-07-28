@@ -4,9 +4,10 @@ local ClientCommand =	{}
 
 
 function ClientCommand.invoke(task, player)
-	local clone = task:give(main.modules.Clone.new())
+	local clone = task:add(main.modules.Clone.new(), "destroy")
 	task:getAsset("CreepyMelonDescription")
 		:andThen(function(asset)
+			-- The asset is automatically tracked by the task therefore we don't need to add it to the janitor ourselves
 			clone:become(asset)
 			clone:setSize(2)
 			clone:setDepth(1)
@@ -15,7 +16,6 @@ function ClientCommand.invoke(task, player)
 			clone:face(player)
 			clone:follow(player, 10)
 			clone.humanoid.WalkSpeed = 8
-			asset.Parent = workspace
 		end)
 		:catch(warn)
 end
