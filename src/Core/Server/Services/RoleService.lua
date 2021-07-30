@@ -144,6 +144,11 @@ function RoleService.generateRecord()
 			qualifierTargetCapAmount = 1,
 			roleModifiersToOnlyRoleCommands = false, -- if true, this limits all the modifiers to its select role. for this,  
 		},
+
+		-- Similar to limit abuse
+		ignore = {
+			roleRestrictions = false,
+		},
 		
 		-- Individual Powers
 		canUse = {

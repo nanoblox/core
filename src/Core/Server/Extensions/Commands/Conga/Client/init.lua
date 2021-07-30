@@ -216,7 +216,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 		clone:setIndex(index)
 		clone:disableAnimateScript()
 		clone.motors = {}
-		for _, motor in pairs(clone.clone:GetDescendants()) do
+		for _, motor in pairs(clone:GetDescendants()) do
 			if motor:IsA("Motor6D") then
 				clone.motors[motor.Name] = motor
 			end
@@ -230,36 +230,25 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 				playerAlreadyExistsInLine = true
 			end
 		end
-		local CameraUtil = main.modules.CameraUtil
-		local PlayerUtil = main.modules.PlayerUtil
 		local playerHumanoid = main.modules.PlayerUtil.getHumanoid(player)
-		local isCongaLeader = playerHumanoid and playerHumanoid:FindFirstChild("NanobloxCongaLeader")
+		local isCongaLeader = targetPlayer == player--playerHumanoid and playerHumanoid:FindFirstChild("NanobloxCongaLeader")
 		local isLocalPlayer = main.localPlayer == player
+		local agent = main.modules.PlayerUtil.getAgent(player)
 		if not isCongaLeader and not playerAlreadyExistsInLine then
-			local hiddenKey = PlayerUtil.hidePlayer(player)
+			clone.janitor:add(agent:buff("HideCharacter"):set(true), "destroy")
 			if isLocalPlayer then
-				CameraUtil.setSubject(clone.humanoid)
+				clone.janitor:add(agent:buff("Camera", "CameraSubject"):set(clone.humanoid), "destroy")
 			end
-			task:add(function()
-				playerHumanoid = PlayerUtil.getHumanoid(main.localPlayer)
-				local _, newHiddenKey = PlayerUtil.isPlayerHidden(player)
-				if playerHumanoid and hiddenKey == newHiddenKey then
-					PlayerUtil.showPlayer(player)
-					if isLocalPlayer then
-						CameraUtil.setSubject(playerHumanoid)
-					end
-				end
-			end, true)
 		elseif isCongaLeader then
-			PlayerUtil.showPlayer(player)
+			clone.janitor:add(agent:buff("HideCharacter"):set(false):setWeight(2), "destroy")
 			if isLocalPlayer then
-				CameraUtil.setSubject(playerHumanoid)
+				clone.janitor:add(agent:buff("Camera", "CameraSubject"):set(playerHumanoid):setWeight(2), "destroy")
 			end
 		end
 
 		-- This mimics the players bubble chat above the clones head
 		playerChattedRemote.onClientEvent:Connect(function(forPlayer, message)
-			local cloneHead = clone.clone:FindFirstChild("Head")
+			local cloneHead = clone:FindFirstChild("Head")
 			if cloneHead and forPlayer == player then
 				main.Chat:Chat(cloneHead, message, Enum.ChatColor.White)
 			end
@@ -430,26 +419,13 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 
 	local congaListRemote = task:add(main.modules.Remote.new("CongaList-"..task.UID), "destroy")
 	congaListRemote.onClientEvent:Connect(function(index, playerOrNil)
-		print("Client received: ", index, playerOrNil)
 		local existingClone = playerClones[index]
 		if playerOrNil == nil then
 			if existingClone then
-				existingClone:Destroy()
+				existingClone:destroy()
 			end
 			playerClones[index] = nil
-			--[[
-			if index < totalClones then
-				for i = index+1, totalClones do
-					local clone = playerClones[i]
-					local newIndex = i-1
-					if clone then
-						clone:setIndex(newIndex)
-					end
-					playerClones[newIndex] = clone -- CLONE SHIFT
-				end
-			end
-			playerClones[totalClones] = nil
-			--]]
+			totalClones = #playerClones
 			return
 
 		elseif existingClone and existingClone.congaPlayer ~= playerOrNil then
@@ -460,6 +436,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 			createClone(index, playerOrNil)
 
 		end
+		totalClones = #playerClones
 	end)
 
 end

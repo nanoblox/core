@@ -595,6 +595,16 @@ function CommandService.executeStatement(callerUserId, statement)
 	statement.modifiers = statement.modifiers or {}
 	statement.qualifiers = statement.qualifiers or {}
 
+	if statement.restrict == nil then
+		local callerUser = main.modules.PlayerStore:getUserByUserId(callerUserId)
+		if callerUser then
+			statement.restrict = not main.services.RoleService.verifySettings(callerUser, "ignore.roleRestrictions").areSome(true)
+		end
+		if statement.restrict  == nil then
+			statement.restrict = true
+		end
+	end
+	
 	-- If 'player' instance detected within qualifiers, convert to player.Name
 	for qualifierKey, qualifierTable in pairs(statement.qualifiers) do
 		if typeof(qualifierKey) == "Instance" and qualifierKey:IsA("Player") then
@@ -656,6 +666,7 @@ function CommandService.executeStatement(callerUserId, statement)
 		properties.commandName = commandName
 		properties.args = arguments or properties.args
 		properties.modifiers = statement.modifiers
+		properties.restrict = statement.restrict
 		-- Its important to split commands into specific users for most cases so that the command can
 		-- be easily reapplied if the player rejoins (for ones where the perm modifier is present)
 		-- The one exception for this is when a global modifier is present. In this scenerio, don't save

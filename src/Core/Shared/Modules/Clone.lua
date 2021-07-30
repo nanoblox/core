@@ -8,7 +8,17 @@ Clone.__index = function(table, index)
     if objectIndex then
         return objectIndex
     end
-    --return rawget(table, "clone")
+    local cloneCharacter = rawget(table, "_cloneCharacter")
+    local returnValue = cloneCharacter[index]
+    if typeof(returnValue) == "function" then
+        returnValue = {}
+        setmetatable(returnValue, {
+            __call = function(table, passingTable, ...)
+                return cloneCharacter[index](cloneCharacter, ...)
+            end,
+        })
+    end
+    return returnValue
 end
 Clone.spawnOffset = SPAWN_OFFSET
 Clone.storageName = "CloneStorage"
@@ -26,7 +36,7 @@ function Clone.new(playerOrCharacterOrUserId, properties)
     self.janitor = janitor
     self.userId = nil
     self.character = nil
-    self.clone = nil
+    self._cloneCharacter = false
     self.hidden = false
     self.tracks = {}
     self.spawnCFrame = false
@@ -94,7 +104,7 @@ function Clone:become(item)
             if character then apply description, mimic bodyparts/items
             elseif userid apply appearance
     ]]
-    local clone = self.clone
+    local clone = self._cloneCharacter
     local function getAndApplyDescription()
         main.modules.Thread.spawn(function()
             if self.humanoidDescription then
@@ -143,7 +153,7 @@ function Clone:become(item)
                 if firstBuff then
                     transValue = firstBuff.value
                 end
-                self.clone = clone
+                self._cloneCharacter = clone
                 self:setTransparency(transValue)
             end
             ---
@@ -206,7 +216,7 @@ function Clone:become(item)
         end), "Disconnect")
         self.hrp = clone.HumanoidRootPart
         self.humanoid = clone.Humanoid
-        self.clone = clone
+        self._cloneCharacter = clone
 
         -- This destroys the clone if it goes below -500 studs
         local nextHeightCheck = 0
@@ -242,7 +252,7 @@ function Clone:become(item)
         end)
     
 
-    elseif self.clone then
+    elseif self._cloneCharacter then
         if self.character then
             local humanoid = self.character:FindFirstChild("Humanoid")
             local description = humanoid and humanoid:GetAppliedDescription()
@@ -250,9 +260,9 @@ function Clone:become(item)
                 self:applyHumanoidDescription(description)
                 clone.Humanoid.DisplayName = self.displayName or humanoid.DisplayName
             end
-            self.clone.Name = self.character.Name
+            self.Name = self.character.Name
             for _, charChild in pairs(self.character:GetChildren()) do
-                local cloneChild = self.clone:FindFirstChild(charChild.Name)
+                local cloneChild = self:FindFirstChild(charChild.Name)
                 if not cloneChild then
                     charChild:Clone().Parent = clone
                 else
@@ -296,7 +306,7 @@ function Clone:setName(name)
     local stringName = tostring(name)
     self.humanoid.DisplayName = stringName
     self.displayName = name
-    self.clone.Name = stringName
+    self.Name = stringName
 end
 
 function Clone:disableAnimateScript(bool)
@@ -309,16 +319,16 @@ end
 
 function Clone:show()
 	self.hidden = false
-    self.clone.Parent = Clone.workspaceStorage
+    self.Parent = Clone.workspaceStorage
 end
 
 function Clone:hide()
 	self.hidden = true
-    self.clone.Parent = Clone.replicatedStorage
+    self.Parent = Clone.replicatedStorage
 end
 
 function Clone:setCFrame(cframe)
-    local cloneHRP = self.hrp or self.clone:FindFirstChild("HumanoidRootPart")
+    local cloneHRP = self.hrp or self:FindFirstChild("HumanoidRootPart")
     if cloneHRP then
         cloneHRP.CFrame = cframe
     end
@@ -326,11 +336,11 @@ end
 
 function Clone:setCollidable(bool)
     local groupName = (bool == false and "NanobloxClones") or "Default"
-    CollisionUtil.setCollisionGroup(self.clone, groupName)
+    CollisionUtil.setCollisionGroup(self._cloneCharacter, groupName)
 end
 
 function Clone:setAnchored(bool)
-    for _, part in pairs(self.clone:GetDescendants()) do
+    for _, part in pairs(self:GetDescendants()) do
         if part:IsA("BasePart") then
             part.Anchored = bool
         end
@@ -338,7 +348,7 @@ function Clone:setAnchored(bool)
 end
 
 function Clone:anchorHRP(bool)
-    local cloneHRP = self.clone:FindFirstChild("HumanoidRootPart")
+    local cloneHRP = self:FindFirstChild("HumanoidRootPart")
     if cloneHRP then
         cloneHRP.Anchored = bool
     end
@@ -360,10 +370,10 @@ function Clone:setTransparency(value)
             end), "Disconnect")
         end
     end
-    for _, part in ipairs(self.clone:GetDescendants()) do
+    for _, part in ipairs(self:GetDescendants()) do
         changeTransparency(part)
     end
-    tJanitor:add(self.clone.DescendantAdded:Connect(function(descendant)
+    tJanitor:add(self.DescendantAdded:Connect(function(descendant)
         main.RunService.Heartbeat:Wait()
         changeTransparency(descendant)
     end), "Disconnect")
@@ -404,7 +414,7 @@ end
 function Clone:loadTrack(animationId, animationName)
 	
     local animIdString = tostring(animationId)
-    local humanoid = self.clone:FindFirstChildOfClass("Humanoid")
+    local humanoid = self:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		local animator = humanoid:FindFirstChildOfClass("Animator")
 		if not animator then
@@ -420,7 +430,7 @@ function Clone:loadTrack(animationId, animationName)
                 if animationName then
                     animation.Name = animationName
                 end
-                animation.Parent = self.clone
+                animation.Parent = self._cloneCharacter
                 self.animations[animIdString] = animation
             end
             track = animator:LoadAnimation(animation)
@@ -498,8 +508,8 @@ end
 function Clone:watch(playerOrBasePart)
 	local isR6  = self.humanoid.RigType == Enum.HumanoidRigType.R6
     local isR15 = not isR6
-    local head = self.clone:FindFirstChild("Head")
-	local torso = isR6 and self.clone:FindFirstChild("Torso")
+    local head = self:FindFirstChild("Head")
+	local torso = isR6 and self:FindFirstChild("Torso")
     local neck = (isR15 and head and head:FindFirstChild("Neck")) or (isR6 and torso and torso:FindFirstChild("Neck"))
 	local waist
     local nextTorsoCheck = os.clock()
@@ -533,7 +543,7 @@ function Clone:watch(playerOrBasePart)
         local timeNow = os.clock()
         if timeNow >= nextTorsoCheck then
             nextTorsoCheck = timeNow + 1
-            torso = (isR6 and self.clone:FindFirstChild("Torso")) or self.clone:FindFirstChild("UpperTorso")
+            torso = (isR6 and self:FindFirstChild("Torso")) or self:FindFirstChild("UpperTorso")
             if isR15 then
                 waist = (torso and torso:FindFirstChild("Waist"))
                 local detail = movementDetails.waist
@@ -643,7 +653,7 @@ function Clone:applyHumanoidDescription(newDesc)
 end
 
 function Clone:_updateHeight()
-    local head = self.clone:FindFirstChild("Head")
+    local head = self:FindFirstChild("Head")
     if head then
         self.height = self.hrp.Size.Y*2 + (head.Size.Y or 1.2)
     end
@@ -717,14 +727,14 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
     studsAwayToStop = studsAwayToStop or 0
 
     local agentHrpSize = self.hrp.Size
-    local agentHead = self.clone.Head
+    local agentHead = self.Head
     local pathParams = {
         AgentRadius = agentHrpSize.X,
         AgentHeight = (agentHrpSize.Y  *2) + agentHead.Size.Y,
         AgentCanJump = true,
     }
     local path = pathJanitor:add(main.PathfindingService:CreatePath(pathParams), "Destroy")
-    local cloneHRP = self.clone.HumanoidRootPart
+    local cloneHRP = self.HumanoidRootPart
     local cloneHumanoid = self.humanoid
     
     local waypoints = {}

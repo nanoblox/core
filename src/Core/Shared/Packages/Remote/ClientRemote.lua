@@ -8,6 +8,7 @@ local runService = game:GetService("RunService")
 
 
 -- LOCAL
+local main = require(game.Nanoblox)
 local ERROR_NO_LISTENER = "Failed to get remoteInstance %s for '%s': no remote is listening on the server."
 local Remote = {}
 local Signal = require(script.Parent.Signal)
@@ -55,12 +56,8 @@ function Remote.new(name)
 	self.container = {}
 	self.remoteFolderAdded = Signal.new()
 	self.remoteFolder = nil
+	self.continueWhenLoaded = {}
 	self:_setupRemoteFolder()
-	--!!!
-	if self.name == "RainTacos" then
-		--print("CREATE REMOTE", self.name)
-	end
-	--
 	
 	remotes[name] = self
 	
@@ -139,16 +136,42 @@ function Remote:requestBlocked(reason)
 end
 
 function Remote:_continueWhenRemoteInstanceLoaded(remoteType, functionToCall)
+	local continueWhenLoadedGroup = self.continueWhenLoaded[remoteType]
+	--print("A: ", self.name, functionToCall)
+	if continueWhenLoadedGroup then
+		-- This ensures functions are called in order if they later have to be deferred (e.g. when waiting for the remote instance to load)
+		table.insert(continueWhenLoadedGroup, functionToCall)
+		return
+	end
+	local function setupGroup()
+		if not continueWhenLoadedGroup then
+			continueWhenLoadedGroup = {}
+			self.continueWhenLoaded[remoteType] = continueWhenLoadedGroup
+		end
+	end
+	local function lastFunction(remoteInstance)
+		functionToCall(remoteInstance)
+		--print("continueWhenLoadedGroup =", continueWhenLoadedGroup)
+		if continueWhenLoadedGroup then
+			for _, additionalFunctionToCall in pairs(continueWhenLoadedGroup) do
+				--print("B1: ", self.name, additionalFunctionToCall)
+				main.modules.Thread.spawnNow(additionalFunctionToCall, remoteInstance)
+			end
+		end
+		--print("B2: ", self.name, functionToCall)
+		self.continueWhenLoaded[remoteType] = nil
+	end
 	local function continueFunc()
 		local remoteInstance = self:_getRemoteInstance(remoteType)
 		if remoteInstance then
 			functionToCall(remoteInstance)
 		else
 			local waitForChildRemote
+			setupGroup()
 			waitForChildRemote = self.janitor:add(self.remoteFolder.ChildAdded:Connect(function(child)
 				if child.Name == remoteType then
 					waitForChildRemote:Disconnect()
-					functionToCall(child)
+					lastFunction(child)
 				end
 			end), "Disconnect")
 		end
@@ -158,6 +181,7 @@ function Remote:_continueWhenRemoteInstanceLoaded(remoteType, functionToCall)
 		continueFunc()
 	else
 		local waitForRemoteFolderConnection
+		setupGroup()
 		waitForRemoteFolderConnection = self.janitor:add(self.remoteFolderAdded:Connect(function()
 			waitForRemoteFolderConnection:Disconnect()
 			continueFunc()
@@ -242,7 +266,11 @@ function Remote:invokeServer(...)
 end
 
 function Remote:destroy()
+	if self.isDestroyed then
+		return
+	end
 	remotes[self.name] = nil
+	self.isDestroyed = true
 	self.janitor:destroy()
 end
 Remote.Destroy = Remote.destroy

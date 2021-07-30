@@ -20,6 +20,10 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerDies
 Command.args = {"Player", "Players", "Delay", "Gap"}
 
+Command.restrictions = {
+	maxClones = 10,
+}
+
 function Command.invoke(task, args)
 	local leadPlayer, players = unpack(args)
 	local originalPlayers = task:getOriginalArg("Players")
@@ -41,9 +45,18 @@ function Command.invoke(task, args)
 	local leadPlayerHumanoid = main.modules.PlayerUtil.getHumanoid(leadPlayer)
 	local delay = task:getOriginalArg("Delay") or 0.3
 	local gap = task:getOriginalArg("Gap") or 4
+	local function considerRestrictions()
+		if task.restrict and #congaList >= Command.restrictions.maxClones then
+			warn("You do not have permission to exceed 10 conga clones!") --!!!notice
+			return false
+		end
+		return true
+	end
 	if congaList then
 		for _, plr in pairs(players) do
-			congaList:insert(plr)
+			if considerRestrictions() then
+				congaList:insert(plr)
+			end
 		end
 		local tag = leadPlayerHumanoid:FindFirstChild("NanobloxCongaLeader")
 		if tag then
@@ -111,8 +124,10 @@ function Command.invoke(task, args)
 	-- This creates the conga list and adds the players to it
 	congaList = leadUser.temp:set("congaCommandList", {})
 	for _, player in pairs(players) do
-		trackPlayer(player)
-		congaList:insert(player)
+		if considerRestrictions() then
+			trackPlayer(player)
+			congaList:insert(player)
+		end
 	end
 
 	-- This listens for changes (i.e. players being added or removed from the conga line) and updates the clients
@@ -121,17 +136,13 @@ function Command.invoke(task, args)
 		if playerOrNil ~= nil then
 			trackPlayer(playerOrNil)
 		end
-		if #congaList == 0 then
+		local totalCongaList = #congaList
+		if totalCongaList == 0 then
 			task:kill()
 			return
 		end
 		if not task.isDead then
-			print("Conga list changed (1): ", index, playerOrNil)
-			local thread = main.modules.Thread.delay(0.1, function()--task:delay(0.1, function() -- We delay by a frame so the client can setup their corresponding remote
-				print("Conga list changed (2): ", index, playerOrNil)
-				congaListRemote:fireAllClients(index, playerOrNil)
-			end)
-			thread.name = "congaList"..index..tostring(playerOrNil)
+			congaListRemote:fireAllClients(index, playerOrNil)
 		end
 	end), "Disconnect")
 	task:invokeAllAndFutureClients(leadPlayer, congaList, delay, gap)

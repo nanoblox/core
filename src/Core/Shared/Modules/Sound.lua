@@ -54,7 +54,7 @@ function Sound.new(soundId, soundType)
                 returnValue = {}
                 setmetatable(returnValue, {
                     __call = function(table, passingTable, ...)
-                        soundInstance[index](soundInstance, ...)
+                        return soundInstance[index](soundInstance, ...)
                     end,
                 })
             end

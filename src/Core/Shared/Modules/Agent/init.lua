@@ -327,7 +327,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 							updatedAccessories = true
 							-- Create temp buffs in not already created
 							--if not bossBuff.appliedTempBuffs and #bossBuff.tempBuffDetails > 0 then
-							if #bossBuff.tempBuffDetails > 0 then
+							if #bossBuff.tempBuffDetails > 0 and (bossBuff.requiredTempValue == nil or bossBuff.requiredTempValue == bossBuff.value) then
 								--bossBuff.appliedTempBuffs = true
 								for _, tempBuffDetails in pairs(bossBuff.tempBuffDetails) do
 									if not bossBuff.assignedTempBuffs[tempBuffDetails] then
@@ -388,7 +388,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 						end
 						-- This sets the final value to the boss buff value
 						local buffValue = bossBuff.value
-						if typeof(buffValue) ==  "Instance" then --and buffValue:IsA("HumanoidDescription") then
+						if typeof(buffValue) ==  "Instance" and buffValue:IsA("HumanoidDescription") then -- The additional 'and HumanoidDesc' was originally commented out
 							buffValue = buffValue[propertyName]
 						end
 						finalValue = buffValue

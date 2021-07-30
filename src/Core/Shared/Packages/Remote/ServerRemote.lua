@@ -159,9 +159,12 @@ function Remote:_getRemoteInstance(remoteType)
 	if not remoteInstance then
 		remoteInstance = Instance.new(remoteType)
 		if remoteType == "RemoteEvent" then
+			local DELAY_AMOUNT = 0.05
+			self.deferFireClientToTime = os.time() + DELAY_AMOUNT
+			self.deferFireClientAmount = 0
 			coroutine.wrap(function()
 				-- Remote instances are constructed upon first call, so we do this to ensure the client first connects to the remote instances before firing
-				self.janitor:add(main.modules.Thread.delay(0.05, function()
+				self.janitor:add(main.modules.Thread.delay(DELAY_AMOUNT, function()
 					self.deferFireClient = false
 				end), "destroy")
 			end)()
@@ -174,10 +177,13 @@ end
 
 function Remote:fireClient(player, ...)
 	local remoteInstance = self:_getRemoteInstance("RemoteEvent")
-	if self.deferFireClient then
+	if self.deferFireClient or self.deferFireClientAmount > 0 then
 		local args = table.pack(...)
-		self.janitor:add(main.modules.Thread.delay(0.05, function()
+		local timeDelayed = self.deferFireClientToTime - os.time()
+		self.deferFireClientAmount += 1
+		self.janitor:add(main.modules.Thread.delay(timeDelayed, function()
 			self.deferFireClient = false
+			self.deferFireClientAmount -= 1
 			remoteInstance:FireClient(player, unpack(args))
 		end), "destroy")
 		return

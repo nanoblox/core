@@ -47,6 +47,8 @@ function Task.new(properties)
 	self.originalArgReturnValues = {}
 	self.originalArgReturnValuesFromIndex = {}
 	self.trackingItems = {}
+	self.restrict = properties.restrict
+
 	self.anchoredParts = {}
 	janitor:add(function()
 		self.anchoredParts = nil

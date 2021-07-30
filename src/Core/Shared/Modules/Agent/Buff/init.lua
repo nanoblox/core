@@ -57,8 +57,9 @@ function Buff.new(effect, property, weight, additional)
                 self:_update(true)
             end
         end)
+        self.requiredTempValue = true
         self:set(true)
-        self:setWeight(self.weight+999)
+        self:setWeight(self.weight+0.1) -- +999
         main.modules.Thread.spawn(self._update, self, true)
     end
 

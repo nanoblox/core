@@ -110,60 +110,22 @@ function PlayerUtil.getAgent(player)
 	return agent
 end
 
-local hiddenAgents = {}
-function PlayerUtil.hidePlayer(player)
-	if main.isClient and player == nil then
-		player = main.localPlayer
+function PlayerUtil.teleportPlayers(players, targetPlayer, teleportFunc)
+	local targetHRP = main.modules.PlayerUtil.getHRP(targetPlayer)
+	if not targetHRP then
+		return
 	end
-	local hiddenKey = main.modules.DataUtil.generateUID()
-	local agent = PlayerUtil.getAgent(player)
-	if agent then
-		-- We make the player invisible and freeze them, instead of parenting them to ReplicatedStorage, so that they can still perform actions such as resetting
-		local hiddenDetail = hiddenAgents[agent]
-		if hiddenDetail == nil then
-			local buffs = {}
-			table.insert(buffs, agent:buff("BodyTransparency"):set(1):setWeight(999))
-			table.insert(buffs, agent:buff("Humanoid", "WalkSpeed"):set(0):setWeight(999))
-			main.modules.Thread.delay(0.1, function() -- This allows enough time for the Humanoid to register as 'stopped'
-				if hiddenAgents[agent] then
-					table.insert(buffs, agent:buff("HumanoidRootPart", "Anchored"):set(true):setWeight(999))
-				end
-			end)
-			main.modules.ChatUtil.hideChat(player)
-			hiddenAgents[agent] = {buffs, hiddenKey}
-		else
-			hiddenDetail[2] = hiddenKey
+	local removeIndex = table.find(players, targetPlayer)
+	if removeIndex then
+		table.remove(players, removeIndex)
+	end
+	for i, player in pairs(players) do
+		local playerHRP = main.modules.PlayerUtil.getHRP(player)
+		local playerHumanoid = main.modules.PlayerUtil.getHumanoid(player)
+		if playerHRP and playerHumanoid then
+			teleportFunc(i, targetHRP, playerHRP, playerHumanoid)
 		end
 	end
-	return hiddenKey
-end
-
-function PlayerUtil.showPlayer(player)
-	if main.isClient and player == nil then
-		player = main.localPlayer
-	end
-	local agent = PlayerUtil.getAgent(player)
-	local hiddenDetail = hiddenAgents[agent]
-	if hiddenDetail then
-		hiddenAgents[agent] = nil
-		local buffs = hiddenDetail[1]
-		for _, buff in pairs(buffs) do
-			buff:destroy()
-		end
-		main.modules.ChatUtil.showChat(player)
-	end
-end
-
-function PlayerUtil.isPlayerHidden(player)
-	if main.isClient and player == nil then
-		player = main.localPlayer
-	end
-	local agent = PlayerUtil.getAgent(player)
-	local hiddenDetail = hiddenAgents[agent]
-	if hiddenDetail then
-		return true, hiddenDetail[2]
-	end
-	return false
 end
 
 
