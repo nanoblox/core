@@ -85,14 +85,14 @@ function Command.invoke(task, args)
 				return
 			end
 			trackingJanitor:add(humanoid.Died:Connect(function()
-				trackingJanitor:clean()
+				trackingJanitor:cleanup()
 			end), "Disconnect")
 			trackingJanitor:add(player.CharacterAdded:Connect(function()
-				trackingJanitor:clean()
+				trackingJanitor:cleanup()
 			end), "Disconnect")
 			trackingJanitor:add(main.Players.PlayerRemoving:Connect(function(leavingPlayer)
 				if player == leavingPlayer then
-					trackingJanitor:clean()
+					trackingJanitor:cleanup()
 				end
 			end), "Disconnect")
 

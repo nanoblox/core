@@ -448,7 +448,7 @@ end
 function State:destroy()
 	local activeTable = activeTables[self]
 	if activeTable then
-		activeTable.janitor:clean()
+		activeTable.janitor:cleanup()
 		--setmetatable(self, {__index = nil})
 		return true
 	end

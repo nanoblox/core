@@ -177,7 +177,7 @@ function ConfigService.start()
 		ConfigService.transformChanges(latestConfig, main.config, "temp")
 	end
 	updateConfig()
-	Thread.delayLoop(10, function()
+	Thread.loop(10, function()
 		updateConfig()
 	end)
 end

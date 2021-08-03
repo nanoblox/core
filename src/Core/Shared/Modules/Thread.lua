@@ -240,7 +240,7 @@ function Thread.delayUntil(criteria, func, ...)
 	return thread
 end
 
-function Thread.delayLoop(intervalTimeOrType, func, ...)
+function Thread.loop(intervalTimeOrType, func, ...)
 	local args = table.pack(...)
 	local thread = createThread()
 	local intervalTime = tonumber(intervalTimeOrType) or 0
@@ -254,7 +254,7 @@ function Thread.delayLoop(intervalTimeOrType, func, ...)
 	end, func, ...)
 end
 
-function Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...)
+function Thread.loopUntil(intervalTimeOrType, criteria, func, ...)
 	local args = table.pack(...)
 	local thread = createThread()
 	local intervalTime = tonumber(intervalTimeOrType) or 0
@@ -270,7 +270,7 @@ function Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...)
 	end, func, ...)
 end
 
-function Thread.delayLoopFor(intervalTimeOrType, iterations, func, ...)
+function Thread.loopFor(intervalTimeOrType, iterations, func, ...)
 	if iterations <= 0 then return end
 	local args = table.pack(...)
 	local thread = createThread()

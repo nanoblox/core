@@ -146,7 +146,6 @@ Args.array = {
 		playerArg = true,
 		executeForEachPlayer = true,
 		parse = function(self, qualifiers, callerUserId)
-			print("Getting...")
 			local players = main.modules.Parser.Args.get("player"):parse(qualifiers, callerUserId, {ignoreDefault = true})
 			return players[1]
 		end,
@@ -695,7 +694,7 @@ Args.array = {
 	{
 		name = "bundleDescription",
 		aliases = {},
-		displayname = "bundleId",
+		displayName = "bundleId",
 		description = "Accepts a bundleId and returns a HumanoidDescription associated with that bundle.",
 		defaultValue = false,
 		parse = function(self, stringToParse, _, playerUserId)
@@ -727,9 +726,102 @@ Args.array = {
 
 	-----------------------------------
 	{
+		name = "accessoryDictionary",
+		aliases = {"hatDictionary"},
+		displayName = "hatId",
+		description = "Accepts an accessoryId and returns a dictionary ``{accessoryId = w, assetType = x, assetTypeName = y, hdPropertyName = z}`` if approved.",
+		defaultValue = false,
+		parse = function(self, stringToParse)
+			return self.accessoryDictionaries[stringToParse]
+		end,
+		validAccessoriesArray = {
+			"Hat",
+			"HairAccessory",
+			"FaceAccessory",
+			"NeckAccessory",
+			"ShoulderAccessory",
+			"FrontAccessory",
+			"BackAccessory",
+			"WaistAccessory",
+			"EarAccessory",
+			"EyeAccessory",
+			"TShirtAccessory",
+			"ShirtAccessory",
+			"PantsAccessory",
+			"JacketAccessory",
+			"SweaterAccessory",
+			"ShortsAccessory",
+			"LeftShoeAccessory",
+			"RightShoeAccessory",
+			"DressSkirtAccessory",
+		},
+		validAccessoriesDictionary = nil,
+		accessoryTypeToProperty = nil,
+		uniquePropertyNames = {},
+		accessoryDictionaries = {},
+		verifyCanUse = function(self, callerUser, valueToParse)
+			-- Check if valid string
+			local stringToParse = tostring(valueToParse)
+			local accessoryIdString = string.match(stringToParse, "%d+")
+			local accessoryId = tonumber(accessoryIdString)
+			if not accessoryId then
+				return false, string.format("'%s' is an invalid ID!", stringToParse)
+			end
+			-- Check if restricted to user
+			local approved, warning = main.services.SettingService.verifyCanUseRestrictedID(callerUser, "libraryAndCatalog", accessoryIdString)
+			if not approved then
+				return false, warning
+			end
+			-- Setup validAccessoriesDictionary if not already
+			if self.validAccessoriesDictionary == nil then
+				self.validAccessoriesDictionary = {}
+				self.accessoryTypeToProperty = {}
+				local humanoidDesc = Instance.new("HumanoidDescription")
+				for _, enumName in pairs(self.validAccessoriesArray) do
+					-- This gets and records the corresponding enumName
+					local assetTypeString = tostring(Enum.AssetType[enumName].Value)
+					self.validAccessoriesDictionary[assetTypeString] = enumName
+					-- This determines the corresponding HumanoidDescription property name
+					local humanoidDescPropertyName
+					if enumName == "Hat" then
+						humanoidDescPropertyName = "HatAccessory"
+					else
+						local success, _ = pcall(function() return humanoidDesc[enumName] end)
+						humanoidDescPropertyName = (success and enumName) or "HatAccessory"
+					end
+					self.accessoryTypeToProperty[assetTypeString] = humanoidDescPropertyName
+					self.uniquePropertyNames[humanoidDescPropertyName] = true
+				end
+				humanoidDesc:Destroy()
+			end
+			-- Check if dictionary already exists
+			local dictionary = self.accessoryDictionaries[accessoryIdString]
+			if not dictionary then
+				-- Check if correct asset type
+				local assetType = main.modules.ProductUtil.getAssetTypeAsync(accessoryId, Enum.InfoType.Asset)
+				local assetTypeString = tostring(assetType)
+				local assetTypeName = self.validAccessoriesDictionary[assetTypeString]
+				if assetTypeName == nil then
+					return false, string.format("'%s' is not a valid AccessoryID!", accessoryId)
+				end
+				-- Record dictionary
+				dictionary = {
+					accessoryId = accessoryId,
+					assetType = assetType,
+					assetTypeName = assetTypeName,
+					hdPropertyName = self.accessoryTypeToProperty[assetTypeString],
+				}
+				self.accessoryDictionaries[accessoryIdString] = dictionary
+			end
+			return dictionary
+		end,
+	},
+
+	-----------------------------------
+	{
 		name = "userDescription",
 		aliases = {},
-		displayname = "userNameOrId",
+		displayName = "userNameOrId",
 		description = "Accepts an @userName, displayName or userId and returns a HumanoidDescription.",
 		defaultValue = false,
 		parse = function(self, stringToParse, callerUserId, playerUserId)
@@ -753,7 +845,7 @@ Args.array = {
 		verifyCanUse = function(self, callerUser, valueToParse)
 			local userId = Args.get("userId").parse(self, tostring(valueToParse), callerUser.userId)
 			if not userId then
-				return false, ("'%s' is an invalid UserId, DisplayName or UserName!"):format(tostring(valueToParse))
+				return false, ("'%s' is an invalid UserId, DisplayName or @UserName!"):format(tostring(valueToParse))
 			end
 			local success, description = main.modules.MorphUtil.getDescriptionFromUserId(userId):await()
 			if not success then

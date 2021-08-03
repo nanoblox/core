@@ -38,6 +38,7 @@ function Buff.new(effect, property, weight, additional)
     self.tempBuffDetails = {}
     self.assignedTempBuffs = {}
     self.readyToUpdateClient = false
+    self.assassinated = false
 
     if additional then
 		for k, v in pairs(additional) do
@@ -130,12 +131,29 @@ end
 function Buff:set(value, optionalTweenInfo)
     self.previousIncremental = self.incremental
     self.incremental = false
+    self.merge = false
     self.tweenInfo = optionalTweenInfo
     self.value = self:_changeValue(value)
     self.setterMethodName = "set"
     self.timeUpdated = os.clock()
     if self.readyToUpdateClient then
-        self.agent.callClientBuffRemote:fireAllClients(self.buffId, "set", value)
+        self.agent.callClientBuffRemote:fireAllClients(self.buffId, self.setterMethodName, value)
+    end
+    self:_update(true)
+    return self
+end
+
+function Buff:merge(value, optionalTweenInfo)
+    -- This is for HumanoidDescriptions where you wish to combine strings (such as accessories) to preserve original items
+    self.previousIncremental = self.incremental
+    self.incremental = false
+    self.merge = true
+    self.tweenInfo = optionalTweenInfo
+    self.value = self:_changeValue(value)
+    self.setterMethodName = "merge"
+    self.timeUpdated = os.clock()
+    if self.readyToUpdateClient then
+        self.agent.callClientBuffRemote:fireAllClients(self.buffId, self.setterMethodName, value)
     end
     self:_update(true)
     return self
@@ -145,12 +163,13 @@ function Buff:increment(value, optionalTweenInfo)
     assert(type(value) == "number", "incremental value must be a number!")
     self.previousIncremental = self.incremental
     self.incremental = true
+    self.merge = false
     self.tweenInfo = optionalTweenInfo
     self.value = self:_changeValue(value)
     self.setterMethodName = "increment"
     self.timeUpdated = os.clock()
     if self.readyToUpdateClient then
-        self.agent.callClientBuffRemote:fireAllClients(self.buffId, "increment", value)
+        self.agent.callClientBuffRemote:fireAllClients(self.buffId, self.setterMethodName, value)
     end
     self:_update(true)
     return self
@@ -191,6 +210,15 @@ function Buff:_getAppliedValueTable(effect, instance)
         parentTab[instance] = tab
     end
     return tab
+end
+
+function Buff:assassinate()
+    -- Silently destroys the buff
+    for _, tempBuff in pairs(self.tempBuffs) do
+        tempBuff:assassinate()
+    end
+    self.assassinated = true
+    self:destroy()
 end
 
 function Buff:destroy()

@@ -165,7 +165,7 @@ Modifiers.array = {
 			if newInterval < MINIMUM_INTERVAL then
 				newInterval = MINIMUM_INTERVAL
 			end
-			local thread = main.modules.Thread.delayLoopFor(newInterval, newInterations, task.execute, task)
+			local thread = main.modules.Thread.loopFor(newInterval, newInterations, task.execute, task)
 			return thread
 		end,
 	},
@@ -190,7 +190,7 @@ Modifiers.array = {
 					char:WaitForChild("Humanoid")
 					task:execute()
 				end), "Disconnect")
-				local thread = main.modules.Thread.delayLoopUntil(0.1, function()
+				local thread = main.modules.Thread.loopUntil(0.1, function()
 					return targetUser.isDestroyed == true
 				end)
 				return thread

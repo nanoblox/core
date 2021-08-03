@@ -42,7 +42,6 @@ function Agent.new(player, reapplyBuffsOnRespawn)
 	self.buffs = {}
 	self.defaultValues = {}
 	self.reapplyBuffsOnRespawn = reapplyBuffsOnRespawn
-	self.silentlyEndBuffs = false
 	self.player = player
 	self.groupedBuffs = {}
 	self.humanoidDescriptionCount = 0
@@ -257,7 +256,9 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 			local reduceTweenJanitor = self.reduceJanitors[tweenReference]
 			local forcedBaseValue
 			if reduceTweenJanitor then
-				reduceTweenJanitor:cleanup()
+				if reduceTweenJanitor.cleanup then
+					reduceTweenJanitor:cleanup()
+				end
 				local validUntilTime = reduceTweenJanitor.forcedBaseValueValidUntilTime
 				if validUntilTime then
 					if os.clock() < validUntilTime then
@@ -308,6 +309,16 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 					if defaultValue == nil then
 						defaultGroup[defaultAdditionalString] = propertyValue
 						defaultValue = propertyValue
+					end
+					local buffValue = bossBuff.value
+					local bossBuffValueIsAHumanoidDescription = typeof(buffValue) ==  "Instance" and buffValue:IsA("HumanoidDescription") -- The additional 'and HumanoidDesc' was originally commented out
+					if bossBuffValueIsAHumanoidDescription then
+						-- Wd don't want [HumanoidDescription:nil].propertName overriding HumanoidDescription:propertyName therefore skip if correspoinding more than 0
+						local correspondingBuffs = self.groupedBuffs["HumanoidDescription"][propertyName]
+						local totalCorrespondingBuffs = (correspondingBuffs and #correspondingBuffs) or 0
+						if totalCorrespondingBuffs > 0 then
+							continue
+						end
 					end
 					if bossBuff.isDestroyed then -- if this is the very last buff of that group
 						if isAHumanoidDescription then
@@ -387,9 +398,23 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 							end
 						end
 						-- This sets the final value to the boss buff value
-						local buffValue = bossBuff.value
-						if typeof(buffValue) ==  "Instance" and buffValue:IsA("HumanoidDescription") then -- The additional 'and HumanoidDesc' was originally commented out
+						if bossBuffValueIsAHumanoidDescription then
 							buffValue = buffValue[propertyName]
+						end
+						-- If buff.merge, then retrieve the values of all other buffs of this effect type and combine them into the defaultValue
+						if bossBuff.merge then
+							buffValue = tostring(propertyValue)--tostring(defaultValue)
+							local appliedValuesAlready = {}
+							for _, v in pairs(string.split(buffValue)) do
+								appliedValuesAlready[tostring(v)] = true
+							end
+							for _, mergeBuff in pairs(buffs) do
+								local mergeValueString = tostring(mergeBuff.value)
+								if not mergeBuff.isDestroyed and mergeBuff.merge and not appliedValuesAlready[mergeValueString] then
+									buffValue = buffValue..","..mergeValueString
+									appliedValuesAlready[mergeValueString] = true
+								end
+							end
 						end
 						finalValue = buffValue
 					end
@@ -455,7 +480,7 @@ function Agent:reduceAndApplyEffects(specificEffect, specificProperty)
 				end
 
 				-- This applies the final value
-				if (propertyValue ~= finalValue or forcedBaseValue or isAHumanoidDescription) and not self.silentlyEndBuffs then
+				if (propertyValue ~= finalValue or forcedBaseValue or isAHumanoidDescription) and not bossBuff.assassinated then
 					local function updateActiveAppliedTables()
 						local difference = finalValue - instance[propertyName]
 						for _, appliedTable in pairs(activeAppliedTables) do
@@ -593,9 +618,9 @@ function Agent:clearBuffs()
 end
 
 function Agent:assassinateBuffs()
-	self.silentlyEndBuffs = true
-	self:clearBuffs()
-	self.silentlyEndBuffs = false
+	for _, buff in pairs(self.buffs) do
+		buff:assassinate()
+	end
 end
 
 function Agent:clearBuffsWithEffect(effect)

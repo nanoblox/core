@@ -100,6 +100,9 @@ function Signal:Destroy()
 	for waitingId, _ in pairs(self.waiting) do
 		self.waiting[waitingId] = nil
 	end
+	if self.janitor then
+		self.janitor:destroy()
+	end
 end
 Signal.destroy = Signal.Destroy
 Signal.Disconnect = Signal.Destroy

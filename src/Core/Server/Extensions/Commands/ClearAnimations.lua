@@ -25,7 +25,6 @@ function Command.invoke(task, args)
     local potentialTasksToClear = main.services.TaskService.getTasksWithPlayerUserId(player.UserId)
     for _, potentialTask in pairs(potentialTasksToClear) do
         if potentialTask:findTag("Animation") then
-            print("END TASK: ", potentialTask.commandName)
             potentialTask:kill()
         end
     end

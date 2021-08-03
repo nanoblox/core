@@ -38,6 +38,13 @@ function PlayerUtil.getHumanoidRootPart(playerOrUserId)
 end
 PlayerUtil.getHRP = PlayerUtil.getHumanoidRootPart
 
+function PlayerUtil.getHumanoidDescription(playerOrUserId)
+	local humanoid = PlayerUtil.getHumanoid(playerOrUserId)
+	local hd = humanoid and humanoid:GetAppliedDescription()
+	return hd
+end
+PlayerUtil.getHD = PlayerUtil.getHumanoidDescription
+
 function PlayerUtil.getHRPPosition(playerOrUserId)
 	local hrp = PlayerUtil.getHRP(playerOrUserId)
 	local hrpPos = hrp and hrp.Position
@@ -108,24 +115,6 @@ function PlayerUtil.getAgent(player)
 		agents[player] = agent
 	end
 	return agent
-end
-
-function PlayerUtil.teleportPlayers(players, targetPlayer, teleportFunc)
-	local targetHRP = main.modules.PlayerUtil.getHRP(targetPlayer)
-	if not targetHRP then
-		return
-	end
-	local removeIndex = table.find(players, targetPlayer)
-	if removeIndex then
-		table.remove(players, removeIndex)
-	end
-	for i, player in pairs(players) do
-		local playerHRP = main.modules.PlayerUtil.getHRP(player)
-		local playerHumanoid = main.modules.PlayerUtil.getHumanoid(player)
-		if playerHRP and playerHumanoid then
-			teleportFunc(i, targetHRP, playerHRP, playerHumanoid)
-		end
-	end
 end
 
 

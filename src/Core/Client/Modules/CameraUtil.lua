@@ -1,7 +1,9 @@
 -- LOCAL
 local main = require(game.Nanoblox)
-local CameraUtil = {}
 local camera = workspace.CurrentCamera
+local CameraUtil = {
+	camera = camera
+}
 
 
 

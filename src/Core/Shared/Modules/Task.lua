@@ -625,19 +625,19 @@ function Task:delayUntil(criteria, func, ...)
 	return self:track(main.modules.Thread.delayUntil(criteria, func, ...))
 end
 
--- An abstraction of ``task:track(main.modules.Thread.delayLoop(intervalTimeOrType, func, ...))``
-function Task:delayLoop(intervalTimeOrType, func, ...)
-	return self:track(main.modules.Thread.delayLoop(intervalTimeOrType, func, ...))
+-- An abstraction of ``task:track(main.modules.Thread.loop(intervalTimeOrType, func, ...))``
+function Task:loop(intervalTimeOrType, func, ...)
+	return self:track(main.modules.Thread.loop(intervalTimeOrType, func, ...))
 end
 
--- An abstraction of ``task:track(main.modules.Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...))``
-function Task:delayLoopUntil(intervalTimeOrType, criteria, func, ...)
-	return self:track(main.modules.Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...))
+-- An abstraction of ``task:track(main.modules.Thread.loopUntil(intervalTimeOrType, criteria, func, ...))``
+function Task:loopUntil(intervalTimeOrType, criteria, func, ...)
+	return self:track(main.modules.Thread.loopUntil(intervalTimeOrType, criteria, func, ...))
 end
 
--- An abstraction of ``task:track(main.modules.Thread.delayLoopFor(intervalTimeOrType, iterations, func, ...))``
-function Task:delayLoopFor(intervalTimeOrType, iterations, func, ...)
-	return self:track(main.modules.Thread.delayLoopFor(intervalTimeOrType, iterations, func, ...))
+-- An abstraction of ``task:track(main.modules.Thread.loopFor(intervalTimeOrType, iterations, func, ...))``
+function Task:loopFor(intervalTimeOrType, iterations, func, ...)
+	return self:track(main.modules.Thread.loopFor(intervalTimeOrType, iterations, func, ...))
 end
 
 -- An abstraction of ``task:track(main.TweenService:Create(instance, tweenInfo, propertyTable))``
