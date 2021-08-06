@@ -171,6 +171,8 @@ function Clone:become(item)
             end--]]
             if not rigType then
                 rigType = "R15"
+            elseif typeof(rigType) == "EnumItem" then
+                rigType = rigType.Name
             end
             clone = self.janitor:add(main.shared.Assets.Rigs[rigType]:Clone(), "Destroy")
             clone.HumanoidRootPart.CFrame = self.spawnCFrame or CFrame.new()

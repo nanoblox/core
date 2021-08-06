@@ -3,29 +3,74 @@ local ClientCommand =	{}
 
 
 
-function ClientCommand.invoke(task, ...)
-	local commandName = self.Name
-	local humanoid = main:GetModule("cf"):GetHumanoid()
-	local hrp = main:GetModule("cf"):GetHRP()
-	if humanoid and hrp then
-		local lastUpdate = tick()
-		hrp.Anchored = true
-		humanoid.PlatformStand = true
-		repeat wait()
-			local delta = tick()-lastUpdate
-			local look = (main.camera.Focus.p-main.camera.CFrame.p).unit
-			local move = main:GetModule("cf"):GetNextMovement(delta, main.commandSpeeds[commandName])
-			local pos = hrp.Position
-			hrp.CFrame = CFrame.new(pos,pos+look) * move
-			lastUpdate = tick()
-			
-		until not main.commandsActive[commandName]
-		if hrp and humanoid then
-			hrp.Anchored = false
-			hrp.Velocity = Vector3.new()
-			humanoid.PlatformStand = false
+function ClientCommand.invoke(task, speed)
+	local hrp = main.modules.PlayerUtil.getHRP()
+	local humanoid = main.modules.PlayerUtil.getHumanoid()
+	if not hrp or not humanoid then
+		return
+	end
+	
+	local enabled = false
+	local loopThread
+	local function toggleFlight()
+		enabled = not enabled
+
+		-- This handles the chracter buffs
+		local buffDetails = {
+			sitBuff = {{"Humanoid", "PlatformStand"}, {true}, 3},
+			anchorBuff = {{"HumanoidRootPart", "Anchored"}, {true}, 3},
+		}
+		if enabled then
+			for buffName, detail in pairs(buffDetails) do
+				local buff = task:buffPlayer(unpack(detail[1])):set(unpack(detail[2])):setWeight(detail[3])
+				task:add(buff, "destroy", buffName)
+			end
+		else
+			for buffName, _ in pairs(buffDetails) do
+				local buff = task.janitor:get(buffName)
+				if buff then
+					buff:destroy()
+				end
+			end
+		end
+
+		-- This handles the setting of the HRP's position
+		if not enabled then
+			if loopThread then
+				loopThread:disconnect()
+			end
+		else
+			local lastUpdate = tick()
+			local camera = main.modules.CameraUtil.camera
+			loopThread = task:loop(0, function()
+				local delta = tick()-lastUpdate
+				local look = (camera.Focus.p - camera.CFrame.p).unit
+				local move = main.modules.MovementUtil.getNextMovement(delta, speed)
+				local pos = hrp.Position
+				hrp.CFrame = CFrame.new(pos,pos+look) * move
+				lastUpdate = tick()
+			end)
 		end
 	end
+
+	-- This enables flight
+	toggleFlight()
+
+	-- This handles the toggling of flight when double jumping
+	local doubleJumpSignal = main.modules.MovementUtil.getSignal("DoubleJump")
+	task:add(doubleJumpSignal:Connect(toggleFlight), "Disconnect")
+
+	-- This handles the toggling of flight when pressing E
+	local function toggleFlightByKey(_, input)
+		if input == Enum.UserInputState.End then
+			toggleFlight()
+		end
+	end
+	local contextId = "NanobloxNoclip-"..task.UID
+	main.ContextActionService:BindAction(contextId, toggleFlightByKey, false, Enum.KeyCode.E)
+	task:add(function()
+		main.ContextActionService:UnbindAction(contextId)
+	end)
 end
 
 

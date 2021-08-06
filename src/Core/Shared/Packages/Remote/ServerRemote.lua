@@ -229,6 +229,7 @@ end
 
 function Remote:destroy()
 	self.janitor:destroy()
+	remotes[self.name] = nil
 end
 
 

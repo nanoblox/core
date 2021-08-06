@@ -12,7 +12,7 @@ function CameraUtil.setSubject(instance)
 	camera.CameraSubject = instance
 end
 
-function CameraUtil.get(propertyName)
+function CameraUtil.getProperty(propertyName)
 	return camera[propertyName]
 end
 

@@ -99,6 +99,7 @@ end
 -- EVENTS
 local commandNameToTask = main.modules.State.new() -- This allows for super quick retrieval of a group of tasks with the same commandName
 local playerUserIdToTaskGroup = main.modules.State.new() -- This allows for super quick retrieval of a group of tasks with the same playerUserId
+local callerUserIdToTaskGroup = main.modules.State.new() -- This allows for super quick retrieval of a group of tasks with the same callerUserId
 
 TaskService.taskAdded = Signal.new()
 TaskService.taskChanged = Signal.new()
@@ -113,20 +114,26 @@ TaskService.recordAdded:Connect(function(UID, record)
 	if task.playerUserId then
 		playerUserIdToTaskGroup:getOrSetup(task.playerUserId, task.commandNameLower):set(UID, task)  -- This allows for super quick retrieval of a group of tasks with the same playerUserId
 	end
+	if task.callerUserId then
+		callerUserIdToTaskGroup:getOrSetup(task.callerUserId, task.commandNameLower):set(UID, task)  -- This allows for super quick retrieval of a group of tasks with the same callerUserId
+	end
 	commandNameToTask:getOrSetup(task.commandNameLower):set(UID, task)
 	TaskService.taskAdded:Fire(task)
 end)
 
 TaskService.recordRemoved:Connect(function(UID)
-	--warn(("TASK '%s' REMOVED!"):format(UID))
 	local task = tasks[UID]
 	if task then
 		task:destroy()
 		task[UID] = nil
 	end
-	local userTaskCommandGroup = playerUserIdToTaskGroup:find(task.playerUserId, task.commandNameLower)
-	if userTaskCommandGroup then
-		userTaskCommandGroup:set(UID, nil)
+	local playerTaskCommandGroup = playerUserIdToTaskGroup:find(task.playerUserId, task.commandNameLower)
+	if playerTaskCommandGroup then
+		playerTaskCommandGroup:set(UID, nil)
+	end
+	local callerTaskCommandGroup = callerUserIdToTaskGroup:find(task.callerUserId, task.commandNameLower)
+	if callerTaskCommandGroup then
+		callerTaskCommandGroup:set(UID, nil)
 	end
 	local taskCommandGroup = commandNameToTask:find(task.commandNameLower)
 	if taskCommandGroup then
@@ -232,9 +239,22 @@ end
 
 function TaskService.getTasksWithPlayerUserId(playerUserId)
 	local tasksArray = {}
-	local userTaskCommandGroups = playerUserIdToTaskGroup:find(playerUserId)
-	if userTaskCommandGroups then
-		for _, groupOfTasks in pairs(userTaskCommandGroups) do
+	local playerTaskCommandGroups = playerUserIdToTaskGroup:find(playerUserId)
+	if playerTaskCommandGroups then
+		for _, groupOfTasks in pairs(playerTaskCommandGroups) do
+			for _, task in pairs(groupOfTasks) do
+				table.insert(tasksArray, task)
+			end
+		end
+	end
+	return tasksArray
+end
+
+function TaskService.getTasksWithCallerUserId(callerUserId)
+	local tasksArray = {}
+	local callerTaskCommandGroups = callerUserIdToTaskGroup:find(callerUserId)
+	if callerTaskCommandGroups then
+		for _, groupOfTasks in pairs(callerTaskCommandGroups) do
 			for _, task in pairs(groupOfTasks) do
 				table.insert(tasksArray, task)
 			end
@@ -245,9 +265,20 @@ end
 
 function TaskService.getTasksWithCommandNameAndPlayerUserId(commandName, playerUserId)
 	local tasksArray = {}
-	local userTaskCommandGroup = playerUserIdToTaskGroup:find(playerUserId, commandName)
-	if userTaskCommandGroup then
-		for _, task in pairs(userTaskCommandGroup) do
+	local playerTaskCommandGroup = playerUserIdToTaskGroup:find(playerUserId, commandName)
+	if playerTaskCommandGroup then
+		for _, task in pairs(playerTaskCommandGroup) do
+			table.insert(tasksArray, task)
+		end
+	end
+	return tasksArray
+end
+
+function TaskService.getTasksWithCommandNameAndCallerUserId(commandName, callerUserId)
+	local tasksArray = {}
+	local callerTaskCommandGroup = callerUserIdToTaskGroup:find(callerUserId, commandName)
+	if callerTaskCommandGroup then
+		for _, task in pairs(callerTaskCommandGroup) do
 			table.insert(tasksArray, task)
 		end
 	end

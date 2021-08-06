@@ -4,10 +4,10 @@ local Command =	{}
 
 
 Command.name = script.Name
-Command.description = "Gives the player the ability to noclip while being seen by others."
-Command.aliases	= {}
-Command.opposites = {"Fly1", "Flight", "Flight1"}
-Command.tags = {"Utility"}
+Command.description = "Grants the player with flight. Double-jump or press E to toggle."
+Command.aliases	= {"Fly1", "Flight", "Flight1"}
+Command.opposites = {}
+Command.tags = {"Utility", "Flight"}
 Command.prefixes = {}
 Command.contributors = {82347291}
 Command.blockPeers = false
@@ -31,6 +31,14 @@ function Command.invoke(task, args, custom)
 	if not hrp or not humanoid then
 		return
 	end
+
+	-- If another flight task is enabled, kill it
+	local potentialTasksToClear = main.services.TaskService.getTasksWithPlayerUserId(player.UserId)
+	for _, potentialTask in pairs(potentialTasksToClear) do
+		if potentialTask ~= task and potentialTask:findTag("Flight") then
+            potentialTask:kill()
+        end
+    end
 	
 	local flyForce = task:add(Instance.new("BodyPosition"), "Destroy")
 	flyForce.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
@@ -46,7 +54,7 @@ function Command.invoke(task, args, custom)
 	bodyGyro.CFrame = hrp.CFrame
 	bodyGyro.Parent = hrp
 	
-	task:invokeClient(player, flyForce, bodyGyro, speed, noclip)
+	task:invokeClient(player, flyForce, bodyGyro, speed, noclip, propertyLock)
 end
 
 

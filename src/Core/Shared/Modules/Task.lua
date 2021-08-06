@@ -546,15 +546,15 @@ end
 Task.destroy = Task.kill
 Task.Destroy = Task.kill
 
-function Task:hijackCommand(commandName, argsTable)
+function Task:hijackCommand(commandName, ...)
 	local command = main.services.CommandService.getCommand(commandName)
 	if command then
 		self.hijackedCommandName = command.name
-		return command.invoke(self, argsTable)
+		return command.invoke(self, ...)
 	end
 end
 
--- An abstraction of ``task.janitor:add(...)``
+-- An abstraction of ``task.janitor:add(...)`` with some additional behaviours such as recording instances to ensure they anchor when the task is paused
 function Task:add(item, cleanupMethodName, janitorIndex)
 	if self.isDead then
 		main.modules.Thread.spawn(function()
@@ -656,7 +656,6 @@ function Task:getAsset(assetName)
 		return asset
 	end
 	-- THE CLIENT IS ASSYNCHRONOUS THEREFORE RETURNS A PROMISE
-	local asset = main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName)
 	return self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))
 end
 

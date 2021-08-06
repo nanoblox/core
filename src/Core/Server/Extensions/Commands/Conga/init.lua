@@ -47,7 +47,7 @@ function Command.invoke(task, args)
 	local gap = task:getOriginalArg("Gap") or 4
 	local function considerRestrictions()
 		if task.restrict and #congaList >= Command.restrictions.maxClones then
-			warn("You do not have permission to exceed 10 conga clones!") --!!!notice
+			warn(("You do not have permission to exceed %s conga clones!"):format(Command.restrictions.maxClones)) --!!!notice
 			return false
 		end
 		return true

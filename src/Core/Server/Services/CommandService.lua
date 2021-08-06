@@ -551,7 +551,7 @@ function CommandService.verifyStatement(callerUser, statement)
 				argStringIndex += 1
 				local argString = arguments[argStringIndex]
 				if argItem.verifyCanUse and not (modifiers.undo or modifiers.preview) then
-					local canUseArg, deniedReason = argItem:verifyCanUse(callerUser, argString)
+					local canUseArg, deniedReason = argItem:verifyCanUse(callerUser, argString, {argNameOrAlias = argNameOrAlias})
 					if not canUseArg then
 						return resolve(false, {{"notice", {
 							text = deniedReason,

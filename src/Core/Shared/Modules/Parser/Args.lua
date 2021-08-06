@@ -820,7 +820,7 @@ Args.array = {
 	-----------------------------------
 	{
 		name = "userDescription",
-		aliases = {},
+		aliases = {"userDescriptionWithoutVerification"},
 		displayName = "userNameOrId",
 		description = "Accepts an @userName, displayName or userId and returns a HumanoidDescription.",
 		defaultValue = false,
@@ -842,7 +842,10 @@ Args.array = {
 			end
 			return description
 		end,
-		verifyCanUse = function(self, callerUser, valueToParse)
+		verifyCanUse = function(self, callerUser, valueToParse, additional)
+			if additional and tostring(additional.argNameOrAlias):lower() == "userdescriptionwithoutverification" then
+				return true
+			end
 			local userId = Args.get("userId").parse(self, tostring(valueToParse), callerUser.userId)
 			if not userId then
 				return false, ("'%s' is an invalid UserId, DisplayName or @UserName!"):format(tostring(valueToParse))

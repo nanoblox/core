@@ -21,32 +21,6 @@ function HumanoidUtil.unseat(humanoid)
 	return wasSeated
 end
 
-function HumanoidUtil.createDoubleJumpedSignal(humanoid)
-	local jumps = 0
-	local jumpDebounce = false
-	local signal = main.modules.Signal.new()
-	local Thread = main.modules.Thread
-	local janitor = main.modules.Janitor.new()
-	janitor:add(humanoid:GetPropertyChangedSignal("Jump"):Connect(function()
-		if jumpDebounce then
-			return
-		end
-		jumpDebounce = true
-		jumps = jumps + 1
-		if jumps == 4 then
-			signal:Fire()
-		end
-		Thread.spawn(function()
-			jumpDebounce = false
-		end)
-		Thread.delay(0.2, function()
-			jumps = jumps - 1
-		end)
-	end), "Disconnect")
-	signal.janitor = janitor
-	return signal
-end
-
 
 
 return HumanoidUtil

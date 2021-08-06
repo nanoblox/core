@@ -191,8 +191,8 @@ Janitor.__index.Clean = Janitor.__index.Cleanup
 **--]]
 function Janitor.__index:Destroy()
 	self:Cleanup()
-	table.clear(self)
-	setmetatable(self, nil)
+	--table.clear(self)
+	--setmetatable(self, nil)
 end
 
 Janitor.__call = Janitor.__index.Cleanup

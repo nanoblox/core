@@ -3,7 +3,7 @@ local ClientCommand =	{}
 
 
 
-function ClientCommand.invoke(task, flyForce, bodyGyro, speed, noclip)
+function ClientCommand.invoke(task, flyForce, bodyGyro, speed, noclip, propertyLock)
 	local hrp = main.modules.PlayerUtil.getHRP()
 	local humanoid = main.modules.PlayerUtil.getHumanoid()
 	if not hrp or not humanoid then
@@ -18,58 +18,103 @@ function ClientCommand.invoke(task, flyForce, bodyGyro, speed, noclip)
 	local lastUpdate = tick()
 	local lastPosition = hrp.Position
 	local camera = main.modules.CameraUtil.camera
+	local MovementUtil = main.modules.MovementUtil
 	
-	-- This handles the toggling of flight when double jumped and pressing E
+	local enabled = false
+	local loopThread
 	local function toggleFlight()
-		local sitBuff = task:buffPlayer("Humanoid", propertyLock):set(true)
-		task:add(sitBuff, "destroy", "sitBuff")
-		if noclip then
-			local collisionId = main.modules.CollisionUtil.getIdFromName("NanobloxPlayersWithNoCollision")
-			local collisionBuff = task:buffPlayer("CollisionGroupId"):set(collisionId)
-			task:add(collisionBuff, "destroy", "collisionBuff")
-		end
-		flyForce.Enabled = not flyForce.Enabled
-		bodyGyro.Enabled = not bodyGyro.Enabled
-	end
-	local doubleJumpedSignal = task:add(main.modules.HumanoidUtil.createDoubleJumpedSignal(humanoid), "destroy")
-	doubleJumpedSignal:Connect(toggleFlight)
-	main.ContextActionService:BindAction("ToggleNanobloxFlight", toggleFlight, true, Enum.KeyCode.E)
+		enabled = not enabled
 
-	task:loop(0, function()
-		local delta = tick()-lastUpdate
-		local look = (camera.Focus.Position - camera.CFrame.Position).unit
-		local move, directionalVector = main.modules.MovementUtil.getNextMovement(delta, speed*10)
-		local pos = hrp.Position
-		local targetCFrame = CFrame.new(pos,pos+look) * move
-		local targetD = 750 + (speed*0.2)
+		-- This handles the chracter buffs
+		local buffDetails = {
+			sitBuff = {{"Humanoid", propertyLock}, {true}, 3},
+		}
 		if noclip then
-			targetD = targetD/2
+			buffDetails.collisionBuff = {{"CollisionGroupId"}, {main.modules.CollisionUtil.getIdFromName("NanobloxPlayersWithNoCollision")}, 3}
 		end
-		if move.Position ~= Vector3.new() then
-			static = 0
-			flyForce.D = targetD
-			tiltAmount = tiltAmount + TILT_INCREMENT
-			flyForce.Position = targetCFrame.Position
+		if enabled then
+			for buffName, detail in pairs(buffDetails) do
+				local buff = task:buffPlayer(unpack(detail[1])):set(unpack(detail[2])):setWeight(detail[3])
+				task:add(buff, "destroy", buffName)
+			end
 		else
-			static = static + 1
-			tiltAmount = 1
-			local maxMag = 6
-			local mag = (hrp.Position - lastPosition).magnitude
-			if mag > maxMag and static >= 4 then
-				flyForce.Position = hrp.Position
+			for buffName, _ in pairs(buffDetails) do
+				local buff = task.janitor:get(buffName)
+				if buff then
+					buff:destroy()
+				end
 			end
 		end
-		if math.abs(tiltAmount) > TILT_MAX then
-			tiltAmount = TILT_MAX
+
+		-- This handles the enabling and disabling of flying forces
+		local maxForce = (enabled and Vector3.new(100000, 100000, 100000)) or Vector3.new(0, 0, 0)
+		flyForce.MaxForce = maxForce
+		bodyGyro.MaxTorque = maxForce
+
+		-- This handles flight direction and power
+		if not enabled then
+			if loopThread then
+				loopThread:disconnect()
+			end
+		else
+			loopThread = task:loop(0, function()
+				local delta = tick()-lastUpdate
+				local look = (camera.Focus.Position - camera.CFrame.Position).unit
+				local move, directionalVector = main.modules.MovementUtil.getNextMovement(delta, speed*10)
+				local pos = hrp.Position
+				local targetCFrame = CFrame.new(pos,pos+look) * move
+				local targetD = 750 + (speed*0.2)
+				if noclip then
+					targetD = targetD/2
+				end
+				if move.Position ~= Vector3.new() then
+					static = 0
+					flyForce.D = targetD
+					tiltAmount = tiltAmount + TILT_INCREMENT
+					flyForce.Position = targetCFrame.Position
+				else
+					static = static + 1
+					tiltAmount = 1
+					local maxMag = 6
+					local mag = (hrp.Position - lastPosition).magnitude
+					if mag > maxMag and static >= 4 then
+						flyForce.Position = hrp.Position
+					end
+				end
+				if math.abs(tiltAmount) > TILT_MAX then
+					tiltAmount = TILT_MAX
+				end
+				if flyForce.D == targetD then
+					local tiltX = tiltAmount * directionalVector.X * -0.5
+					local tiltZ = (noclip and 0) or tiltAmount * directionalVector.Z
+					bodyGyro.CFrame = targetCFrame * CFrame.Angles(math.rad(tiltZ), 0, 0)
+				end
+				humanoid[propertyLock] = true
+				lastUpdate = tick()
+				lastPosition = hrp.Position
+			end)
 		end
-		if flyForce.D == targetD then
-			local tiltX = tiltAmount * directionalVector.X * -0.5
-			local tiltZ = (noclip and 0) or tiltAmount * directionalVector.Z
-			bodyGyro.CFrame = targetCFrame * CFrame.Angles(math.rad(tiltZ), 0, 0)
+	end
+
+	-- This enables flight
+	toggleFlight()
+
+	-- This handles the toggling of flight when double jumping
+	local doubleJumpSignal = MovementUtil.getSignal("DoubleJump")
+	task:add(doubleJumpSignal:Connect(toggleFlight), "Disconnect")
+
+	-- This handles the toggling of flight when pressing E
+	local function toggleFlightByKey(_, input)
+		if input == Enum.UserInputState.End then
+			toggleFlight()
 		end
-		lastUpdate = tick()
-		lastPosition = hrp.Position
+	end
+	local contextId = "NanobloxNoclip-"..task.UID
+	main.ContextActionService:BindAction(contextId, toggleFlightByKey, false, Enum.KeyCode.E)
+	task:add(function()
+		main.ContextActionService:UnbindAction(contextId)
 	end)
+
 end
 
 
