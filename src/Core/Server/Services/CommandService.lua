@@ -28,6 +28,9 @@ function CommandService.start()
 				local command = require(instance)
 				local commandName = instance.Name
 				local commandNameLower = commandName:lower()
+				if commandNameLower == "" then
+					continue
+				end
 				command.tags = (typeof(command.tags == "table") and command.tags) or {}
 				command.aliases = (typeof(command.aliases == "table") and command.aliases) or {}
 				command.name = commandName
@@ -226,20 +229,23 @@ function CommandService.generateRecord(key)
 		cooldown = 0,
 		persistence = main.enum.Persistence.None,
 		args = {},
+		invoke = function(job, args)
+			warn(("Nanoblox command '%s' failed to load."):format(tostring(job.commandName)))
+		end
 	}
 end
 
 function CommandService.createCommand(name, properties)
-	local key = properties.name
-	if not key then
-		key = name
-		properties.name = key
-	end
+	local key = string.lower(tostring((properties.name or name)))
+	properties.name = key
 	local record = CommandService:createRecord(key, false, properties)
 	return record
 end
 
 function CommandService.getCommand(name)
+	if name == "" then
+		return
+	end
 	local command = CommandService:getRecord(name)
 	if not command then
 		command = CommandService.getTable("lowerCaseNameAndAliasToCommandDictionary")[name:lower()]
@@ -325,7 +331,7 @@ function CommandService.setupParsePatterns(user)
 	user.temp:set("parsePatterns", {})
 	for _, detail in pairs(PARSE_SETTINGS) do
 		local settingName = detail.settingName
-		local settingValue = main.services.SettingService.getPlayerSetting(settingName, user)
+		local settingValue = main.services.SettingService.getUsersPlayerSetting(user, settingName)
 		validSettingNames[settingName] = true
 		user.temp.parsePatterns:set(settingName, settingValue)
 	end
@@ -348,7 +354,7 @@ function CommandService.createFakeUser(userId)
 	user.roles = {}
 	CommandService.setupParsePatterns(user)
 	-- if DEFAULT_USER_ID then get creator role, else use RoleService
-	main.services.RoleService.getCreatorRole():give(user, main.enum.RoleType.Server)
+	main.services.RoleService.getCreatorRole():giveTo(user, main.enum.RoleType.Server)
 	return user
 end
 
@@ -404,11 +410,11 @@ function CommandService.verifyThenExecuteStatement(callerUser, statement)
 			end
 			if approved then
 				return Promise.new(function(resolve, reject)
-					local sucess, tasksOrWarning = CommandService.executeStatement(callerUserId, statement):await()
+					local sucess, jobsOrWarning = CommandService.executeStatement(callerUserId, statement):await()
 					if sucess then
-						return resolve(true, tasksOrWarning)
+						return resolve(true, jobsOrWarning)
 					end
-					reject(tasksOrWarning)
+					reject(jobsOrWarning)
 				end)
 			end
 			return false
@@ -444,16 +450,16 @@ function CommandService.verifyThenExecuteBatch(callerUser, batch, message)
 		if not approvedAllStatements then
 			return resolve(false, "Invalid permission to execute all statements")
 		end
-		local collectiveTasks = {}
+		local collectiveJobs = {}
 		for _, statement in pairs(batch) do
-			local sucess, tasks = CommandService.executeStatement(callerUserId, statement):await()
+			local sucess, jobs = CommandService.executeStatement(callerUserId, statement):await()
 			if sucess then
-				for _, task in pairs(tasks) do
-					table.insert(collectiveTasks, task)
+				for _, job in pairs(jobs) do
+					table.insert(collectiveJobs, job)
 				end
 			end
 		end
-		resolve(true, collectiveTasks)
+		resolve(true, collectiveJobs)
 	end)
 end
 
@@ -480,7 +486,6 @@ function CommandService.verifyStatement(callerUser, statement)
 		local statementCommands = statement.commands
 		local modifiers = statement.modifiers
 		local qualifiers = statement.qualifiers
-		print("statementCommands = ", statementCommands)
 		
 		if not statementCommands then
 			return resolve(false, {{"notice", {
@@ -546,7 +551,7 @@ function CommandService.verifyStatement(callerUser, statement)
 				argStringIndex += 1
 				local argString = arguments[argStringIndex]
 				if argItem.verifyCanUse and not (modifiers.undo or modifiers.preview) then
-					local canUseArg, deniedReason = argItem:verifyCanUse(callerUser, argString)
+					local canUseArg, deniedReason = argItem:verifyCanUse(callerUser, argString, {argNameOrAlias = argNameOrAlias})
 					if not canUseArg then
 						return resolve(false, {{"notice", {
 							text = deniedReason,
@@ -590,16 +595,25 @@ function CommandService.executeStatement(callerUserId, statement)
 	statement.modifiers = statement.modifiers or {}
 	statement.qualifiers = statement.qualifiers or {}
 
+	if statement.restrict == nil then
+		local callerUser = main.modules.PlayerStore:getUserByUserId(callerUserId)
+		if callerUser then
+			statement.restrict = not main.services.RoleService.verifySettings(callerUser, "ignore.roleRestrictions").areSome(true)
+		end
+		if statement.restrict  == nil then
+			statement.restrict = true
+		end
+	end
+	
 	-- If 'player' instance detected within qualifiers, convert to player.Name
 	for qualifierKey, qualifierTable in pairs(statement.qualifiers) do
 		if typeof(qualifierKey) == "Instance" and qualifierKey:IsA("Player") then
 			local callerUser = main.modules.PlayerStore:getUserByUserId(callerUserId)
-			local playerDefinedSearch = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
+			local playerDefinedSearch = main.services.SettingService.getUsersPlayerSetting(callerUser, "playerIdentifier")
 			local playerName = qualifierKey.Name
 			if playerDefinedSearch == main.enum.PlayerSearch.UserName or playerDefinedSearch == main.enum.PlayerSearch.UserNameAndDisplayName then
-				local playerIdentifier = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
+				local playerIdentifier = main.services.SettingService.getUsersPlayerSetting(callerUser, "playerIdentifier")
 				playerName = tostring(playerIdentifier)..playerName
-				print("FINALLLLLLLLL playerName = ", playerName)
 			end
 			statement.qualifiers[qualifierKey] = nil
 			statement.qualifiers[playerName] = qualifierTable
@@ -638,20 +652,21 @@ function CommandService.executeStatement(callerUserId, statement)
 
 	local Args = main.modules.Parser.Args
 	local promises = {}
-	local tasks = {}
+	local jobs = {}
 	local isPermModifier = statement.modifiers.perm
 	local isGlobalModifier = statement.modifiers.wasGlobal
 	for commandName, arguments in pairs(statement.commands) do
 		
 		local command = CommandService.getCommand(commandName)
-		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(command.args[1])]
-		local TaskService = main.services.TaskService
-		local properties = TaskService.generateRecord()
+		local firstArgName = command.args[1] or ""
+		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(firstArgName)]
+		local JobService = main.services.JobService
+		local properties = JobService.generateRecord()
 		properties.callerUserId = callerUserId
 		properties.commandName = commandName
 		properties.args = arguments or properties.args
 		properties.modifiers = statement.modifiers
-
+		properties.restrict = statement.restrict
 		-- Its important to split commands into specific users for most cases so that the command can
 		-- be easily reapplied if the player rejoins (for ones where the perm modifier is present)
 		-- The one exception for this is when a global modifier is present. In this scenerio, don't save
@@ -674,9 +689,9 @@ function CommandService.executeStatement(callerUserId, statement)
 		end
 		if not splitIntoUsers then
 			properties.qualifiers = statement.qualifiers or properties.qualifiers
-			local task = main.services.TaskService.createTask(addToPerm, properties)
-			if task then
-				table.insert(tasks, task)
+			local job = main.services.JobService.createJob(addToPerm, properties)
+			if job then
+				table.insert(jobs, job)
 			end
 		else
 			table.insert(promises, Promise.defer(function(resolve)
@@ -684,9 +699,9 @@ function CommandService.executeStatement(callerUserId, statement)
 				for _, plr in pairs(targetPlayers) do
 					local newProperties = main.modules.TableUtil.copy(properties)
 					newProperties.playerUserId = plr.UserId
-					local task = main.services.TaskService.createTask(addToPerm, newProperties)
-					if task then
-						table.insert(tasks, task)
+					local job = main.services.JobService.createJob(addToPerm, newProperties)
+					if job then
+						table.insert(jobs, job)
 					end
 				end
 				resolve()
@@ -695,7 +710,7 @@ function CommandService.executeStatement(callerUserId, statement)
 	end
 	return Promise.all(promises)
 		:andThen(function()
-			return tasks
+			return jobs
 		end)
 end
 

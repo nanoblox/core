@@ -2,6 +2,7 @@
 local main = require(game.Nanoblox)
 local System = main.modules.System
 local SettingService = System.new("Settings")
+SettingService.remotes = {}
 
 
 
@@ -9,6 +10,30 @@ local SettingService = System.new("Settings")
 SettingService.recordChanged:Connect(function(groupName, statName, value)
 	
 end)
+
+
+
+-- START
+function SettingService.start()
+
+	local updateLocalPlayerSettings = main.modules.Remote.new("updateLocalPlayerSettings")
+	SettingService.remotes.updateLocalPlayerSettings = updateLocalPlayerSettings
+	
+end
+
+
+
+-- PLAYER USER LOADED
+function SettingService.userLoadedMethod(user)
+	local playerSettings = user.perm:getOrSetup("playerSettings")
+	local playerSettingsChangedSignal = playerSettings:createDescendantChangedSignal(true)
+	playerSettingsChangedSignal:Connect(function(key, value, oldValue, pathwayArray, pathwayString)
+		SettingService.remotes.updateLocalPlayerSettings:fireClient(user.player, {
+			[pathwayString] = value
+		})
+	end)
+	SettingService.remotes.updateLocalPlayerSettings:fireClient(user.player, playerSettings)
+end
 
 
 
@@ -24,7 +49,7 @@ function SettingService.loaded()
 		return dictionary
 	end)
 	--[[
-	spawn(function()
+	defer(function()
 		wait(7)
 		print("ADD MELON COLOR")
 		--SettingService.records.System.colors:set("Ayyy (1)", Color3.fromRGB(0, 250, 21))
@@ -41,23 +66,7 @@ end
 function SettingService.generateRecord(key)
 	local defaultRecords = {
 		---------------------------
-		["Player"] = {
-			prefixes = {";"},
-			argCapsule = "(%s)",
-			collective = ",",
-			descriptorSeparator = "",
-			spaceSeparator = " ",
-			batchSeparator = " ",
-			
-			playerIdentifier = "@",
-			playerUndefinedSearch = main.enum.PlayerSearch.DisplayName, -- 'Undefined' means *without* the 'playerIdentifier' (e.g. ";kill Ben)
-			playerDefinedSearch = main.enum.PlayerSearch.UserName, -- 'Defined' means *with* the 'playerIdentifier' (e.g. ";kill @ForeverHD)
-
-			previewIncompleteCommands = false,
-			
-			theme = "",
-			backgroundTransparency 	= 0.1,
-		},
+		["Player"] = main.modules.PlayerSettingsTemplate,
 		
 		
 		---------------------------
@@ -118,11 +127,17 @@ function SettingService.generateRecord(key)
 	return defaultRecords[key]
 end
 
-function SettingService.getPlayerSetting(settingName, optionalUser)
+function SettingService.getPlayerSetting(settingName)
+	local group = SettingService.getGroup("Player")
+	local settingValue = group[settingName]
+	return settingValue
+end
+
+function SettingService.getUsersPlayerSetting(user, settingName)
 	local group = SettingService.getGroup("Player")
 	local settingValue
-	if optionalUser then
-		local playerSettings = optionalUser.perm:getOrSetup("playerSettings")
+	if user and user.isLoaded then
+		local playerSettings = user.perm:getOrSetup("playerSettings")
 		settingValue = playerSettings:get(settingName)
 	end
 	if settingValue == nil then
@@ -131,15 +146,28 @@ function SettingService.getPlayerSetting(settingName, optionalUser)
 	return settingValue
 end
 
-function SettingService.updatePlayerSetting(settingName, settingValue, optionalUser)
-	if optionalUser ~= nil then
-		local playerSettings = optionalUser.perm:getOrSetup("playerSettings")
-		playerSettings:set(settingName, settingValue)
-	else
-		SettingService.updateGroup("Player", {
-			[settingName] = settingValue
-		})
+function SettingService.updatePlayerSetting(settingPathway, settingValue)
+	SettingService.updateGroup("Player", {
+		[settingPathway] = settingValue
+	})
+end
+
+function SettingService.updateUsersPlayerSetting(user, settingPathway, settingValue)
+	if not user then
+		return
 	end
+	local function updatePlayerSettings()
+		local playerSettings = user.perm:getOrSetup("playerSettings")
+		playerSettings:setPathway(settingPathway, settingValue)
+	end
+	if user.isLoaded then
+		updatePlayerSettings()
+		return
+	end
+	task.defer(function()
+		user:waitUntilLoaded()
+		updatePlayerSettings()
+	end)
 end
 
 function SettingService.getSystemSetting(settingName)

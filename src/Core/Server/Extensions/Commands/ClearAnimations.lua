@@ -13,20 +13,19 @@ Command.contributors = {82347291}
 Command.blockPeers = false
 Command.blockJuniors = false
 Command.autoPreview = false
-Command.requiresRig = main.enum.HumanoidRigType.None
+Command.requiresRig = main.enum.HumanoidRigType.R15
 Command.revokeRepeats = true
 Command.preventRepeats = main.enum.TriStateSetting.Default
 Command.cooldown = 0
 Command.persistence = main.enum.Persistence.None
 Command.args = {"Player"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
     local player = args[1]
-    local potentialTasksToClear = main.services.TaskService.getTasksWithPlayerUserId(player.UserId)
-    for _, potentialTask in pairs(potentialTasksToClear) do
-        if potentialTask:findTag("Animation") then
-            print("END TASK: ", potentialTask.commandName)
-            potentialTask:kill()
+    local potentialJobsToClear = main.services.JobService.getJobsWithPlayerUserId(player.UserId)
+    for _, potentialJob in pairs(potentialJobsToClear) do
+        if potentialJob:findTag("Animation") then
+            potentialJob:kill()
         end
     end
 end

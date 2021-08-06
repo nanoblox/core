@@ -1,7 +1,7 @@
 -- LOCAL
 local main = require(game.Nanoblox)
 local CommandController = {}
-local clientTasks = {}
+local clientJobs = {}
 
 
 
@@ -9,44 +9,44 @@ local clientTasks = {}
 function CommandController.start()
 	
 	local invokeClientCommand = main.modules.Remote.new("invokeClientCommand")
-	invokeClientCommand.onClientInvoke = function(taskProperties)
-		local task = main.modules.Task.new(taskProperties)
-		clientTasks[task.UID] = task
-		task:execute():await()
-		if task.killAfterExecution then
-			task:kill()
+	invokeClientCommand.onClientInvoke = function(jobProperties)
+		local job = main.modules.Job.new(jobProperties)
+		clientJobs[job.UID] = job
+		job:execute():await()
+		if job.killAfterExecution then
+			job:kill()
 		end
 		return
 	end
 
 	local revokeClientCommand = main.modules.Remote.new("revokeClientCommand")
-	revokeClientCommand.onClientEvent:Connect(function(taskUID, ...)
-		local task = clientTasks[taskUID]
-		if task then
-			task.revokeArguments = table.pack(...)
-			task:kill()
-			clientTasks[taskUID] = nil
+	revokeClientCommand.onClientEvent:Connect(function(jobUID, ...)
+		local job = clientJobs[jobUID]
+		if job then
+			job.revokeArguments = table.pack(...)
+			job:kill()
+			clientJobs[jobUID] = nil
 		end
 	end)
 
-	local callClientTaskMethod = main.modules.Remote.new("callClientTaskMethod")
-	callClientTaskMethod.onClientEvent:Connect(function(taskUID, methodName)
-		local task = clientTasks[taskUID]
-		if task then
-			local method = task[methodName]
+	local callClientJobMethod = main.modules.Remote.new("callClientJobMethod")
+	callClientJobMethod.onClientEvent:Connect(function(jobUID, methodName)
+		local job = clientJobs[jobUID]
+		if job then
+			local method = job[methodName]
 			if method then
-				method(task)
+				method(job)
 			end
 		end
 	end)
 
 	local replicateClientCommand = main.modules.Remote.new("replicateClientCommand")
-	replicateClientCommand.onClientEvent:Connect(function(taskUID, packedData)
-		local task = clientTasks[taskUID]
-		local clientCommand = task and task.command
+	replicateClientCommand.onClientEvent:Connect(function(jobUID, packedData)
+		local job = clientJobs[jobUID]
+		local clientCommand = job and job.command
 		local replicationFunction = clientCommand and clientCommand.replication
 		if replicationFunction then
-			replicationFunction(task, unpack(packedData))
+			replicationFunction(job, unpack(packedData))
 		end
 	end)
 

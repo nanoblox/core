@@ -2,6 +2,7 @@
 -- This is important!!
 -- This defines the folder to store all remotes
 -- It must be present before the game initiates
+local main = require(game.Nanoblox)
 local remotesStorage = require(game.Nanoblox).shared.Remotes
 local REQUESTS_EXCEEDED_MESSAGE = "Exceeded request limit for remote '%s'. Cooldown = %s."
 local DATALIMIT_EXCEEDED_MESSAGE = "Exceeded data size limit of %s bytes for remote '%s'."
@@ -9,7 +10,7 @@ local DATALIMIT_EXCEEDED_MESSAGE = "Exceeded data size limit of %s bytes for rem
 
 
 -- LOCAL
-local Maid = require(script.Parent.Maid)
+local Janitor = require(script.Parent.Janitor)
 local Promise = require(script.Parent.Promise)
 local Remote = {}
 local players = game:GetService("Players")
@@ -39,7 +40,7 @@ players.PlayerRemoving:Connect(function(player)
 end)
 
 -- This handles the notification of any blocked requests
-spawn(function()
+task.defer(function()
 	Remote.requestBlockedRemote = Remote.new("requestBlocked")
 end)
 
@@ -50,10 +51,10 @@ function Remote.new(name, requestLimit, refreshInterval, dataLimit)
 	local self = {}
 	setmetatable(self, Remote)
 	
-	local maid = Maid.new()
-	self._maid = maid
+	local janitor = Janitor.new()
+	self.janitor = janitor
 	
-	local remoteFolder = maid:give(Instance.new("Folder"))
+	local remoteFolder = janitor:add(Instance.new("Folder"), "Destroy")
 	remoteFolder.Name = name
 	remoteFolder.Parent = remotesStorage
 	self.remoteFolder = remoteFolder
@@ -63,6 +64,7 @@ function Remote.new(name, requestLimit, refreshInterval, dataLimit)
 	self.requestLimit = requestLimit or 12
 	self.refreshInterval = refreshInterval or 3
 	self.dataLimit = tonumber(dataLimit)
+	self.deferFireClient = true
 	
 	assert(remotes[name] == nil, ("Remote %s already exits!"):format(name))
 	remotes[name] = self
@@ -125,7 +127,7 @@ function Remote:_checkRemoteInstance(index)
 	local remoteType = remoteTypes[index]
 	if remoteType then
 		local remoteInstance = self:_getRemoteInstance(remoteType)
-		local indexFormatted = index:sub(1,1):upper()..index:sub(2)
+		local indexFormatted = string.upper(string.sub(index,1,1))..string.sub(index,2)
 		return remoteInstance, indexFormatted
 	end
 end
@@ -138,13 +140,13 @@ function Remote:_checkRequest(player, ...)
 		detail.requests = 0
 	end
 	if detail.requests >= self.requestLimit then
-		local errorMessage = (REQUESTS_EXCEEDED_MESSAGE):format(self.name, detail.nextRefresh - currentTime)
+		local errorMessage = string.format(REQUESTS_EXCEEDED_MESSAGE, self.name, detail.nextRefresh - currentTime)
 		return false, errorMessage
 	elseif self.dataLimit then
 		local requestData = table.pack(...)
-		local requestSize = string.len(httpService:JSONEncode(requestData))
+		local requestSize = #httpService:JSONEncode(requestData)
 		if requestSize > self.dataLimit then
-			local errorMessage = (DATALIMIT_EXCEEDED_MESSAGE):format(self.dataLimit, self.name)
+			local errorMessage = string.format(DATALIMIT_EXCEEDED_MESSAGE, self.dataLimit, self.name)
 			return false, errorMessage
 		end
 	end
@@ -156,14 +158,36 @@ function Remote:_getRemoteInstance(remoteType)
 	local remoteInstance = self.container[remoteType]
 	if not remoteInstance then
 		remoteInstance = Instance.new(remoteType)
+		if remoteType == "RemoteEvent" then
+			local DELAY_AMOUNT = 0.05
+			self.deferFireClientToTime = os.time() + DELAY_AMOUNT
+			self.deferFireClientAmount = 0
+			coroutine.wrap(function()
+				-- Remote instances are constructed upon first call, so we do this to ensure the client first connects to the remote instances before firing
+				self.janitor:add(main.modules.Thread.delay(DELAY_AMOUNT, function()
+					self.deferFireClient = false
+				end), "destroy")
+			end)()
+		end
 		remoteInstance.Parent = self.remoteFolder
-		self.container[remoteType] = self._maid:give(remoteInstance)
+		self.container[remoteType] = self.janitor:add(remoteInstance, "Destroy")
 	end
 	return remoteInstance
 end
 
 function Remote:fireClient(player, ...)
 	local remoteInstance = self:_getRemoteInstance("RemoteEvent")
+	if self.deferFireClient or self.deferFireClientAmount > 0 then
+		local args = table.pack(...)
+		local timeDelayed = self.deferFireClientToTime - os.time()
+		self.deferFireClientAmount += 1
+		self.janitor:add(main.modules.Thread.delay(timeDelayed, function()
+			self.deferFireClient = false
+			self.deferFireClientAmount -= 1
+			remoteInstance:FireClient(player, unpack(args))
+		end), "destroy")
+		return
+	end
 	remoteInstance:FireClient(player, ...)
 end
 
@@ -171,6 +195,14 @@ function Remote:fireAllClients(...)
 	for _, player in pairs(players:GetPlayers()) do
 		self:fireClient(player, ...)
 	end
+end
+
+function Remote:fireAllAndFutureClients(...)
+	self:fireAllClients(...)
+	local args = table.pack(...)
+	return self.janitor:add(main.Players.PlayerAdded:Connect(function(player)
+		self:invokeClient(player, unpack(args))
+	end), "Disconnect")
 end
 
 function Remote:fireNearbyClients(origin, radius, ...)
@@ -196,12 +228,8 @@ function Remote:invokeClient(player, ...)
 end
 
 function Remote:destroy()
-	self._maid:clean()
-	for k, v in pairs(self) do
-		if typeof(v) == "table" then
-			self[k] = nil
-		end
-	end
+	self.janitor:destroy()
+	remotes[self.name] = nil
 end
 
 

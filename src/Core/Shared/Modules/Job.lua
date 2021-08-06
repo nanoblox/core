@@ -1,6 +1,6 @@
 --[[
 
-A task is an object which runs for the duration of a command. If you applied a walkspeed of 50 to a player for example the task will remain until that command is revoked.
+A job is an object which runs for the duration of a command. If you applied a walkspeed of 50 to a player for example the job will remain until that command is revoked.
 
 --]]
 
@@ -8,20 +8,20 @@ A task is an object which runs for the duration of a command. If you applied a w
 
 -- LOCAL
 local main = require(game.Nanoblox)
-local Maid = main.modules.Maid
+local Janitor = main.modules.Janitor
 local Signal = main.modules.Signal
-local Task = {}
-Task.__index = Task
+local Job = {}
+Job.__index = Job
 
 
 
 -- CONSTRUCTOR
-function Task.new(properties)
+function Job.new(properties)
 	local self = {}
-	setmetatable(self, Task)
+	setmetatable(self, Job)
 	
-	local maid = Maid.new()
-	self.maid = maid
+	local janitor = Janitor.new()
+	self.janitor = janitor
 	for k,v in pairs(properties or {}) do
 		self[k] = v
 	end
@@ -35,9 +35,9 @@ function Task.new(properties)
 	self.begun = false
 	self.executing = false
 	self.totalExecutionThreads = 0
-	self.executionThreadsCompleted = maid:give(Signal.new())
-	self.executionCompleted = maid:give(Signal.new())
-	self.callerLeft = maid:give(Signal.new())
+	self.executionThreadsCompleted = janitor:add(Signal.new(), "destroy")
+	self.executionCompleted = janitor:add(Signal.new(), "destroy")
+	self.callerLeft = janitor:add(Signal.new(), "destroy")
 	self.persistence = self.command.persistence
 	self.cooldown = (main.isServer and tonumber(self.command.cooldown) or 0)
 	self.trackingClients = {}
@@ -47,8 +47,10 @@ function Task.new(properties)
 	self.originalArgReturnValues = {}
 	self.originalArgReturnValuesFromIndex = {}
 	self.trackingItems = {}
+	self.restrict = properties.restrict
+
 	self.anchoredParts = {}
-	maid:give(function()
+	janitor:add(function()
 		self.anchoredParts = nil
 	end)
 
@@ -70,7 +72,7 @@ function Task.new(properties)
 		self.qualifiers = nil
 	end
 
-	-- This handles the killing of tasks depending upon the command.persistence enum
+	-- This handles the killing of jobs depending upon the command.persistence enum
 	self.player = self.player or (self.playerUserId and main.Players:GetPlayerByUserId(self.playerUserId))
 	self.caller = self.caller or (self.callerUserId and main.Players:GetPlayerByUserId(self.callerUserId))
 
@@ -92,19 +94,19 @@ function Task.new(properties)
 		local callerLeft = (userId == self.callerUserId and validCallerLeavingEnums[persistence])
 		if playerLeft or callerLeft then
 			if callerLeft and leftFromThisServer and self.modifiers.wasGlobal then
-				-- We fire to other servers if the task was global so that the other globa tasks know the caller (based in this server) has left
-				main.services.TaskService.callerLeftSender:fireOtherServers(userId)
+				-- We fire to other servers if the job was global so that the other globa jobs know the caller (based in this server) has left
+				main.services.JobService.callerLeftSender:fireOtherServers(userId)
 			end
 			self:kill()
 		end
 	end
-	maid:give(main.Players.PlayerRemoving:Connect(function(plr)
+	janitor:add(main.Players.PlayerRemoving:Connect(function(plr)
 		local userId = plr.UserId
 		playerOrCallerRemoving(userId, true)
-	end))
-	maid:give(self.callerLeft:Connect(function()
+	end), "Disconnect")
+	janitor:add(self.callerLeft:Connect(function()
 		playerOrCallerRemoving(self.callerUserId)
-	end))
+	end), "Disconnect")
 
 	local function setupPersistenceEnum(playerInstance, playerType)
 		if not main.isServer or not playerInstance then
@@ -122,22 +124,25 @@ function Task.new(properties)
 				if humanoid.Health <= 0 then
 					died()
 				else
-					maid:give(humanoid.Died:Connect(function()
+					janitor:add(humanoid.Died:Connect(function()
 						died()
-					end))
+					end), "Disconnect")
 				end
 			end
 		end
 		if playerInstance then
-			maid:give(playerInstance.CharacterAdded:Connect(function(char)
-				local enumItemName = ("Until%sRespawns"):format(playerType)
-				if self.persistence == main.enum.Persistence[enumItemName] then
+			janitor:add(playerInstance.CharacterAdded:Connect(function(char)
+				local validRespawnEnumItemNames = {
+					[("Until%sDies"):format(playerType)] = true,
+					[("Until%sRespawns"):format(playerType)] = true,
+				}
+				if validRespawnEnumItemNames[main.enum.Persistence.getName(self.persistence)] then
 					self:kill()
 					return
 				end
 				registerCharacter(char)
-			end))
-			main.modules.Thread.spawn(registerCharacter, playerInstance.Character)
+			end), "Disconnect")
+			task.defer(registerCharacter, playerInstance.Character)
 		end
 	end
 	setupPersistenceEnum(self.player, "Player")
@@ -148,25 +153,7 @@ function Task.new(properties)
 		if not agentPlayer then
 			return
 		end
-		if main.isServer then
-			-- This determines the tasks agent when the player arg is present as the first arg
-			local agentUser = main.modules.PlayerStore:getUser(agentPlayer)
-			if agentUser then
-				self[propertyName] = agentUser.agent
-			end
-		else
-			-- This dynamically creates agents for client commands
-			local agentDetail = main.clientCommandAgents[agentPlayer]
-			if not agentDetail then
-				agentDetail = {
-					agent = main.modules.Agent.new(agentPlayer, true),
-					activeAreas = 0,
-				}
-				main.clientCommandAgents[agentPlayer] = agentDetail
-			end
-			agentDetail.activeAreas +=1
-			self[propertyName] = agentDetail.agent
-		end
+		self[propertyName] = main.modules.PlayerUtil.getAgent(agentPlayer)
 	end
 	setupAgent(self.player, "playerAgent")
 	setupAgent(self.caller, "callerAgent")
@@ -177,7 +164,7 @@ end
 
 
 -- CORE METHODS
-function Task:begin()
+function Job:begin()
 	if self.begun or self.isDead then return end
 	self.begun = true
 
@@ -190,7 +177,7 @@ function Task:begin()
 		end
 	end
 	
-	-- This ensures all modifiers and all executions have ended before killing the task
+	-- This ensures all modifiers and all executions have ended before killing the job
 	local function afterExecution()
 		if self.totalStartThreads and self.totalStartThreads > 0 then
 			self.startThreadsCompleted:Wait()
@@ -203,7 +190,7 @@ function Task:begin()
 		end
 	end
 
-	-- If no modifiers present, simply call execute once then kill the task
+	-- If no modifiers present, simply call execute once then kill the job
 	if totalModifiers == 0 then
 		self:execute()
 			:andThen(function()
@@ -215,8 +202,8 @@ function Task:begin()
 		return
 	end
 
-	main.modules.Thread.spawn(function()
-		-- This handles the applying of all modifiers, tracks them, then kills the task when all modifiers have completed
+	task.defer(function()
+		-- This handles the applying of all modifiers, tracks them, then kills the job when all modifiers have completed
 		local function track(thread)
 			self:track(thread, "totalStartThreads", "startThreadsCompleted")
 		end
@@ -225,7 +212,7 @@ function Task:begin()
 			local thread = actionModifier.action(self, self.modifiers[actionModifier.name])
 			if thread then
 				track(thread)
-				-- if previousExecuteAfterThread is true then don't call this otherwise task will be called twice in the same frame unnecessarily
+				-- if previousExecuteAfterThread is true then don't call this otherwise job will be called twice in the same frame unnecessarily
 				if actionModifier.executeRightAway and not previousExecuteAfterThread then
 					self:execute()
 				end
@@ -250,7 +237,7 @@ function Task:begin()
 	end)
 end
 
-function Task:execute()
+function Job:execute()
 	local Promise = main.modules.Promise
 	if self.executing or self.isDead then
 		return Promise.defer(function(_, reject)
@@ -310,10 +297,15 @@ function Task:execute()
 					end)
 					:catch(warn)
 					:andThen(function(returnValue)
-						self.originalArgReturnValues[argItem.name] = returnValue
+						local argNameLower = tostring(argName):lower()
+						self.originalArgReturnValues[argNameLower] = returnValue
 						self.originalArgReturnValuesFromIndex[iNow] = returnValue
 						if returnValue == nil then
-							returnValue = argItem.defaultValue
+							local defaultValue = argItem.defaultValue
+							if typeof(defaultValue) == "table" then
+								defaultValue = main.modules.TableUtil.copy(argItem.defaultValue)
+							end
+							returnValue = defaultValue
 						end
 						parsedArgs[iNow] = returnValue
 					end)
@@ -329,45 +321,45 @@ function Task:execute()
 		local finishedInvokingCommand = false
 		self:track(main.modules.Thread.delayUntil(function() return finishedInvokingCommand == true end))
 		self:track(main.modules.Thread.delayUntil(function() return filteredAllArguments == true end, function()
-			local success, errorMessage = pcall(command.invoke, self, unpack(additional))
-			if not success then
+			xpcall(command.invoke, function(errorMessage)
+				-- This enables the job to be cleaned up even if the command throws an error
 				self:kill()
-				warn(debug.traceback(("Nanoblox command error: %s"):format(tostring(errorMessage))))
-			end
+				warn(debug.traceback(tostring(errorMessage), 2))
+			end, self, unpack(additional))
 			finishedInvokingCommand = true
 		end))
 	end
 	
-	main.modules.Thread.spawn(function()
+	task.defer(function()
 
-		-- If client task, execute with task.clientArgs
+		-- If client job, execute with job.clientArgs
 		if main.isClient then
 			return invokeCommand(false, unpack(self.clientArgs))
 		end
 
-		-- If the task is player-specific (such as in ;kill foreverhd, ;kill all) find the associated player and execute the command on them
+		-- If the job is player-specific (such as in ;kill foreverhd, ;kill all) find the associated player and execute the command on them
 		if self.player then
 			return invokeCommand(true, {self.player})
 		end
 		
-		-- If the task has no associated player or qualifiers (such as in ;music <musicId>) then simply execute right away
-		if not firstArgItem.playerArg then
+		-- If the job has no associated player or qualifiers (such as in ;music <musicId>) then simply execute right away
+		if firstArgItem and not firstArgItem.playerArg then
 			return invokeCommand(true, {})
 		end
 
-		-- If the task has no associated player *but* does contain qualifiers (such as in ;globalKill all)
-		local targetPlayers = firstArgItem:parse(self.qualifiers, self.callerUserId)
-		if firstArgItem.executeForEachPlayer then -- If the firstArg has executeForEachPlayer, convert the task into subtasks for each player returned by the qualifiers
+		-- If the job has no associated player *but* does contain qualifiers (such as in ;globalKill all)
+		local targetPlayers = (firstArgItem and firstArgItem:parse(self.qualifiers, self.callerUserId)) or {}
+		if firstArgItem and firstArgItem.executeForEachPlayer then -- If the firstArg has executeForEachPlayer, convert the job into subjobs for each player returned by the qualifiers
 			for i, plr in pairs(targetPlayers) do
 				--self:track(main.modules.Thread.delayUntil(function() return self.filteredAllArguments == true end, function()
-					local TaskService = main.services.TaskService
-					local properties = TaskService.generateRecord()
+					local JobService = main.services.JobService
+					local properties = JobService.generateRecord()
 					properties.callerUserId = self.callerUserId
 					properties.commandName = self.commandName
 					properties.args = self.args
 					properties.playerUserId = plr.playerUserId
-					local subtask = TaskService.createTask(false, properties)
-					subtask:begin()
+					local subjob = JobService.createJob(false, properties)
+					subjob:begin()
 				--end))
 			end
 		else
@@ -396,9 +388,9 @@ function Task:execute()
 	end)
 end
 
-function Task:track(threadOrTween, countPropertyName, completedSignalName)
+function Job:track(threadOrTween, countPropertyName, completedSignalName)
 	local threadType = typeof(threadOrTween)
-	local isAPromise = threadType == "table" and threadOrTween.getStatus
+	local isAPromise = threadType == "table" and rawget(threadOrTween, "_unhandledRejection")
 	if not isAPromise and not ((threadType == "Instance" or threadType == "table") and threadOrTween.PlaybackState) then
 		error("Can only track Threads, Tweens or Promises!")
 	end
@@ -408,7 +400,7 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 		self[newCountPropertyName] = 0
 	end
 	if not self[newCompletedSignalName] then
-		self[newCompletedSignalName] = self.maid:give(Signal.new())
+		self[newCompletedSignalName] = self.janitor:add(Signal.new(), "destroy")
 	end
 	local promiseIsStarting = isAPromise and threadOrTween:getStatus() == main.modules.Promise.Status.Started
 	if isAPromise then
@@ -422,12 +414,12 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 		elseif self.isPaused then
 			threadOrTween:Pause() --thread:pause()
 		end
-		threadOrTween = self.maid:give(threadOrTween)
+		threadOrTween = self.janitor:add(threadOrTween)
 	end
 	self[newCountPropertyName] += 1
 	local function declareDead()
-		local task = self
-		main.modules.Thread.spawn(function()
+		local job = self
+		task.defer(function()
 			self[newCountPropertyName] -= 1
 			if self[newCountPropertyName] == 0 and self[newCompletedSignalName] and not self.isDead then
 				self[newCompletedSignalName]:Fire()
@@ -437,24 +429,29 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 	end
 	if isAPromise then
 		if promiseIsStarting then
-			local task = self
+			local job = self
 			local newPromise = threadOrTween:andThen(function(...)
-				-- This ensures all objects within the promise are given to the task maid
+				-- This ensures all objects within the promise are given to the job janitor
 				local items = {...}
-				local function maybeAddItemToMaid(potentialItem)
-					if typeof(potentialItem) == "table" then
+				local function maybeAddItemToJanitor(potentialItem)
+					local itemType = typeof(potentialItem)
+					if itemType == "table" then
 						for potentialItemA, potentialItemB in pairs(potentialItem) do
-							maybeAddItemToMaid(potentialItemA)
-							maybeAddItemToMaid(potentialItemB)
+							maybeAddItemToJanitor(potentialItemA)
+							maybeAddItemToJanitor(potentialItemB)
 						end
-					end
-					if main.modules.Maid.isValidType(potentialItem) then
-						self:give(potentialItem)
+						if potentialItem.Destroy then
+							self:add(potentialItem, "Destroy")
+						elseif potentialItem.Disconnect then
+							self:add(potentialItem, "Disconnect")
+						end
+					elseif itemType == "Instance" then
+						self:add(potentialItem, "Destroy")
 					end
 				end
-				maybeAddItemToMaid(items)
-				if task.isDead then
-					self.maid:clean()
+				maybeAddItemToJanitor(items)
+				if job.isDead then
+					self.janitor:cleanup()
 					threadOrTween:cancel()
 					return
 				end
@@ -469,7 +466,7 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 		end
 	else
 		self.threads[threadOrTween] = true
-		main.modules.Thread.spawn(function()
+		task.defer(function()
 			if not(threadOrTween.PlaybackState == main.enum.ThreadState.Completed or threadOrTween.PlaybackState == main.enum.ThreadState.Cancelled) then
 				threadOrTween.Completed:Wait()
 			end
@@ -479,7 +476,7 @@ function Task:track(threadOrTween, countPropertyName, completedSignalName)
 	return threadOrTween
 end
 
-function Task:_setItemAnchored(item, bool)
+function Job:_setItemAnchored(item, bool)
 	local function setAnchored(part)
 		local originalValue = self.anchoredParts[part]
 		if part:IsA("BasePart") then
@@ -491,14 +488,14 @@ function Task:_setItemAnchored(item, bool)
 				part.Anchored = originalValue
 			end
 		end
-		for _, child in pairs(part:GetChildren()) do
+		for _, child in ipairs(part:GetChildren()) do
 			setAnchored(child)
 		end
 	end
 	setAnchored(item)
 end
 
-function Task:pause()
+function Job:pause()
 	for thread, _ in pairs(self.threads) do
 		thread:Pause() --thread:pause()
 	end
@@ -511,7 +508,7 @@ function Task:pause()
 	self.isPaused = true
 end
 
-function Task:resume()
+function Job:resume()
 	for thread, _ in pairs(self.threads) do
 		thread:Play() --thread:resume()
 	end
@@ -524,7 +521,7 @@ function Task:resume()
 	self.isPaused = false
 end
 
-function Task:kill()
+function Job:kill()
 	if self.isDead then return end
 	self.isDead = true
 	if self.command.revoke then
@@ -541,44 +538,27 @@ function Task:kill()
 			if self.cooldown > 0 then
 				self.cooldownEndTime = os.clock() + self.cooldown
 			end
-			main.modules.Thread.delay(self.cooldown, main.services.TaskService.removeTask, self.UID)
+			task.delay(self.cooldown, main.services.JobService.removeJob, self.UID)
 		end
-	else
-		-- This dynamically removes agents for client commands
-		local function removeClientAgent(agentPlayer)
-			if not agentPlayer then
-				return
-			end
-			local agentDetail = main.clientCommandAgents[agentPlayer]
-			if agentDetail then
-				agentDetail.activeAreas -=1
-				if agentDetail.activeAreas <= 0 then
-					agentDetail.agent:destroy()
-					main.clientCommandAgents[agentPlayer] = nil
-				end
-			end
-		end
-		removeClientAgent(self.player)
-		removeClientAgent(self.caller)
 	end
-	self.maid:clean()
+	self.janitor:cleanup()
 end
-Task.destroy = Task.kill
-Task.Destroy = Task.kill
+Job.destroy = Job.kill
+Job.Destroy = Job.kill
 
-function Task:hijackCommand(commandName, argsTable)
+function Job:hijackCommand(commandName, ...)
 	local command = main.services.CommandService.getCommand(commandName)
 	if command then
 		self.hijackedCommandName = command.name
-		return command.invoke(self, argsTable)
+		return command.invoke(self, ...)
 	end
 end
 
--- An abstraction of ``task.maid:give(...)``
-function Task:give(item)
+-- An abstraction of ``job.janitor:add(...)`` with some additional behaviours such as recording instances to ensure they anchor when the job is paused
+function Job:add(item, cleanupMethodName, janitorIndex)
 	if self.isDead then
-		main.modules.Thread.spawn(function()
-			self.maid:clear()
+		task.defer(function()
+			self.janitor:cleanup()
 		end)
 	end
 	local function trackInstance(instance)
@@ -586,7 +566,7 @@ function Task:give(item)
 		if instance:IsA("Tool") then
 			-- It's important to unequp the humanoid and delay the destroyal of tools to give enough
 			-- time for the gears effects to reset (as tools often contain Scripts and LocalScripts directly inside)
-			self.maid:give(function()
+			self.janitor:add(function()
 				local humanoid = instance.Parent and instance.Parent:FindFirstChild("Humanoid")
 				if humanoid then
 					humanoid:UnequipTools()
@@ -595,15 +575,15 @@ function Task:give(item)
 					end
 				end
 				instance:Destroy()
-			end)
+			end, true)
 			return
 		end
-		self.maid:give(function()
+		self.janitor:add(function()
 			self.trackingItems[instance] = nil
-		end)
+		end, true)
 	end
 	local itemType = typeof(item)
-	-- trackInstance() tracks all relavent instances so that they can be Anchored/Unanchored when a task is paused/resumed
+	-- trackInstance() tracks all relavent instances so that they can be Anchored/Unanchored when a job is paused/resumed
 	if itemType == "Instance" then
 		trackInstance(item)
 	elseif itemType == "table" then
@@ -627,50 +607,50 @@ function Task:give(item)
 		end
 		trackSurfaceLevelInstances(item)
 	end
-	return self.maid:give(item)
+	return self.janitor:add(item, cleanupMethodName, janitorIndex)
 end
 
--- An abstraction of ``task:track(main.modules.Thread.spawn(func, ...))``
-function Task:spawn(func, ...)
-	return self:track(main.modules.Thread.spawn(func, ...))
+-- An abstraction of ``job:track(main.modules.Thread.defer(func, ...))``
+function Job:defer(func, ...)
+	return self:track(main.modules.Thread.defer(func, ...))
 end
 
--- An abstraction of ``task:track(main.modules.Thread.delay(waitTime, func, ...))``
-function Task:delay(waitTime, func, ...)
+-- An abstraction of ``job:track(main.modules.Thread.delay(waitTime, func, ...))``
+function Job:delay(waitTime, func, ...)
 	return self:track(main.modules.Thread.delay(waitTime, func, ...))
 end
 
--- An abstraction of ``task:track(main.modules.Thread.delayUntil(criteria, func, ...))``
-function Task:delayUntil(criteria, func, ...)
+-- An abstraction of ``job:track(main.modules.Thread.delayUntil(criteria, func, ...))``
+function Job:delayUntil(criteria, func, ...)
 	return self:track(main.modules.Thread.delayUntil(criteria, func, ...))
 end
 
--- An abstraction of ``task:track(main.modules.Thread.delayLoop(intervalTimeOrType, func, ...))``
-function Task:delayLoop(intervalTimeOrType, func, ...)
-	return self:track(main.modules.Thread.delayLoop(intervalTimeOrType, func, ...))
+-- An abstraction of ``job:track(main.modules.Thread.loop(intervalTimeOrType, func, ...))``
+function Job:loop(intervalTimeOrType, func, ...)
+	return self:track(main.modules.Thread.loop(intervalTimeOrType, func, ...))
 end
 
--- An abstraction of ``task:track(main.modules.Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...))``
-function Task:delayLoopUntil(intervalTimeOrType, criteria, func, ...)
-	return self:track(main.modules.Thread.delayLoopUntil(intervalTimeOrType, criteria, func, ...))
+-- An abstraction of ``job:track(main.modules.Thread.loopUntil(intervalTimeOrType, criteria, func, ...))``
+function Job:loopUntil(intervalTimeOrType, criteria, func, ...)
+	return self:track(main.modules.Thread.loopUntil(intervalTimeOrType, criteria, func, ...))
 end
 
--- An abstraction of ``task:track(main.modules.Thread.delayLoopFor(intervalTimeOrType, iterations, func, ...))``
-function Task:delayLoopFor(intervalTimeOrType, iterations, func, ...)
-	return self:track(main.modules.Thread.delayLoopFor(intervalTimeOrType, iterations, func, ...))
+-- An abstraction of ``job:track(main.modules.Thread.loopFor(intervalTimeOrType, iterations, func, ...))``
+function Job:loopFor(intervalTimeOrType, iterations, func, ...)
+	return self:track(main.modules.Thread.loopFor(intervalTimeOrType, iterations, func, ...))
 end
 
--- An abstraction of ``task:track(main.TweenService:Create(instance, tweenInfo, propertyTable))``
-function Task:tween(instance, tweenInfo, propertyTable)
+-- An abstraction of ``job:track(main.TweenService:Create(instance, tweenInfo, propertyTable))``
+function Job:tween(instance, tweenInfo, propertyTable)
 	return self:track(main.TweenService:Create(instance, tweenInfo, propertyTable))
 end
 
 -- An abstraction of ``self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))`` (or the server equivalent)
-function Task:getAsset(assetName)
+function Job:getAsset(assetName)
 	if main.isServer then
 		local asset = main.services.AssetService.getCommandAssetOrServerPermittedAsset(self.commandName, assetName)
 		if asset then
-			self:give(asset)
+			self:add(asset, "Destroy")
 		end
 		-- THE SERVER IS SYNCHRONOUS THEREFORE RETURNS ASSETS IMMEDIATELY
 		return asset
@@ -680,12 +660,12 @@ function Task:getAsset(assetName)
 end
 
 -- An abstraction of ``self:track(main.controllers.AssetController.getClientCommandAssetOrClientPermittedAsset(self.commandName, assetName))`` (or the server equivalent)
-function Task:getAssets(...)
+function Job:getAssets(...)
 	if main.isServer then
 		local assets = main.services.AssetService.getCommandAssetsOrServerPermittedAssets(self.commandName, ...)
 		if assets then
 			for _, asset in pairs(assets) do
-				self:give(asset)
+				self:add(asset, "Destroy")
 			end
 		end
 		-- THE SERVER IS SYNCHRONOUS THEREFORE RETURNS ASSETS IMMEDIATELY
@@ -695,19 +675,19 @@ function Task:getAssets(...)
 	return self:track(main.controllers.AssetController.getClientCommandAssetsOrClientPermittedAssets(self.commandName, ...))
 end
 
--- An abstraction of ``task.agent:buff(...)``
-function Task:buffPlayer(effect, property, weight)
+-- An abstraction of ``job.agent:buff(...)``
+function Job:buffPlayer(effect, property, weight)
 	local agent = self.playerAgent
 	if not agent then
-		error("Cannot create buff as the task has no associated player!")
+		error("Cannot create buff as the job has no associated player!")
 	end
 	local buff = agent:buff(effect, property, weight)
 	table.insert(self.buffs, buff)
 	return buff
 end
 
--- An abstraction of ``task.agent:buff(...)``
-function Task:buffCaller(effect, property, weight)
+-- An abstraction of ``job.agent:buff(...)``
+function Job:buffCaller(effect, property, weight)
 	local agent = self.callerAgent
 	if not agent then
 		-- The caller is not always in the server (for instance, for a global broadcast) so silently do nothing
@@ -724,7 +704,7 @@ function Task:buffCaller(effect, property, weight)
 	return buff
 end
 
-function Task:clearBuffs()
+function Job:clearBuffs()
 	for _, buff in pairs(self.buffs) do
 		if not buff.isDestroyed then
 			buff:destroy()
@@ -733,7 +713,7 @@ function Task:clearBuffs()
 	self.buffs = {}
 end
 
-function Task:findTag(tagName)
+function Job:findTag(tagName)
 	local tagNameLower = tostring(tagName):lower()
 	if self.tags[tagNameLower] then
 		return true
@@ -741,27 +721,28 @@ function Task:findTag(tagName)
 	return false
 end
 
-function Task:getOriginalArg(argNameOrIndex)
+function Job:getOriginalArg(argNameOrIndex)
 	local index = tonumber(argNameOrIndex)
 	if index then
 		return self.originalArgReturnValuesFromIndex[index]
 	end
 	local argItem = main.modules.Parser.Args.get(argNameOrIndex)
-	local originalValue = self.originalArgReturnValues[argItem.name]
+	local argNameLower = tostring(argNameOrIndex):lower()
+	local originalValue = self.originalArgReturnValues[argNameLower]
 	return originalValue
 end
 
 
 -- SERVER NETWORKING METHODS
 local SERVER_ONLY_WARNING = "this method can only be called on the server!"
-function Task:_invoke(playersArray, ...)
+function Job:_invoke(playersArray, ...)
 	assert(main.isServer, SERVER_ONLY_WARNING)
 
 	local TIMEOUT_MAX = 90
 	local GROUP_TIMEOUT = 3
 	local GROUP_TIMEOUT_PERCENT = 0.8
 	-- This invokes all targeted players to execute the corresponding client command
-	-- If no persistence, then wait until these clients have completed their client sided execution before ending the server task
+	-- If no persistence, then wait until these clients have completed their client sided execution before ending the server job
 	-- To prevent abuse:
 		-- 1. Cap a timeout of TIMEOUT_MAX seconds. If not heard back after this time, force end invocation
 		-- 2. As soon as GROUP_TIMEOUT_PERCENT of clients have responded, wait GROUP_TIMEOUT then automatically force end all remaining invocations
@@ -772,10 +753,10 @@ function Task:_invoke(playersArray, ...)
 	local timeoutValue = (killAfterExecution and TIMEOUT_MAX) or 0
 	local totalClients = #playersArray
 	local responses = 0
-	self:track(main.modules.Thread.delayUntil(function() return responses == totalClients end)) -- This keeps the task alive until the client execution has complete or timeout exceeded
+	self:track(main.modules.Thread.delayUntil(function() return responses == totalClients end)) -- This keeps the job alive until the client execution has complete or timeout exceeded
 	for _, player in pairs(playersArray) do
 		self.trackingClients[player] = true
-		local clientTaskProperties = {
+		local clientJobProperties = {
 			UID = self.UID,
 			commandName = self.hijackedCommandName or self.commandName,
 			killAfterExecution = killAfterExecution,
@@ -785,7 +766,7 @@ function Task:_invoke(playersArray, ...)
 			callerUserId = self.callerUserId,
 			caller = self.caller
 		}
-		table.insert(promises, main.services.TaskService.remotes.invokeClientCommand:invokeClient(player, clientTaskProperties)
+		table.insert(promises, main.services.JobService.remotes.invokeClientCommand:invokeClient(player, clientJobProperties)
 			:timeout(timeoutValue)
 			:finally(function()
 				responses += 1
@@ -803,7 +784,7 @@ function Task:_invoke(playersArray, ...)
 	main.modules.Promise.some(promises, minimumResponses)
 		:finally(function()
 			if responses ~= totalClients then
-				main.modules.Thread.delay(GROUP_TIMEOUT, function()
+				task.delay(GROUP_TIMEOUT, function()
 					for _, promise in pairs(promises) do
 						promise:cancel()
 					end
@@ -812,42 +793,42 @@ function Task:_invoke(playersArray, ...)
 		end)
 end
 
-function Task:invokeClient(player, ...)
+function Job:invokeClient(player, ...)
 	local playersArray = {player}
 	self:_invoke(playersArray, ...)
 end
 
-function Task:invokeNearbyClients(origin, radius, ...)
+function Job:invokeNearbyClients(origin, radius, ...)
 	local playersArray = main.enum.TargetPool.getProperty("Nearby")(origin, radius)
 	self:_invoke(playersArray, ...)
 end
 
-function Task:invokeAllClients(...)
+function Job:invokeAllClients(...)
 	local playersArray = main.Players:GetPlayers()
 	self:_invoke(playersArray, ...)
 end
 
-function Task:invokeFutureClients(...)
+function Job:invokeFutureClients(...)
 	local args = table.pack(...)
-	self.maid:give(main.Players.PlayerAdded:Connect(function(player)
+	self.janitor:add(main.Players.PlayerAdded:Connect(function(player)
 		self:invokeClient(player, unpack(args))
-	end))
+	end), "Disconnect")
 end
 
-function Task:invokeAllAndFutureClients(...)
+function Job:invokeAllAndFutureClients(...)
 	self:invokeAllClients(...)
 	self:invokeFutureClients(...)
 end
 
-function Task:_revoke(playersArray, ...)
+function Job:_revoke(playersArray, ...)
 	assert(main.isServer, SERVER_ONLY_WARNING)
 	for _, player in pairs(playersArray) do
-		main.services.TaskService.remotes.revokeClientCommand:fireClient(player, self.UID, ...)
+		main.services.JobService.remotes.revokeClientCommand:fireClient(player, self.UID, ...)
 		self.trackingClients[player] = nil
 	end
 end
 
-function Task:revokeClient(player, ...)
+function Job:revokeClient(player, ...)
 	local playersArray = {}
 	if self.trackingClients[player] then
 		table.insert(playersArray, player)
@@ -855,7 +836,7 @@ function Task:revokeClient(player, ...)
 	self:_revoke(playersArray, ...)
 end
 
-function Task:revokeAllClients(...)
+function Job:revokeAllClients(...)
 	local playersArray = {}
 	for trackingPlayer, _ in pairs(self.trackingClients) do
 		table.insert(playersArray, trackingPlayer)
@@ -863,17 +844,17 @@ function Task:revokeAllClients(...)
 	self:_revoke(playersArray, ...)
 end
 
-function Task:pauseAllClients()
+function Job:pauseAllClients()
 	assert(main.isServer, SERVER_ONLY_WARNING)
 	for trackingPlayer, _ in pairs(self.trackingClients) do
-		main.services.TaskService.remotes.callClientTaskMethod:fireClient(trackingPlayer, self.UID, "pause")
+		main.services.JobService.remotes.callClientJobMethod:fireClient(trackingPlayer, self.UID, "pause")
 	end
 end
 
-function Task:resumeAllClients()
+function Job:resumeAllClients()
 	assert(main.isServer, SERVER_ONLY_WARNING)
 	for trackingPlayer, _ in pairs(self.trackingClients) do
-		main.services.TaskService.remotes.callClientTaskMethod:fireClient(trackingPlayer, self.UID, "resume")
+		main.services.JobService.remotes.callClientJobMethod:fireClient(trackingPlayer, self.UID, "resume")
 	end
 end
 
@@ -881,35 +862,35 @@ end
 
 -- CLIENT NETWORKING METHODS
 local CLIENT_ONLY_WARNING = "this method can only be called on the client!"
-function Task:_replicate(targetPool, packedArgs, packedData)
+function Job:_replicate(targetPool, packedArgs, packedData)
 	assert(main.isClient, CLIENT_ONLY_WARNING)
 	main.controllers.CommandController.replicationRequest:fireServer(self.UID, targetPool, packedArgs, packedData)
 end
 
-function Task:replicateTo(player, ...)
+function Job:replicateTo(player, ...)
 	self:_replicate(main.enum.TargetPool.Individual, {player}, table.pack(...))
 end
 
-function Task:replicateToNearby(origin, radius, ...)
+function Job:replicateToNearby(origin, radius, ...)
 	self:_replicate(main.enum.TargetPool.Nearby, {origin, radius}, table.pack(...))
 end
 
-function Task:replicateToOthers(...)
+function Job:replicateToOthers(...)
 	self:_replicate(main.enum.TargetPool.Others, {}, table.pack(...))
 end
 
-function Task:replicateToOthersNearby(origin, radius, ...)
+function Job:replicateToOthersNearby(origin, radius, ...)
 	self:_replicate(main.enum.TargetPool.OthersNearby, {origin, radius}, table.pack(...))
 end
 
-function Task:replicateToAll(...)
+function Job:replicateToAll(...)
 	self:_replicate(main.enum.TargetPool.All, {}, table.pack(...))
 end
 
-function Task:replicateToServer(...)
+function Job:replicateToServer(...)
 	self:_replicate(main.enum.TargetPool.None, {}, table.pack(...))
 end
 
 
 
-return Task
+return Job

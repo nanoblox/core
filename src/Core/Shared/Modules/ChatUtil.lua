@@ -46,6 +46,27 @@ function ChatUtil.filterText(fromUserId, toUserId, textToFilter)
 		end)
 end
 
+function ChatUtil.getSpeaker(player)
+	return main.modules.Promise.new(function(resolve, reject)
+		local ChatService = require(game:GetService("ServerScriptService"):WaitForChild("ChatServiceRunner").ChatService)
+		local speaker = ChatService:GetSpeaker(player.Name)
+    	local checkPlayer = speaker and speaker:GetPlayer()
+		if not checkPlayer then
+			reject(("Speaker '%s' does not exist"):format(tostring(player.Name)))
+		end
+		resolve(speaker)
+	end)
+end
+
+function ChatUtil.hideChat(player)
+	-- Wait for a response from https://devforum.roblox.com/t/brand-new-bubble-chat-customizations/1252869/139 before supporting this
+end
+
+function ChatUtil.showChat(player)
+	-- Wait for a response from https://devforum.roblox.com/t/brand-new-bubble-chat-customizations/1252869/139 before supporting this
+end
+	
+
 
 
 return ChatUtil

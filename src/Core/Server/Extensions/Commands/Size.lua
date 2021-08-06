@@ -13,17 +13,17 @@ Command.contributors = {82347291}
 Command.blockPeers = false
 Command.blockJuniors = false
 Command.autoPreview = false
-Command.requiresRig = main.enum.HumanoidRigType.None
+Command.requiresRig = main.enum.HumanoidRigType.R15
 Command.revokeRepeats = true
 Command.preventRepeats = main.enum.TriStateSetting.False
 Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerRespawns
 Command.args = {"Player", "Scale"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local _, scale = unpack(args)
 	if scale then
-		task:buffPlayer("BodyScale"):set(scale)
+		job:buffPlayer("BodyScale"):set(scale)
 	end
 end
 

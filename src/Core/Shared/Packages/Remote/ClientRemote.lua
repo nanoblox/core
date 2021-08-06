@@ -8,10 +8,11 @@ local runService = game:GetService("RunService")
 
 
 -- LOCAL
+local main = require(game.Nanoblox)
 local ERROR_NO_LISTENER = "Failed to get remoteInstance %s for '%s': no remote is listening on the server."
 local Remote = {}
 local Signal = require(script.Parent.Signal)
-local Maid = require(script.Parent.Maid)
+local Janitor = require(script.Parent.Janitor)
 local Promise = require(script.Parent.Promise)
 
 
@@ -34,7 +35,7 @@ remotesStorage.ChildRemoved:Connect(function(child)
 end)
 
 -- This handles the notification of any blocked requests when firing to server
-spawn(function()
+task.defer(function()
 	local requestBlockedRemote = Remote.new("requestBlocked")
 	requestBlockedRemote.onClientEvent:Connect(function(blockedRemoteName, reason)
 		local blockedRemote = remotes[blockedRemoteName]
@@ -49,12 +50,13 @@ function Remote.new(name)
 	local self = {}
 	setmetatable(self, Remote)
 	
-	local maid = Maid.new()
-	self._maid = maid
+	local janitor = Janitor.new()
+	self.janitor = janitor
 	self.name = name
 	self.container = {}
 	self.remoteFolderAdded = Signal.new()
 	self.remoteFolder = nil
+	self.continueWhenLoaded = {}
 	self:_setupRemoteFolder()
 	
 	remotes[name] = self
@@ -66,29 +68,42 @@ end
 
 -- METAMETHODS
 function Remote:__index(index)
-	local newIndex = Remote[index]
-	if not newIndex then
-		local remoteType, remoteInstance, indexFormatted = self:_checkRemoteInstance(index)
-		if remoteType then
-			if remoteInstance then
-				newIndex = remoteInstance[indexFormatted]
-			else
-				newIndex = {}
-				local events = {}
-				function newIndex:Connect(event)
-					table.insert(events, event)
-				end
-				self:_continueWhenRemoteInstanceLoaded(remoteType, function(newRemoteInstance)
-					self._maid:give(newRemoteInstance[indexFormatted]:Connect(function(...)
-						for _, event in pairs(events) do
-							event(...)
-						end
-					end))
-				end)
-			end
-		end
+	local indexResult = Remote[index]
+	if indexResult then
+		return indexResult
 	end
-	return newIndex
+	local remoteType, remoteInstance, indexFormatted = self:_checkRemoteInstance(index)
+	if remoteType then
+		local newIndex = {}
+		local eventsName = "events-"..index
+		local events = self[eventsName]
+		if not events then
+			events = {}
+			self[eventsName] = events
+			self:_continueWhenRemoteInstanceLoaded(remoteType, function(newRemoteInstance)
+				self.janitor:add(newRemoteInstance[indexFormatted]:Connect(function(...)
+					for _, event in pairs(events) do
+						event(...)
+					end
+				end), "Disconnect")
+			end)
+		end
+		function newIndex:Connect(event)
+			local connection = {}
+			function connection:Disconnect()
+				for i, eventToCheck in pairs(events) do
+					if eventToCheck == event then
+						table.remove(events, i)
+						break
+					end
+				end
+			end
+			connection.Destroy = connection.Disconnect
+			table.insert(events, event)
+			return connection
+		end
+		return newIndex
+	end
 end
 
 function Remote:__newindex(index, customFunction)
@@ -121,18 +136,44 @@ function Remote:requestBlocked(reason)
 end
 
 function Remote:_continueWhenRemoteInstanceLoaded(remoteType, functionToCall)
+	local continueWhenLoadedGroup = self.continueWhenLoaded[remoteType]
+	--print("A: ", self.name, functionToCall)
+	if continueWhenLoadedGroup then
+		-- This ensures functions are called in order if they later have to be deferred (e.g. when waiting for the remote instance to load)
+		table.insert(continueWhenLoadedGroup, functionToCall)
+		return
+	end
+	local function setupGroup()
+		if not continueWhenLoadedGroup then
+			continueWhenLoadedGroup = {}
+			self.continueWhenLoaded[remoteType] = continueWhenLoadedGroup
+		end
+	end
+	local function lastFunction(remoteInstance)
+		functionToCall(remoteInstance)
+		--print("continueWhenLoadedGroup =", continueWhenLoadedGroup)
+		if continueWhenLoadedGroup then
+			for _, additionalFunctionToCall in pairs(continueWhenLoadedGroup) do
+				--print("B1: ", self.name, additionalFunctionToCall)
+				task.spawn(additionalFunctionToCall, remoteInstance)
+			end
+		end
+		--print("B2: ", self.name, functionToCall)
+		self.continueWhenLoaded[remoteType] = nil
+	end
 	local function continueFunc()
 		local remoteInstance = self:_getRemoteInstance(remoteType)
 		if remoteInstance then
 			functionToCall(remoteInstance)
 		else
 			local waitForChildRemote
-			waitForChildRemote = self._maid:give(self.remoteFolder.ChildAdded:Connect(function(child)
+			setupGroup()
+			waitForChildRemote = self.janitor:add(self.remoteFolder.ChildAdded:Connect(function(child)
 				if child.Name == remoteType then
 					waitForChildRemote:Disconnect()
-					functionToCall(child)
+					lastFunction(child)
 				end
-			end))
+			end), "Disconnect")
 		end
 	end
 	local remoteFolder = self.remoteFolder
@@ -140,10 +181,11 @@ function Remote:_continueWhenRemoteInstanceLoaded(remoteType, functionToCall)
 		continueFunc()
 	else
 		local waitForRemoteFolderConnection
-		waitForRemoteFolderConnection = self._maid:give(self.remoteFolderAdded:Connect(function()
+		setupGroup()
+		waitForRemoteFolderConnection = self.janitor:add(self.remoteFolderAdded:Connect(function()
 			waitForRemoteFolderConnection:Disconnect()
 			continueFunc()
-		end))
+		end), "Disconnect")
 	end
 end
 
@@ -154,10 +196,10 @@ function Remote:_setupRemoteFolder()
 			local remoteType = remoteInstance.ClassName
 			self.container[remoteType] = remoteInstance
 		end
-		self._maid:give(remoteFolder.ChildAdded:Connect(function(remoteInstance)
+		self.janitor:add(remoteFolder.ChildAdded:Connect(function(remoteInstance)
 			local remoteType = remoteInstance.ClassName
 			self.container[remoteType] = remoteInstance
-		end))
+		end), "Disconnect")
 		self.remoteFolder = remoteFolder
 		self.remoteFolderAdded:Fire()
 	end
@@ -200,7 +242,7 @@ function Remote:invokeServer(...)
 	local args = table.pack(...)
 	return Promise.defer(function(resolve, reject)
 		if not remoteInstance then
-			local waitForRemoteInstance = self._maid:give(Signal.new())
+			local waitForRemoteInstance = self.janitor:add(Signal.new(), "destroy")
 			self:_continueWhenRemoteInstanceLoaded(remoteType, function(newRemoteInstance)
 				runService.Heartbeat:Wait()
 				waitForRemoteInstance:Fire(newRemoteInstance)
@@ -224,13 +266,12 @@ function Remote:invokeServer(...)
 end
 
 function Remote:destroy()
-	remotes[self.name] = nil
-	self._maid:clean()
-	for k, v in pairs(self) do
-		if typeof(v) == "table" then
-			self[k] = nil
-		end
+	if self.isDestroyed then
+		return
 	end
+	remotes[self.name] = nil
+	self.isDestroyed = true
+	self.janitor:destroy()
 end
 Remote.Destroy = Remote.destroy
 

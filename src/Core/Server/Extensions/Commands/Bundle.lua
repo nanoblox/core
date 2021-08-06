@@ -14,19 +14,25 @@ Command.blockPeers = false
 Command.blockJuniors = false
 Command.autoPreview = false
 Command.requiresRig = main.enum.HumanoidRigType.None
-Command.revokeRepeats = true
+Command.revokeRepeats = false
 Command.preventRepeats = main.enum.TriStateSetting.False
 Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerRespawns
-Command.args = {"Player", "BundleDescription"}
+Command.args = {"Player", "BundleDescription", "BodyParts"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local _, description = unpack(args)
 	if description then
-		local descClone = task:give(description:Clone())
-		descClone.Name = descClone.Name.." CLONE"
-		descClone.Parent = workspace
-		task:buffPlayer("HumanoidDescription"):set(description)
+		local bodyParts = job:getOriginalArg("BodyParts")
+		if bodyParts then
+			for _, bodyPartName in pairs(bodyParts) do
+				if bodyPartName ~= "Accessories" then
+					job:buffPlayer("HumanoidDescription", bodyPartName):set(description[bodyPartName])
+				end
+			end
+		else
+			job:buffPlayer("HumanoidDescription"):set(description)
+		end
 	end
 end
 

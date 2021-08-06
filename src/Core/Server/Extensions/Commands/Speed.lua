@@ -20,10 +20,10 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerRespawns
 Command.args = {"Player", "Number"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local _, speed = unpack(args)
 	if speed then
-		task:buffPlayer("Humanoid", "WalkSpeed"):set(speed)
+		job:buffPlayer("Humanoid", "WalkSpeed"):set(speed)
 	end
 end
 

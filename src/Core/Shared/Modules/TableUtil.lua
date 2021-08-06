@@ -433,6 +433,16 @@ local function IsEmpty(tbl)
 end
 
 
+local function IsQualifiersEmpty(tbl)
+	for k,v in pairs(tbl) do
+		if k ~= "" then
+			return false
+		end
+	end
+	return true
+end
+
+
 local function EncodeJSON(tbl)
 	return http:JSONEncode(tbl)
 end
@@ -491,6 +501,7 @@ TableUtil.indexOf = IndexOf
 TableUtil.reverse = Reverse
 TableUtil.shuffle = Shuffle
 TableUtil.isEmpty = IsEmpty
+TableUtil.isQualifiersEmpty = IsQualifiersEmpty
 TableUtil.encodeJSON = EncodeJSON
 TableUtil.decodeJSON = DecodeJSON
 TableUtil.doTablesMatch = DoTablesMatch

@@ -31,11 +31,19 @@ function PlayerUtil.getHeadPos(playerOrUserId)
 	return headPos
 end
 
-function PlayerUtil.getHRP(playerOrUserId)
+function PlayerUtil.getHumanoidRootPart(playerOrUserId)
 	local character = PlayerUtil.getCharacter(playerOrUserId)
 	local hrp = character and character:FindFirstChild("HumanoidRootPart")
 	return hrp
 end
+PlayerUtil.getHRP = PlayerUtil.getHumanoidRootPart
+
+function PlayerUtil.getHumanoidDescription(playerOrUserId)
+	local humanoid = PlayerUtil.getHumanoid(playerOrUserId)
+	local hd = humanoid and humanoid:GetAppliedDescription()
+	return hd
+end
+PlayerUtil.getHD = PlayerUtil.getHumanoidDescription
 
 function PlayerUtil.getHRPPosition(playerOrUserId)
 	local hrp = PlayerUtil.getHRP(playerOrUserId)
@@ -45,7 +53,13 @@ end
 
 function PlayerUtil.getHumanoid(playerOrUserId)
 	local character = PlayerUtil.getCharacter(playerOrUserId)
-	local humanoid = character and character:FindFirstChild("Humanoid")
+	local humanoid = character and (character:FindFirstChild("Humanoid") or character:FindFirstChildOfClass("Humanoid"))
+	return humanoid
+end
+
+function PlayerUtil.getAnimator(playerOrUserId)
+	local humanoid = PlayerUtil.getHumanoid(playerOrUserId)
+	local animator = humanoid and (humanoid:FindFirstChild("Animator") or humanoid:FindFirstChildOfClass("Animator"))
 	return humanoid
 end
 
@@ -90,6 +104,17 @@ function PlayerUtil.loadTrack(player, animationId)
 	animation.AnimationId = "rbxassetid://"..animationId
 	animation.Parent = player.Character
 	return animator:LoadAnimation(animation)
+end
+
+local agents = {}
+function PlayerUtil.getAgent(player)
+	local agent = agents[player]
+	if not agent then
+		-- Agents automatically destroy themselves when their associated player leaves so we don't need to worry about cleaning them up
+		agent = main.modules.Agent.new(player, true)
+		agents[player] = agent
+	end
+	return agent
 end
 
 

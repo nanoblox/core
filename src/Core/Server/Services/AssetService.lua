@@ -198,7 +198,7 @@ function AssetService.start()
             local asset = clientPermittedAssets[assetName]
             local clonedAsset = asset:Clone()
             clonedAsset.Parent = player.PlayerGui
-            main.modules.Thread.spawn(function()
+            task.defer(function()
                 clonedAsset:Destroy()
             end)
             local location = assetNameToLocation[assetName]
@@ -236,7 +236,7 @@ function AssetService.start()
             local asset = commandAssetTable.Client[assetName]
             local clonedAsset = asset:Clone()
             clonedAsset.Parent = player.PlayerGui
-            main.modules.Thread.spawn(function()
+            task.defer(function()
                 clonedAsset:Destroy()
             end)
             local location = commandAssetTable.CommandName

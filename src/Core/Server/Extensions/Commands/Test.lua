@@ -20,16 +20,16 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.None
 Command.args = {"Username"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local username = unpack(args)
     print("USERNAME = ", username)
 end
 
-function Command.revoke(task)
+function Command.revoke(job)
 	
 end
 
-function Command.preReplication(task, targetPool, packedData)
+function Command.preReplication(job, targetPool, packedData)
 	return false
 end
 

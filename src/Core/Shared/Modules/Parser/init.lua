@@ -111,9 +111,9 @@ function Parser.getPlayersFromString(playerString, optionalUser)
 	local playerSearchEnums = MAIN.enum.PlayerSearch
 	local players = game:GetService("Players"):GetPlayers()
 
-	local playerIdentifier = settingService.getPlayerSetting("playerIdentifier", optionalUser)
-	local playerDefinedSearch = settingService.getPlayerSetting("playerDefinedSearch", optionalUser)
-	local playerUndefinedSearch = settingService.getPlayerSetting("playerUndefinedSearch", optionalUser)
+	local playerIdentifier = settingService.getUsersPlayerSetting(optionalUser, "playerIdentifier")
+	local playerDefinedSearch = settingService.getUsersPlayerSetting(optionalUser, "playerDefinedSearch")
+	local playerUndefinedSearch = settingService.getUsersPlayerSetting(optionalUser, "playerUndefinedSearch")
 
 	local hasPlayerIdentifier = (playerString:sub(1, 1) == playerIdentifier)
 	playerString = playerString:lower()
@@ -167,6 +167,34 @@ end
 
 
 ]]
+
+function Parser.verifyAndParseUsername(callerUser, usernameString)
+	if not callerUser or not usernameString then
+		return false
+	end
+	local playerIdentifier = MAIN.services.SettingService.getUsersPlayerSetting(callerUser, "playerIdentifier")
+	if string.sub(usernameString, 1, 1) == playerIdentifier then
+		-- Is the username defined (e.g @ForeverHD, @ObliviousHD)
+		local playerDefinedSearch = MAIN.services.SettingService.getUsersPlayerSetting(callerUser, "playerDefinedSearch")
+		if playerDefinedSearch == MAIN.enum.PlayerSearch.UserName or playerDefinedSearch == MAIN.enum.PlayerSearch.UserNameAndDisplayName then
+			return true, string.sub(usernameString, 2)
+		end
+	else
+		-- Is the username undefined (e.g ForeverHD, ObliviousHD)
+		local playerUndefinedSearch = MAIN.services.SettingService.getUsersPlayerSetting(callerUser, "playerUndefinedSearch")
+		if playerUndefinedSearch == MAIN.enum.PlayerSearch.UserName or playerUndefinedSearch == MAIN.enum.PlayerSearch.UserNameAndDisplayName then
+			return true, usernameString
+		end
+	end
+	return false
+end
+
+--[[
+
+
+
+]]
+
 function Parser.parseMessage(message, optionalUser)
 	local algorithmModule = MAIN.modules.Parser.Algorithm
 	local parsedDataModule = MAIN.modules.Parser.ParsedData

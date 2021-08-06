@@ -17,13 +17,13 @@ Command.requiresRig = main.enum.HumanoidRigType.None
 Command.revokeRepeats = true
 Command.preventRepeats = main.enum.TriStateSetting.Default
 Command.cooldown = 0
-Command.persistence = main.enum.Persistence.UntilPlayerLeaves
+Command.persistence = main.enum.Persistence.UntilPlayerRespawns
 Command.args = {"Player", "Morph"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local _, morph = unpack(args)
 	if morph then
-		task:buffPlayer("HumanoidDescription"):set(morph)
+		job:buffPlayer("HumanoidDescription"):set(morph)
 	end
 end
 

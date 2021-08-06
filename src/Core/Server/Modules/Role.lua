@@ -1,6 +1,6 @@
 -- LOCAL
 local main = require(game.Nanoblox)
-local Maid = main.modules.Maid
+local Janitor = main.modules.Janitor
 local Signal = main.modules.Signal
 local Role = {}
 Role.__index = Role
@@ -12,8 +12,8 @@ function Role.new(properties)
 	local self = {}
 	setmetatable(self, Role)
 	
-	local maid = Maid.new()
-	self._maid = maid
+	local janitor = Janitor.new()
+	self.janitor = janitor
 	self.settings = {
 		commands = {}
 	}
@@ -31,7 +31,7 @@ end
 
 -- METHODS
 function Role:destroy()
-	self._maid:clean()
+	self.janitor:destroy()
 	for k, v in pairs(self) do
 		if typeof(v) == "table" then
 			self[k] = nil
@@ -39,7 +39,7 @@ function Role:destroy()
 	end
 end
 
-function Role:give(user, roleType)
+function Role:giveTo(user, roleType)
 	user.temp:getOrSetup("roles"):set(self.settings.UID, true)
 	main.services.RoleService.updateRoleInformation(user)
 end
@@ -48,7 +48,7 @@ function Role:setRoleType(user, roleType)
 
 end
 
-function Role:take(user)
+function Role:takeFrom(user)
 
 	main.services.RoleService.updateRoleInformation(user)
 end
@@ -70,7 +70,7 @@ function Role:updateCommands() -- maybe consider changing to just 'update'
 	self:updateUsers()
 end
 
-function Role:updateProperty(pathwayTable, value)
+function Role:updateProperty(pathwayArray, value)
 
 	self:updateUsers()
 end
@@ -78,7 +78,7 @@ end
 function Role:destroy()
 	local users = self:getUsers()
 	for _, user in pairs(users) do
-		Role:take(user)
+		Role:takeFrom(user)
 	end
 end
 

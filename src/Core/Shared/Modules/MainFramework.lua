@@ -15,12 +15,7 @@ function main.initiate(loader)
 	-- To index a service, do main.ServiceName (e.g. main.Players, main.TeleportService, main.TweenService, etc)
 	setmetatable(main, {
 		__index = function(this, index)
-			local pass, service
-			if index == "ChatService" then
-				pass, service = true, require(main.ServerScriptService:WaitForChild("ChatServiceRunner"):WaitForChild("ChatService"))
-			else
-				pass, service = pcall(game.GetService, game, index)
-			end
+			local pass, service = pcall(game.GetService, game, index)
 			if pass then
 				this[index] = service
 				return service
@@ -53,11 +48,16 @@ function main.initiate(loader)
 		main.loader = loader
 		main.config = require(loader.Config)
 		main.assetStorage = nil -- This is created within AssetService
+		local workspaceFolder = Instance.new("Folder")
+		workspaceFolder.Name = "Nanoblox"
+		workspaceFolder.Parent = workspace
+		main.workspaceFolder = workspaceFolder
 	elseif isClient then
 		main.locationGroup = main.client
 		main.controllers = {}
 		main.localPlayer = main.Players.LocalPlayer
-		main.clientCommandAgents = {}
+		main.workspaceFolder = workspace:FindFirstChild("Nanoblox")
+		--main.clientCommandAgents = {}
 	end
 	
 	
@@ -109,7 +109,7 @@ function main.initiate(loader)
 				-- Call init
 				if rawget(moduleData, "init") then
 					if doNotYield then
-						Thread.spawn(moduleData.init)
+						task.defer(moduleData.init)
 					else
 						moduleData.init()
 					end
@@ -171,7 +171,7 @@ function main.initiate(loader)
 			local method = type(moduleData) == "table" and moduleData[methodName]
 			if method then
 				serviceMethodsToCall += 1
-				Thread.spawn(function()
+				task.defer(function()
 					method(moduleData)
 					serviceMethodsCalled += 1
 				end)

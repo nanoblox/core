@@ -83,9 +83,10 @@ Args.array = {
 		description = "Accepts qualifiers (e.g. 'raza', '@ForeverHD', 'others' from ';paint raza,@ForeverHD,others'), calls the command *for each player*, and returns a single Player instance.",
 		playerArg = true,
 		executeForEachPlayer = true,
-		parse = function(self, qualifiers, callerUserId)
-			local defaultToMe = qualifiers == nil or main.modules.TableUtil.isEmpty(qualifiers)
-			if defaultToMe then
+		parse = function(self, qualifiers, callerUserId, additional)
+			local defaultToMe = qualifiers == nil or main.modules.TableUtil.isQualifiersEmpty(qualifiers)
+			local ignoreDefault = (additional and additional.ignoreDefault)
+			if defaultToMe and not ignoreDefault then
 				local players = {}
 				local callerPlayer = main.Players:GetPlayerByUserId(callerUserId)
 				if callerPlayer then
@@ -95,6 +96,9 @@ Args.array = {
 			end
 			local targetsDict = {}
 			for qualifierName, qualifierArgs in pairs(qualifiers or {}) do
+				if qualifierName == "" then
+					continue
+				end
 				local Qualifiers = main.modules.Parser.Qualifiers
 				local qualifierDetail = Qualifiers.get(qualifierName)
 				local targets
@@ -121,10 +125,29 @@ Args.array = {
 		name = "players",
 		aliases = {},
 		description = "Accepts qualifiers (e.g. 'raza', '@ForeverHD', 'others' from ';paint raza,@ForeverHD,others') and returns an array of Player instances.",
+		defaultValue = {},
 		playerArg = true,
 		executeForEachPlayer = false,
 		parse = function(self, qualifiers, callerUserId)
-			return main.modules.Parser.Args.get("player"):parse(qualifiers, callerUserId)
+			if main.modules.TableUtil.isQualifiersEmpty(qualifiers) then
+				return nil
+			end
+			local players = main.modules.Parser.Args.get("player"):parse(qualifiers, callerUserId, {ignoreDefault = true})
+			return players
+		end,
+	},
+
+	-----------------------------------
+	{
+		name = "targetPlayer",
+		aliases = {},
+		description = "Accepts qualifiers (e.g. 'raza', '@ForeverHD', 'others' from ';paint raza,@ForeverHD,others') and returns a single Player instance (or false).",
+		defaultValue = false,
+		playerArg = true,
+		executeForEachPlayer = true,
+		parse = function(self, qualifiers, callerUserId)
+			local players = main.modules.Parser.Args.get("player"):parse(qualifiers, callerUserId, {ignoreDefault = true})
+			return players[1]
 		end,
 	},
 
@@ -150,11 +173,13 @@ Args.array = {
 		name = "optionalplayers",
 		aliases = {},
 		description = "Hides the players argument for general use and only displays it within the preview menu.",
+		defaultValue = {},
 		playerArg = true,
 		hidden = true,
 		executeForEachPlayer = false,
 		parse = function(self, qualifiers, callerUserId)
-			return main.modules.Parser.Args.get("optionalplayer"):parse(qualifiers, callerUserId)
+			local players = main.modules.Parser.Args.get("optionalplayer"):parse(qualifiers, callerUserId)
+			return players
 		end,
 	},
 
@@ -202,6 +227,27 @@ Args.array = {
 
 	-----------------------------------
 	{
+		name = "bodyParts",
+		aliases = {"bodyGroups"},
+		displayName = "bodyGroup",
+		description = "Accepts a bodyGroup, such as 'Head', 'LeftArm', 'RightLeg', 'Torso', 'Legs', 'Arms', etc.",
+		defaultValue = false,
+		parse = function(self, stringToParse)
+			local stringLower = stringToParse:lower()
+			local fullname = main.modules.Agent.Buff.BodyUtil.bodyGroupsLower[stringLower]
+			if fullname then
+				return {fullname}
+			elseif stringLower == "legs" then
+				return {"LeftLeg", "RightLeg"}
+			elseif stringLower == "arms" then
+				return {"LeftArm", "RightArm"}
+			end
+			return
+		end,
+	},
+
+	-----------------------------------
+	{
 		name = "unfilteredtext",
 		aliases = {"code", "lua"},
 		description = "Accepts a string and returns it unfiltered.",
@@ -215,9 +261,20 @@ Args.array = {
 	-----------------------------------
 	{
 		name = "number",
-		aliases = {"integer", "studs", "speed", "intensity"},
+		aliases = {"integer", "studs", "speed", "intensity", "delay", "gap"},
 		description = "Accepts a number string and returns a Number",
 		defaultValue = 0,
+		parse = function(self, stringToParse)
+			return tonumber(stringToParse)
+		end,
+	},
+
+	-----------------------------------
+	{
+		name = "animationSpeed",
+		aliases = {"animSpeed"},
+		description = "Accepts a number string and returns a Number",
+		defaultValue = false,
 		parse = function(self, stringToParse)
 			return tonumber(stringToParse)
 		end,
@@ -282,7 +339,7 @@ Args.array = {
 
 	-----------------------------------
 	{
-		name = "sound",
+		name = "soundId",
 		aliases = {"music", "audio"},
 		displayName = "soundId",
 		description = "Accepts a soundId (aka a LibraryId) and returns a Sound instance if valid. Do not use the returned Sound instance, clone it instead.",
@@ -291,12 +348,12 @@ Args.array = {
 			local storageDetail = Args.getStorage(self.name)
 			local cachedItem = storageDetail:get(stringToParse)
 			if cachedItem then
-				return cachedItem
+				return cachedItem.Name
 			end
-			local newSound = Instance.new("Sound")
-			newSound.SoundId = "rbxassetid://"..stringToParse
+			local newSound = Instance.new("Folder")
+			newSound.Name = stringToParse
 			storageDetail:cache(stringToParse, newSound)
-			return newSound
+			return newSound.Name
 		end,
 		verifyCanUse = function(self, callerUser, valueToParse)
 			-- Check if valid string
@@ -431,7 +488,7 @@ Args.array = {
 			local role = RoleService.getRole(stringToParse)
 			if not role then
 				local user = main.modules.PlayerStore:getUserByUserId(callerUserId)
-				local spaceSeparator = main.services.SettingService.getPlayerSetting("spaceSeparator", user)
+				local spaceSeparator = main.services.SettingService.getUsersPlayerSetting(user, "spaceSeparator")
 				local stringToParseWithoutUnderscoresOrHyphens = stringToParse:gsub("_", spaceSeparator)
 				role = RoleService.getRole(stringToParseWithoutUnderscoresOrHyphens)
 			end
@@ -447,7 +504,7 @@ Args.array = {
 		name = "color", -- have a predefined list of colors such as 'red', 'blue', etc which the user can reference. also consider rgb capsules
 		aliases = {"colour", "color3", "uigradient", "colorgradient", "gradient"},
 		description = "Accepts a color name (such as 'red'), a hex code (such as '#FF0000') or an RGB capsule (such as '[255,0,0]') and returns a Color3.",
-		defaultValue = Color3.fromRGB(255, 255, 255),
+		defaultValue = false,
 		parse = function(self, stringToParse)
 			-- This checks for a predefined color term within SystemSettings.colors, such as 'blue', 'red', etc
 			local lowerCaseColors = main.services.SettingService.getLowerCaseColors()
@@ -535,8 +592,8 @@ Args.array = {
 		description = "Accepts an @userName, displayName or userId and returns a userId.",
 		defaultValue = false,
 		parse = function(self, stringToParse, callerUserId)
-			local callerUser = main.modules.PlayerStore:getUser(callerUserId)
-			local playersInServer = main.modules.Parser.getPlayersFromString(stringToParse, callerUser)
+			local callerUser = main.modules.PlayerStore:getUserByUserId(callerUserId)
+			local playersInServer = Args.dictionary.player:parse({[stringToParse] = {}}, callerUserId) --main.modules.Parser.getPlayersFromString(stringToParse, callerUser)
 			local player = playersInServer[1]
 			if player then
 				return player.UserId
@@ -545,9 +602,11 @@ Args.array = {
 			if userId then
 				return userId
 			end
-			local playerIdentifier = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
-			local username = stringToParse:gsub(playerIdentifier, "")
-			local success, finalUserId = main.modules.PlayerUtil.getUserIdFromName(username):await()
+			local approved, username = main.modules.Parser.verifyAndParseUsername(callerUser, stringToParse)
+			local success, finalUserId
+			if approved then
+				success, finalUserId = main.modules.PlayerUtil.getUserIdFromName(username):await()
+			end
 			if success then
 				return finalUserId
 			end
@@ -562,8 +621,8 @@ Args.array = {
 		description = "Accepts an @userName, displayName or userId and returns a username.",
 		defaultValue = false,
 		parse = function(self, stringToParse, callerUserId)
-			local callerUser = main.modules.PlayerStore:getUser(callerUserId)
-			local playersInServer = main.modules.Parser.getPlayersFromString(stringToParse, callerUser)
+			local callerUser = main.modules.PlayerStore:getUserByUserId(callerUserId)
+			local playersInServer = Args.dictionary.player:parse({[stringToParse] = {}}, callerUserId) --main.modules.Parser.getPlayersFromString(stringToParse, callerUser)
 			local player = playersInServer[1]
 			if player then
 				return player.Name
@@ -575,9 +634,10 @@ Args.array = {
 					return finalUsername
 				end
 			end
-			local playerIdentifier = main.services.SettingService.getPlayerSetting("playerIdentifier", callerUser)
-			local username = stringToParse:gsub(playerIdentifier, "")
-			return username
+			local approved, username = main.modules.Parser.verifyAndParseUsername(callerUser, stringToParse)
+			if approved then
+				return username
+			end
 		end,
 	},
 
@@ -621,7 +681,7 @@ Args.array = {
 		name = "material",
 		aliases = {},
 		description = "Accepts a valid material and returns a Material enum.",
-		defaultValue = Enum.Material.Plastic,
+		defaultValue = false,
 		parse = function(self, stringToParse)
 			local enumItem = materialEnumNamesLowercase[stringToParse:lower()]
 			if enumItem then
@@ -634,7 +694,7 @@ Args.array = {
 	{
 		name = "bundleDescription",
 		aliases = {},
-		displayname = "bundleId",
+		displayName = "bundleId",
 		description = "Accepts a bundleId and returns a HumanoidDescription associated with that bundle.",
 		defaultValue = false,
 		parse = function(self, stringToParse, _, playerUserId)
@@ -659,16 +719,109 @@ Args.array = {
 				return false, warning
 			end
 			-- Check bundle exists
-			local success, warning = main.modules.MorphUtil.loadBundleId(valueToParse):await()
-			return success, warning
+			local success, warning2 = main.modules.MorphUtil.loadBundleId(valueToParse):await()
+			return success, warning2
+		end,
+	},
+
+	-----------------------------------
+	{
+		name = "accessoryDictionary",
+		aliases = {"hatDictionary"},
+		displayName = "hatId",
+		description = "Accepts an accessoryId and returns a dictionary ``{accessoryId = w, assetType = x, assetTypeName = y, hdPropertyName = z}`` if approved.",
+		defaultValue = false,
+		parse = function(self, stringToParse)
+			return self.accessoryDictionaries[stringToParse]
+		end,
+		validAccessoriesArray = {
+			"Hat",
+			"HairAccessory",
+			"FaceAccessory",
+			"NeckAccessory",
+			"ShoulderAccessory",
+			"FrontAccessory",
+			"BackAccessory",
+			"WaistAccessory",
+			"EarAccessory",
+			"EyeAccessory",
+			"TShirtAccessory",
+			"ShirtAccessory",
+			"PantsAccessory",
+			"JacketAccessory",
+			"SweaterAccessory",
+			"ShortsAccessory",
+			"LeftShoeAccessory",
+			"RightShoeAccessory",
+			"DressSkirtAccessory",
+		},
+		validAccessoriesDictionary = nil,
+		accessoryTypeToProperty = nil,
+		uniquePropertyNames = {},
+		accessoryDictionaries = {},
+		verifyCanUse = function(self, callerUser, valueToParse)
+			-- Check if valid string
+			local stringToParse = tostring(valueToParse)
+			local accessoryIdString = string.match(stringToParse, "%d+")
+			local accessoryId = tonumber(accessoryIdString)
+			if not accessoryId then
+				return false, string.format("'%s' is an invalid ID!", stringToParse)
+			end
+			-- Check if restricted to user
+			local approved, warning = main.services.SettingService.verifyCanUseRestrictedID(callerUser, "libraryAndCatalog", accessoryIdString)
+			if not approved then
+				return false, warning
+			end
+			-- Setup validAccessoriesDictionary if not already
+			if self.validAccessoriesDictionary == nil then
+				self.validAccessoriesDictionary = {}
+				self.accessoryTypeToProperty = {}
+				local humanoidDesc = Instance.new("HumanoidDescription")
+				for _, enumName in pairs(self.validAccessoriesArray) do
+					-- This gets and records the corresponding enumName
+					local assetTypeString = tostring(Enum.AssetType[enumName].Value)
+					self.validAccessoriesDictionary[assetTypeString] = enumName
+					-- This determines the corresponding HumanoidDescription property name
+					local humanoidDescPropertyName
+					if enumName == "Hat" then
+						humanoidDescPropertyName = "HatAccessory"
+					else
+						local success, _ = pcall(function() return humanoidDesc[enumName] end)
+						humanoidDescPropertyName = (success and enumName) or "HatAccessory"
+					end
+					self.accessoryTypeToProperty[assetTypeString] = humanoidDescPropertyName
+					self.uniquePropertyNames[humanoidDescPropertyName] = true
+				end
+				humanoidDesc:Destroy()
+			end
+			-- Check if dictionary already exists
+			local dictionary = self.accessoryDictionaries[accessoryIdString]
+			if not dictionary then
+				-- Check if correct asset type
+				local assetType = main.modules.ProductUtil.getAssetTypeAsync(accessoryId, Enum.InfoType.Asset)
+				local assetTypeString = tostring(assetType)
+				local assetTypeName = self.validAccessoriesDictionary[assetTypeString]
+				if assetTypeName == nil then
+					return false, string.format("'%s' is not a valid AccessoryID!", accessoryId)
+				end
+				-- Record dictionary
+				dictionary = {
+					accessoryId = accessoryId,
+					assetType = assetType,
+					assetTypeName = assetTypeName,
+					hdPropertyName = self.accessoryTypeToProperty[assetTypeString],
+				}
+				self.accessoryDictionaries[accessoryIdString] = dictionary
+			end
+			return dictionary
 		end,
 	},
 
 	-----------------------------------
 	{
 		name = "userDescription",
-		aliases = {},
-		displayname = "userNameOrId",
+		aliases = {"userDescriptionWithoutVerification"},
+		displayName = "userNameOrId",
 		description = "Accepts an @userName, displayName or userId and returns a HumanoidDescription.",
 		defaultValue = false,
 		parse = function(self, stringToParse, callerUserId, playerUserId)
@@ -689,10 +842,13 @@ Args.array = {
 			end
 			return description
 		end,
-		verifyCanUse = function(self, callerUser, valueToParse)
+		verifyCanUse = function(self, callerUser, valueToParse, additional)
+			if additional and tostring(additional.argNameOrAlias):lower() == "userdescriptionwithoutverification" then
+				return true
+			end
 			local userId = Args.get("userId").parse(self, tostring(valueToParse), callerUser.userId)
 			if not userId then
-				return false, ("'%s' is an invalid UserId, DisplayName or UserName!"):format(tostring(valueToParse))
+				return false, ("'%s' is an invalid UserId, DisplayName or @UserName!"):format(tostring(valueToParse))
 			end
 			local success, description = main.modules.MorphUtil.getDescriptionFromUserId(userId):await()
 			if not success then

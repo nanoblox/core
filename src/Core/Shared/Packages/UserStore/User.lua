@@ -7,7 +7,7 @@ local teleportService = game:GetService("TeleportService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Signal = require(script.Parent.Signal)
-local Maid = require(script.Parent.Maid)
+local Janitor = require(script.Parent.Janitor)
 local State = require(script.Parent.State)
 local Serializer = require(script.Parent.Serializer)
 local User = {}
@@ -35,15 +35,15 @@ function User.new(dataStoreName, key)
 	local self = {}
 	setmetatable(self, User)
 	
-	-- Maid
-	local maid = Maid.new()
-	self._maid = maid
+	-- Janitor
+	local janitor = Janitor.new()
+	self.janitor = janitor
 	
 	-- Main
-	self.temp = maid:give(State.new(nil, true))
-	self.perm = maid:give(State.new(nil, true))
-	self.backup = maid:give(State.new(nil, true))
-	self._data = maid:give(State.new(nil, true))
+	self.temp = janitor:add(State.new(nil, true), "destroy")
+	self.perm = janitor:add(State.new(nil, true), "destroy")
+	self.backup = janitor:add(State.new(nil, true), "destroy")
+	self._data = janitor:add(State.new(nil, true), "destroy")
 	
 	-- Config
 	local currentTick = tick()
@@ -62,8 +62,8 @@ function User.new(dataStoreName, key)
 	self.sessionId = httpService:GenerateGUID(false)
 	self.isNewUser = nil
 	self.isLoaded = false
-	self.loaded = maid:give(Signal.new())
-	self.saved = maid:give(Signal.new())
+	self.loaded = janitor:add(Signal.new(), "destroy")
+	self.saved = janitor:add(Signal.new(), "destroy")
 	self.destroyed = Signal.new()
 	self.isDestroyed = false
 	self.player = nil
@@ -92,10 +92,10 @@ function User.new(dataStoreName, key)
 	self.backup.descendantChanged = self.backup:createDescendantChangedSignal(true)
 
 	-- Perm to _Data (serialization)
-	self.perm.descendantChanged:Connect(function(pathwayTable, permKey, permValue)
+	self.perm.descendantChanged:Connect(function(permKey, permValue, oldValue, pathwayArray, pathwayString)
 		local newPermKey = Serializer.serialize(permKey, true)
 		local newPermValue = Serializer.serialize(permValue, true)
-		self._data:getOrSetup(pathwayTable):set(newPermKey, newPermValue)
+		self._data:getOrSetup(pathwayArray):set(newPermKey, newPermValue)
 		self._data._tableUpdated = true
 	end)
 
@@ -300,14 +300,9 @@ end
 
 function User:destroy()
 	self.sessionId = nil
-	self._maid:clean()
+	self.janitor:destroy()
 	self.destroyed:Fire()
 	self.destroyed:Destroy()
-	for k, v in pairs(self) do
-		if typeof(v) == "table" then
-			self[k] = nil
-		end
-	end
 	self.isDestroyed = true
 end
 

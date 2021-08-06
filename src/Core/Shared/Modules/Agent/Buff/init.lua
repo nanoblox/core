@@ -1,7 +1,7 @@
 local main = require(game.Nanoblox)
 local httpService = game:GetService("HttpService")
 local bodyUtilPathway = script.BodyUtil
-local Maid = main.modules.Maid
+local Janitor = main.modules.Janitor
 local Signal = main.modules.Signal
 local Effects = require(script.Effects)
 local Buff = {}
@@ -10,7 +10,7 @@ Buff.__index = Buff
 
 
 -- CONSTRUCTOR
-function Buff.new(effect, property, weight)
+function Buff.new(effect, property, weight, additional)
     local self = {}
 	setmetatable(self, Buff)
 
@@ -19,16 +19,16 @@ function Buff.new(effect, property, weight)
         error(("'%s' is not a valid Buff Effect!"):format(tostring(effect)))
     end
 
-    local buffId = httpService:GenerateGUID(true)
+    local buffId = (additional and additional.customBuffId) or main.modules.DataUtil.generateUID()
     self.buffId = buffId
     self.timeUpdated = os.clock()
-    local maid = Maid.new()
-    self._maid = maid
+    local janitor = Janitor.new()
+    self.janitor = janitor
     self.isDestroyed = false
     self.effect = effect
-    self.additional = property
+    self.property = property
     self.weight = weight or 1
-    self.updated = maid:give(Signal.new())
+    self.updated = janitor:add(Signal.new(), "destroy")
     self.agent = nil
     self.appliedValueTables = {}
     self.incremental = nil
@@ -36,6 +36,47 @@ function Buff.new(effect, property, weight)
     self.accessories = {}
     self.tempBuffs = {}
     self.tempBuffDetails = {}
+    self.assignedTempBuffs = {}
+    self.readyToUpdateClient = false
+    self.assassinated = false
+
+    if additional then
+		for k, v in pairs(additional) do
+			self[k] = v
+		end
+	end
+
+    if self.effect == "HideCharacter" then
+        table.insert(self.tempBuffDetails, {{"BodyTransparency"}, {1}})
+        table.insert(self.tempBuffDetails, {{"Humanoid", "WalkSpeed"}, {0}})
+        task.delay(0.1, function()
+            -- This allows enough time for the Humanoid to register as 'stopped'
+            if not self.isDestroyed then
+                local collisionId = main.modules.CollisionUtil.getIdFromName("NanobloxPlayersWithNoCollision") or 0
+                table.insert(self.tempBuffDetails, {{"CollisionGroupId"}, {collisionId}})
+                table.insert(self.tempBuffDetails, {{"HumanoidRootPart", "Anchored"}, {true}})
+                self:_update(true)
+            end
+        end)
+        self.requiredTempValue = true
+        self:set(true)
+        self:setWeight(self.weight+0.1) -- +999
+        task.defer(self._update, self, true)
+    end
+
+    if main.isServer then
+        self.janitor:add(main.modules.Thread.defer(function()
+            -- We delay by 1 frame as a buff method (such as :set, :setWeight, etc) may be called immediately afterwards
+            if not self.isDestroyed then
+                self.readyToUpdateClient = true
+                local remote = self.agent.createClientBuffRemote
+                remote:fireAllClients(buffId, self.effect, self.property, self.weight, self.setterMethodName, self.value)
+                self.janitor:add(main.Players.PlayerAdded:Connect(function(player)
+                    remote:fireClient(player, buffId, self.effect, self.property, self.weight, self.setterMethodName, self.value)
+                end), "Disconnect")
+            end
+        end), "destroy")
+    end
 
 	return self
 end
@@ -45,8 +86,12 @@ end
 -- METHODS
 function Buff:_changeValue(value)
     local newValue = value
+
     if typeof(value) == "BrickColor" then
         newValue = Color3.new(value.r, value.g, value.b)
+
+    elseif self.effect == "CollisionGroupId" then
+        newValue = tostring(value)
 
     elseif typeof(value) == "Instance" then
         if value:IsA("HumanoidDescription") then
@@ -60,7 +105,7 @@ function Buff:_changeValue(value)
                         table.insert(newRigTypePathways.R6, r6Name)
                         setupAccessories(accessory, newRigTypePathways)
                     else
-                        local accessoryClone = self._maid:give(accessory:Clone())
+                        local accessoryClone = self.janitor:add(accessory:Clone(), "Destroy")
                         self.accessories[accessoryClone] = rigTypePathways
                     end
                 end
@@ -86,9 +131,30 @@ end
 function Buff:set(value, optionalTweenInfo)
     self.previousIncremental = self.incremental
     self.incremental = false
+    self.merge = false
     self.tweenInfo = optionalTweenInfo
     self.value = self:_changeValue(value)
+    self.setterMethodName = "set"
     self.timeUpdated = os.clock()
+    if self.readyToUpdateClient then
+        self.agent.callClientBuffRemote:fireAllClients(self.buffId, self.setterMethodName, value)
+    end
+    self:_update(true)
+    return self
+end
+
+function Buff:merge(value, optionalTweenInfo)
+    -- This is for HumanoidDescriptions where you wish to combine strings (such as accessories) to preserve original items
+    self.previousIncremental = self.incremental
+    self.incremental = false
+    self.merge = true
+    self.tweenInfo = optionalTweenInfo
+    self.value = self:_changeValue(value)
+    self.setterMethodName = "merge"
+    self.timeUpdated = os.clock()
+    if self.readyToUpdateClient then
+        self.agent.callClientBuffRemote:fireAllClients(self.buffId, self.setterMethodName, value)
+    end
     self:_update(true)
     return self
 end
@@ -97,9 +163,14 @@ function Buff:increment(value, optionalTweenInfo)
     assert(type(value) == "number", "incremental value must be a number!")
     self.previousIncremental = self.incremental
     self.incremental = true
+    self.merge = false
     self.tweenInfo = optionalTweenInfo
     self.value = self:_changeValue(value)
+    self.setterMethodName = "increment"
     self.timeUpdated = os.clock()
+    if self.readyToUpdateClient then
+        self.agent.callClientBuffRemote:fireAllClients(self.buffId, self.setterMethodName, value)
+    end
     self:_update(true)
     return self
 end
@@ -112,13 +183,16 @@ end
 function Buff:setWeight(weight)
     self.weight = weight or 1
     self.timeUpdated = os.clock()
+    if self.readyToUpdateClient then
+        self.agent.callClientBuffRemote:fireAllClients(self.buffId, "setWeight", weight)
+    end
     self:_update()
     return self
 end
 
 function Buff:_update(onlyUpdateThisBuff)
     if onlyUpdateThisBuff or self.onlyUpdateThisBuff then
-        self.updated:Fire(self.effect, self.additional)
+        self.updated:Fire(self.effect, self.property)
     else
         self.updated:Fire()
     end
@@ -138,13 +212,25 @@ function Buff:_getAppliedValueTable(effect, instance)
     return tab
 end
 
+function Buff:assassinate()
+    -- Silently destroys the buff
+    for _, tempBuff in pairs(self.tempBuffs) do
+        tempBuff:assassinate()
+    end
+    self.assassinated = true
+    self:destroy()
+end
+
 function Buff:destroy()
     if self.isDestroyed then return end
     self.isDestroyed = true
-    main.modules.Thread.delay(0.1, function()
-        -- We have this delay here to prevent 'appearance' commands from resetting then immidately snapping to a new buff (as there's slight frame different between killing and executing tasks).
+    if self.readyToUpdateClient then
+        self.agent.callClientBuffRemote:fireAllClients(self.buffId, "destroy")
+    end
+    task.delay(0.1, function()
+        -- We have this delay here to prevent 'appearance' commands from resetting then immidately snapping to a new buff (as there's slight frame different between killing and executing jobs).
         self:_update()
-        self._maid:clean()
+        self.janitor:destroy()
     end)
     return self
 end

@@ -1,7 +1,7 @@
 -- LOCAL
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local Signal = require(script.Parent.Signal)
-local Maid = require(script.Parent.Maid)
+local Janitor = require(script.Parent.Janitor)
 local activeTables = {}
 local State = {}
 setmetatable(State, {
@@ -68,24 +68,25 @@ end
 
 
 -- CONSTRUCTOR
-function State.new(props, convertDescendantsToTables)
+function State.new(props, convertDescendantsToTables, parentTable)
 	
 	local newTable = {}
-	local maid = Maid.new()
+	local janitor = Janitor.new()
 	if typeof(props) == "table" and (convertDescendantsToTables or props._convertDescendantsToTables) then
 		for k,v in pairs(props) do
 			if typeof(v) == "table" then
-				v = maid:give(State.new(v, convertDescendantsToTables))
+				v = janitor:add(State.new(v, convertDescendantsToTables, newTable), "destroy")
 			end
 			newTable[k] = v
 		end
 	end
 	
 	local hiddenKeys = {}
-	hiddenKeys["_tables"] = {}
-	hiddenKeys["_convertDescendantsToTables"] = convertDescendantsToTables
-	hiddenKeys["changedFirst"] = "signal"
-	hiddenKeys["changed"] = "signal"
+	hiddenKeys._tables = {}
+	hiddenKeys._convertDescendantsToTables = convertDescendantsToTables
+	hiddenKeys.changedFirst = "signal"
+	hiddenKeys.changed = "signal"
+	hiddenKeys._parentTable = parentTable
 	setmetatable(newTable, {
 		__index = function(this, index)
 			local newIndex = State[index]
@@ -93,7 +94,7 @@ function State.new(props, convertDescendantsToTables)
 				local hiddenValue = hiddenKeys[index]
 				if hiddenValue ~= nil then
 					if hiddenValue == "signal" then
-						hiddenValue = maid:give(Signal.new())
+						hiddenValue = janitor:add(Signal.new(), "destroy")
 						hiddenKeys[index] = hiddenValue
 					end
 					newIndex = hiddenValue
@@ -103,7 +104,7 @@ function State.new(props, convertDescendantsToTables)
 		end
 	})
 
-	activeTables[newTable] = {maid = maid, hiddenKeys = hiddenKeys} 
+	activeTables[newTable] = {janitor = janitor, hiddenKeys = hiddenKeys} 
 	
 	return newTable
 end
@@ -111,19 +112,28 @@ end
 
 
 -- METHODS
-function State:_get(cancelCriteria, ...)
-	local pathwayTable = {...}
-	if type(pathwayTable[1]) == "table" then
-		pathwayTable = ...
+local function getPathwayArray(...)
+	local pathwayArray = {...}
+	local firstItem = pathwayArray[1]
+	local firstItemType = type(firstItem)
+	if firstItemType == "table" then
+		pathwayArray = ...
+	elseif #pathwayArray == 1 and firstItemType == "string" then
+		pathwayArray = string.split(firstItem, ".")
 	end
-	local max = #pathwayTable
+	return pathwayArray
+end
+
+function State:_get(remainCriteria, ...)
+	local pathwayArray = getPathwayArray(...)
+	local max = #pathwayArray
 	local value = self
 	if max == 0 then
 		return value
 	end
-	for i, key in pairs(pathwayTable) do
+	for i, key in pairs(pathwayArray) do
 		value = value[key]
-		if not cancelCriteria(i, max, value) then
+		if not remainCriteria(i, max, value) then
 			return nil
 		end
 	end
@@ -143,12 +153,9 @@ function State:getSimple(...)
 end
 
 function State:getOrSetup(...)
-	local pathwayTable = {...}
-	if type(pathwayTable[1]) == "table" then
-		pathwayTable = ...
-	end
+	local pathwayArray = getPathwayArray(...)
 	local value = self
-	for i, key in pairs(pathwayTable) do
+	for i, key in pairs(pathwayArray) do
 		local nextValue = value[key]
 		if type(nextValue) ~= "table" then
 			nextValue = value:set(key, {}, true)
@@ -159,17 +166,14 @@ function State:getOrSetup(...)
 end
 
 function State:find(...)
-	local pathwayTable = {...}
-	if type(pathwayTable[1]) == "table" then
-		pathwayTable = ...
-	end
-	local max = #pathwayTable
-	local value = pathwayTable[max]
-	table.remove(pathwayTable, max)
+	local pathwayArray = getPathwayArray(...)
+	local max = #pathwayArray
+	local value = pathwayArray[max]
+	table.remove(pathwayArray, max)
 	max = max - 1
 	local tab = self
 	if max > 0 then
-		tab = self:get(unpack(pathwayTable))
+		tab = self:get(unpack(pathwayArray))
 	end
 	if type(tab) == "table" then
 		if #tab == 0 then return tab[value] end
@@ -193,10 +197,10 @@ end
 
 function State:set(stat, value, forceConvertTableToState)
 	local oldValue = self[stat]
-	if type(value) == "table" and (self._convertDescendantsToTables or forceConvertTableToState) then--and not value.new then
-		-- Convert tables and descending tables into States unless an object
-		local thisMaid = activeTables[self].maid
-		value = thisMaid:give(State.new(value, self._convertDescendantsToTables))
+	if type(value) == "table" and (self._convertDescendantsToTables or forceConvertTableToState) then
+		-- Convert tables and descending tables into States if permitted
+		local thisJanitor = activeTables[self].janitor
+		value = thisJanitor:add(State.new(value, self._convertDescendantsToTables, self), "destroy")
 	elseif value == nil and type(oldValue) == "table" and oldValue.isState then
 		-- Destroy State and descending States
 		oldValue:destroy()
@@ -204,7 +208,35 @@ function State:set(stat, value, forceConvertTableToState)
 	self[stat] = value
 	self.changedFirst:Fire(stat, value, oldValue)
 	self.changed:Fire(stat, value, oldValue)
+	local function callParentTable(childTable)
+		local parentTable = childTable._parentTable
+		if parentTable and parentTable.isState then
+			local parentStat
+			for k, v in pairs(parentTable) do
+				if v == childTable then
+					parentStat = k
+				end
+			end
+			parentTable.changed:Fire(parentStat, childTable, childTable, true)
+			callParentTable(parentTable)
+		end
+	end
+	callParentTable(self)
 	return value
+end
+
+function State:setPathway(pathwayArrayOrString, value, forceConvertTableToState)
+	local pathwayArray = getPathwayArray(pathwayArrayOrString)
+	local finalTable = self
+	local totalItems = #pathwayArray
+	if totalItems == 0 then
+		return false
+	end
+	local stat = table.remove(pathwayArray, totalItems)
+	if totalItems > 1 then
+		finalTable = self:getOrSetup(pathwayArray)
+	end
+	finalTable:set(stat, value, forceConvertTableToState)
 end
 
 function State:increment(stat, value)
@@ -249,6 +281,31 @@ function State:remove(pos)
 		local nextValue = self[i+1]
 		self:set(i, nextValue)
 	end
+	return true
+end
+
+function State:removeValue(valueToRemove)
+	local newArray = {}
+	for index, value in pairs(self) do
+		if value == valueToRemove then
+			self:set(index, nil)
+		else
+			table.insert(newArray, {value, index})
+		end
+	end
+	for index, detail in pairs(newArray) do
+		local value, originalIndex = unpack(detail)
+		if originalIndex ~= index then
+			self:set(index, value)
+		end
+	end
+	local totalItems = #newArray
+	for k, _ in pairs(self) do
+		if k > totalItems then
+			self:set(k, nil)
+		end
+	end
+	print("newArray = ", newArray)
 	return true
 end
 
@@ -318,26 +375,35 @@ end
 
 -- This creates a signal that is fired when descendant tables
 -- (and itself optionally) are changed. The first value returned
--- is a 'pathwayTable', followed by the normal .changed return values.
+-- is a 'pathwayArray', followed by the normal .changed return values.
 -- A pathway table enables you to get the table that was originally
 -- called, from the listening table, by doing
--- ``self:get(pathwayTable)``
+-- ``self:get(pathwayArray)``
 function State:createDescendantChangedSignal(includeSelf)
-	local maid = activeTables[self].maid
-	local signal = maid:give(Signal.new())
-	local function connectToTable(tab, pathwayTable, onlyListenToDescendants)
+	local janitor = activeTables[self].janitor
+	local signal = janitor:add(Signal.new(), "destroy")
+	local function connectToTable(tab, pathwayArray, onlyListenToDescendants)
 		local function connectChild(key, value)
 			if type(value) == "table" then
-				local newPathwayTable = deepCopyTable(pathwayTable)
-				table.insert(newPathwayTable, key)
-				connectToTable(value, newPathwayTable)
+				local newPathwayArray = deepCopyTable(pathwayArray)
+				table.insert(newPathwayArray, key)
+				connectToTable(value, newPathwayArray)
 			end
 		end
 		if not onlyListenToDescendants then
-			tab.changed:Connect(function(key, newValue, oldValue)
+			tab.changed:Connect(function(key, newValue, oldValue, fromDescendant)
+				if fromDescendant then
+					return
+				end
+				local pathwayArrayIncludingKey = {}
+				for _, v in pairs(pathwayArray) do
+					table.insert(pathwayArrayIncludingKey, v)
+				end
+				table.insert(pathwayArrayIncludingKey, key)
+				local pathwayString = table.concat(pathwayArrayIncludingKey, ".")
 				connectChild(key, newValue)
 				----
-				signal:Fire(pathwayTable, key, newValue, oldValue)
+				signal:Fire(key, newValue, oldValue, pathwayArray, pathwayString)
 				----
 			end)
 		end
@@ -345,8 +411,8 @@ function State:createDescendantChangedSignal(includeSelf)
 			connectChild(key, value)
 		end
 	end
-	local initialPathwayTable = {}
-	connectToTable(self, initialPathwayTable, not includeSelf)
+	local initialPathwayArray = {}
+	connectToTable(self, initialPathwayArray, not includeSelf)
 	return signal
 end
 
@@ -358,12 +424,12 @@ end
 function State:setTable(tableName, sortFunction, changeFirst)
 	local activeTable = activeTables[self]
 	if activeTable then
-		local maid = activeTable.maid
+		local janitor = activeTable.janitor
 		local hiddenKeys = activeTable.hiddenKeys
 		local event = (changeFirst and self.changedFirst) or self.changed
-		maid:give(event:Connect(function()
+		janitor:add(event:Connect(function()
 			hiddenKeys._tables[tableName] = sortFunction()
-		end))
+		end), "Disconnect")
 		hiddenKeys._tables[tableName] = sortFunction()
 	end
 end
@@ -382,13 +448,8 @@ end
 function State:destroy()
 	local activeTable = activeTables[self]
 	if activeTable then
-		activeTable.maid:clean()
-		for k, v in pairs(self) do
-			if typeof(v) == "table" then
-				self[k] = nil
-			end
-		end
-		setmetatable(self, {__index = nil})
+		activeTable.janitor:cleanup()
+		--setmetatable(self, {__index = nil})
 		return true
 	end
 	return false

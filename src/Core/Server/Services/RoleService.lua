@@ -128,20 +128,26 @@ function RoleService.generateRecord()
 		
 		-- Limit Abuse
 		limit = {
-			whenRequestsPerIntervalCapEnabled = true, -- I may have set this up in tasks already. Instead, make sure this goes into VERIFY and increases for *every command* within there
+			whenRequestsPerIntervalCapEnabled = true, -- I may have set this up in jobs already. Instead, make sure this goes into VERIFY and increases for *every command* within there
 			requestsPerIntervalCapRefresh = 10,
 			requestsPerIntervalCapAmount = 10,
 			whenRequestCooldownEnabled = false,
 			whenGlobalExecutionsPerIntervalCapEnabled = true,
 			globalExecutionsPerIntervalCapRefresh = 20,
 			globalExecutionsPerIntervalCapAmount = 5,
-			repeatCommands = true, -- this prevents a command from being repeated twice before finishing for users/servers. important: make sure to modify TaskService 'preventRepeatCommands'.
+			repeatCommands = true, -- this prevents a command from being repeated twice before finishing for users/servers. important: make sure to modify JobService 'preventRepeatCommands'.
 			whenScaleCapEnabled = true,
 			scaleCapAmount = 5,
 			denylistedIDs = true,
 			toAllowlistedIDs = false,
 			whenQualifierTargetCapEnabled = false,
 			qualifierTargetCapAmount = 1,
+			roleModifiersToOnlyRoleCommands = false, -- if true, this limits all the modifiers to its select role. for this,  
+		},
+
+		-- Similar to limit abuse
+		ignore = {
+			roleRestrictions = false,
 		},
 		
 		-- Individual Powers
@@ -173,14 +179,14 @@ function RoleService.generateRecord()
 			welcomeRankNotice = true,
 		},
 		
-		canBlockTasksFrom = { -- A block prevents that class of users using commands on the player
+		canBlockJobsFrom = { -- A block prevents that class of users using commands on the player
 			all = false,
 			seniors = false,
 			peers = false,
 			juniors = true,
 		},
 
-		canRevokeTasksFrom = {
+		canRevokeJobsFrom = {
 			all = false,
 			seniors = false,
 			peers = false,
@@ -389,7 +395,7 @@ end
 function RoleService._getSettingTablesFromPathways(...)
 	local settingTables = {}
 	for _, stringSetting in pairs({...}) do
-		local tableSetting = string.split(stringSetting, ".")
+		local tableSetting = DataUtil.getPathwayArrayFromString(stringSetting)
 		table.insert(settingTables, tableSetting)
 	end
 	return settingTables
@@ -548,7 +554,7 @@ function RoleService.giveRoles(user, arrayOfRoleNamesOrUIDs, roleType)
 	for _, roleNameOrUID in pairs(arrayOfRoleNamesOrUIDs) do
 		local role = RoleService.getRole(roleNameOrUID)
 		if role then
-			role:give(user, roleType)
+			role:giveTo(user, roleType)
 		else
 			warn(("Nanoblox: failed to give role '%s'; role does not exist!"):format(roleNameOrUID))
 		end

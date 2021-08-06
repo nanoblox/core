@@ -149,11 +149,11 @@ function GlobalService.addRecord(record)
 			end
 			active = false
 		end
-		Thread.spawn(function()
+		task.defer(function()
 			if not record.isFinished then
 				record.finished:Wait()
 			end
-			Thread.delay(invocationTimeout, function()
+			task.delay(invocationTimeout, function()
 				if not response then
 					informSender()
 					endSubscription()
@@ -174,7 +174,7 @@ function GlobalService.addRecord(record)
 					pendingServers[jobId] = nil
 					pendingCount = pendingCount - 1
 				end
-				Thread.delay(1, function()
+				task.delay(1, function()
 					if pendingCount == 0 then
 						endSubscription()
 						pendingCount = nil
@@ -211,7 +211,7 @@ function GlobalService.flushRecord(record)
 	end
 	local allRecordsSize = getDataSize(records)
 	if allRecordsSize + recordSize > maxMessageSize then
-		Thread.spawnNow(function()
+		task.spawn(function()
 			GlobalService.flushed:Wait()
 			GlobalService.flushRecord(record)
 		end)
@@ -221,7 +221,7 @@ function GlobalService.flushRecord(record)
 	if #records == 1 then
 		local delayTime = GlobalService.getMessageDelay(messagesThisMinute)
 		main.RunService.Heartbeat:Wait()
-		Thread.delay(delayTime, GlobalService.publishRecords, records)
+		task.delay(delayTime, GlobalService.publishRecords, records)
 	end
 end
 
@@ -258,7 +258,7 @@ function GlobalService.publishRecords(recordsToFlush)
 	local function reflushImportantRecords()
 		local exceededMessageLimit = messagesThisMinute > GlobalService.maxMessagesPerMinute
 		local delayTime = (exceededMessageLimit and nextRefresh + 1 - tick()) or 0
-		Thread.delay(delayTime, function()
+		task.delay(delayTime, function()
 			local cumulativeDataSize = 0
 			for _, record in pairs(recordsToFlush) do
 				if record.fr then
@@ -333,11 +333,10 @@ function GlobalService.createSender(name)
 		GlobalService.addRecord(record)
 		if isInvocation then
 			local invocationTopic = getInvocationTopic(name, invocationUID)
-			local invocationSignal = Signal.new()
-			sender._maid[invocationTopic] = invocationSignal
+			local invocationSignal = sender.janitor:add(Signal.new(), "destroy", invocationTopic)
 			sender[invocationTopic] = invocationSignal
 			local dataFromServers = invocationSignal:Wait()
-			sender._maid[invocationTopic] = nil
+			sender.janitor:remove(invocationTopic)
 			sender[invocationTopic] = nil
 			return dataFromServers
 		end
