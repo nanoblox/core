@@ -35,7 +35,7 @@ remotesStorage.ChildRemoved:Connect(function(child)
 end)
 
 -- This handles the notification of any blocked requests when firing to server
-spawn(function()
+task.defer(function()
 	local requestBlockedRemote = Remote.new("requestBlocked")
 	requestBlockedRemote.onClientEvent:Connect(function(blockedRemoteName, reason)
 		local blockedRemote = remotes[blockedRemoteName]
@@ -155,7 +155,7 @@ function Remote:_continueWhenRemoteInstanceLoaded(remoteType, functionToCall)
 		if continueWhenLoadedGroup then
 			for _, additionalFunctionToCall in pairs(continueWhenLoadedGroup) do
 				--print("B1: ", self.name, additionalFunctionToCall)
-				main.modules.Thread.spawnNow(additionalFunctionToCall, remoteInstance)
+				task.spawn(additionalFunctionToCall, remoteInstance)
 			end
 		end
 		--print("B2: ", self.name, functionToCall)

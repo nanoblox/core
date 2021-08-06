@@ -180,7 +180,7 @@ function Janitor.__index:Remove(Index)
 end
 
 --[[**
-	Gets whatever object is stored with the given index, if it exists. This was added since Maid allows getting the task using `__index`.
+	Gets whatever object is stored with the given index, if it exists. This was added since Maid allows getting the job using `__index`.
 	@param [t:any] Index The index that the object is stored under.
 	@returns [t:any?] This will return the object if it is found, but it won't return anything if it doesn't exist.
 **--]]

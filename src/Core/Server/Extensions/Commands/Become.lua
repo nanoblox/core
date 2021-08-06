@@ -20,10 +20,10 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilCallerRespawns
 Command.args = {"UserDescription"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local description = unpack(args)
 	if description then
-		task:buffCaller("HumanoidDescription"):set(description)
+		job:buffCaller("HumanoidDescription"):set(description)
 	end
 end
 

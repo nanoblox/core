@@ -3,11 +3,11 @@ local ClientCommand =	{}
 
 
 
-function ClientCommand.invoke(task, player)
-	local clone = task:add(main.modules.Clone.new(), "destroy")
-	task:getAsset("CreepyMelonDescription")
+function ClientCommand.invoke(job, player)
+	local clone = job:add(main.modules.Clone.new(), "destroy")
+	job:getAsset("CreepyMelonDescription")
 		:andThen(function(asset)
-			-- The asset is automatically tracked by the task therefore we don't need to add it to the janitor ourselves
+			-- The asset is automatically tracked by the job therefore we don't need to add it to the janitor ourselves
 			clone:become(asset)
 			clone:setSize(2)
 			clone:setDepth(1)
@@ -20,11 +20,11 @@ function ClientCommand.invoke(task, player)
 		:catch(warn)
 end
 
-function ClientCommand.revoke(task, ...)
+function ClientCommand.revoke(job, ...)
 	
 end
 
-function ClientCommand.replication(task, ...)
+function ClientCommand.replication(job, ...)
 	
 end
 

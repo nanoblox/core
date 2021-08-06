@@ -49,7 +49,7 @@ function SettingService.loaded()
 		return dictionary
 	end)
 	--[[
-	spawn(function()
+	defer(function()
 		wait(7)
 		print("ADD MELON COLOR")
 		--SettingService.records.System.colors:set("Ayyy (1)", Color3.fromRGB(0, 250, 21))
@@ -164,7 +164,7 @@ function SettingService.updateUsersPlayerSetting(user, settingPathway, settingVa
 		updatePlayerSettings()
 		return
 	end
-	main.modules.Thread.spawn(function()
+	task.defer(function()
 		user:waitUntilLoaded()
 		updatePlayerSettings()
 	end)

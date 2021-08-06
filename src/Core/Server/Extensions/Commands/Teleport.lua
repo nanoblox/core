@@ -22,9 +22,9 @@ Command.args = {"Players", "TargetPlayer"}
 
 Command.gap = 2
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local players = args[1]
-	local targetPlayer = args[2] or task.caller
+	local targetPlayer = args[2] or job.caller
 	local targetHRP = main.modules.PlayerUtil.getHRP(targetPlayer)
 	if not targetHRP then
 		return
@@ -42,7 +42,7 @@ function Command.invoke(task, args)
 			local targetCFrame = targetHRP.CFrame * CFrame.new(-(totalPlayers*(Command.gap/2))+(i*Command.gap)-(Command.gap/2), 0, -4) * CFrame.Angles(0, math.rad(180), 0)
 			local wasSeated = main.modules.HumanoidUtil.unseat(playerHumanoid)
 			local teleportDelay = (wasSeated and 0.1) or 0
-			task:delay(teleportDelay, function()
+			job:delay(teleportDelay, function()
 				playerHRP.CFrame = targetCFrame
 			end)
 			----

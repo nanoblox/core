@@ -3,7 +3,7 @@ local ClientCommand =	{}
 
 
 
-function ClientCommand.invoke(task, flyForce, bodyGyro, speed, noclip, propertyLock)
+function ClientCommand.invoke(job, flyForce, bodyGyro, speed, noclip, propertyLock)
 	local hrp = main.modules.PlayerUtil.getHRP()
 	local humanoid = main.modules.PlayerUtil.getHumanoid()
 	if not hrp or not humanoid then
@@ -34,12 +34,12 @@ function ClientCommand.invoke(task, flyForce, bodyGyro, speed, noclip, propertyL
 		end
 		if enabled then
 			for buffName, detail in pairs(buffDetails) do
-				local buff = task:buffPlayer(unpack(detail[1])):set(unpack(detail[2])):setWeight(detail[3])
-				task:add(buff, "destroy", buffName)
+				local buff = job:buffPlayer(unpack(detail[1])):set(unpack(detail[2])):setWeight(detail[3])
+				job:add(buff, "destroy", buffName)
 			end
 		else
 			for buffName, _ in pairs(buffDetails) do
-				local buff = task.janitor:get(buffName)
+				local buff = job.janitor:get(buffName)
 				if buff then
 					buff:destroy()
 				end
@@ -57,7 +57,7 @@ function ClientCommand.invoke(task, flyForce, bodyGyro, speed, noclip, propertyL
 				loopThread:disconnect()
 			end
 		else
-			loopThread = task:loop(0, function()
+			loopThread = job:loop(0, function()
 				local delta = tick()-lastUpdate
 				local look = (camera.Focus.Position - camera.CFrame.Position).unit
 				local move, directionalVector = main.modules.MovementUtil.getNextMovement(delta, speed*10)
@@ -101,7 +101,7 @@ function ClientCommand.invoke(task, flyForce, bodyGyro, speed, noclip, propertyL
 
 	-- This handles the toggling of flight when double jumping
 	local doubleJumpSignal = MovementUtil.getSignal("DoubleJump")
-	task:add(doubleJumpSignal:Connect(toggleFlight), "Disconnect")
+	job:add(doubleJumpSignal:Connect(toggleFlight), "Disconnect")
 
 	-- This handles the toggling of flight when pressing E
 	local function toggleFlightByKey(_, input)
@@ -109,9 +109,9 @@ function ClientCommand.invoke(task, flyForce, bodyGyro, speed, noclip, propertyL
 			toggleFlight()
 		end
 	end
-	local contextId = "NanobloxNoclip-"..task.UID
+	local contextId = "NanobloxNoclip-"..job.UID
 	main.ContextActionService:BindAction(contextId, toggleFlightByKey, false, Enum.KeyCode.E)
-	task:add(function()
+	job:add(function()
 		main.ContextActionService:UnbindAction(contextId)
 	end)
 

@@ -68,7 +68,7 @@ function System.new(name, ignoreTempChanges)
 	user.onlySaveDataWhenChanged = false
 	user.ignoreSaveOnBindToClose = true
 	--user.transformLoadDataTo = nil
-	Thread.spawn(function()
+	task.defer(function()
 		user:waitUntilLoaded()
 		--user.transformLoadDataTo = user.temp
 		--user.transformLoadDataTo = user.perm
@@ -116,7 +116,7 @@ function System.new(name, ignoreTempChanges)
 				self.senderSave:fireAllServers(requestUID)
 			end
 			if currentTick < newServerCooldownEnd then
-				Thread.delay(newServerCooldownEnd-currentTick, function()
+				task.delay(newServerCooldownEnd-currentTick, function()
 					currentTick = tick()
 					fireAway()
 				end)
@@ -144,7 +144,7 @@ function System.new(name, ignoreTempChanges)
 	local nextAvailableSaveTick = tick()
 	local requestsList = {}
 	local saveCooldown = 7
-	Thread.spawn(function()
+	task.defer(function()
 		main.waitUntilStarted()
 		self.senderSave = main.services.GlobalService.createSender(name.."Save")
 		self.receiverSave = main.services.GlobalService.createReceiver(name.."Save")
@@ -175,9 +175,9 @@ function System.new(name, ignoreTempChanges)
 				isAlsoSender:Destroy()
 				myUIDs[requestUID] = nil
 			else
-				Thread.spawn(function() user:loadAsync() end)
+				task.defer(function() user:loadAsync() end)
 			end
-			Thread.delay(saveCooldown, function()
+			task.delay(saveCooldown, function()
 				table.remove(requestsList, 1)
 				local nextRequestUID = requestsList[1]
 				local readyToSaveSignal = myUIDs[nextRequestUID]
@@ -311,7 +311,7 @@ function System.new(name, ignoreTempChanges)
 					action()
 				end
 				if self.recordsActionDelay > 0 then
-					Thread.delay(self.recordsActionDelay, endFunc)
+					task.delay(self.recordsActionDelay, endFunc)
 				else
 					endFunc()
 				end
@@ -372,7 +372,7 @@ function System.new(name, ignoreTempChanges)
 					reallllllllll:set(key, newValue)
 				end
 				if self.recordsActionDelay > 0 then
-					Thread.delay(self.recordsActionDelay, endFunc)
+					task.delay(self.recordsActionDelay, endFunc)
 				else
 					endFunc()
 				end

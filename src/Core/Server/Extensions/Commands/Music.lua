@@ -20,9 +20,9 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilRevoked
 Command.args = {"SoundId"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local soundId = unpack(args)
-	local sound = task:add(main.modules.Sound.new(soundId, main.enum.SoundType.Music), "destroy")
+	local sound = job:add(main.modules.Sound.new(soundId, main.enum.SoundType.Music), "destroy")
 	sound.Name = "NanobloxMusic"
 	sound.Parent = main.workspaceFolder
 	sound:Play()

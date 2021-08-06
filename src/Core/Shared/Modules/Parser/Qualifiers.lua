@@ -64,19 +64,22 @@ Qualifiers.array = {
 		multi = false,
 		description = "One randomly selected player from a pool. To define a pool, do ``random(qualifier1,qualifier2,...)``. If not defined, the pool defaults to 'all'.",
 		getTargets = function(callerUserId, ...)
-			local subQualifiers = table.pack(...)
+			local subQualifiers = {...}
 			if #subQualifiers == 0 then
 				table.insert(subQualifiers, "all")
 			end
 			local pool = {}
 			for _, subQualifier in pairs(subQualifiers) do
-				local subPool = ((Qualifiers.get(subQualifier) or Qualifiers.defaultQualifier).getTargets(callerUserId))
-					or {}
+				local subPool = ((Qualifiers.get(subQualifier) or Qualifiers.defaultQualifier).getTargets(callerUserId, subQualifier)) or {}
 				for _, plr in pairs(subPool) do
 					table.insert(pool, plr)
 				end
 			end
-			local targets = { pool[math.random(1, #pool)] }
+			local totalPool = #pool
+			local targets = {}
+			if totalPool > 0 then
+				targets = {pool[math.random(1, #pool)]}
+			end
 			return targets
 		end,
 	},

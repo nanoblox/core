@@ -3,7 +3,7 @@ local ClientCommand =	{}
 
 
 
-function ClientCommand.invoke(task, speed)
+function ClientCommand.invoke(job, speed)
 	local hrp = main.modules.PlayerUtil.getHRP()
 	local humanoid = main.modules.PlayerUtil.getHumanoid()
 	if not hrp or not humanoid then
@@ -22,12 +22,12 @@ function ClientCommand.invoke(task, speed)
 		}
 		if enabled then
 			for buffName, detail in pairs(buffDetails) do
-				local buff = task:buffPlayer(unpack(detail[1])):set(unpack(detail[2])):setWeight(detail[3])
-				task:add(buff, "destroy", buffName)
+				local buff = job:buffPlayer(unpack(detail[1])):set(unpack(detail[2])):setWeight(detail[3])
+				job:add(buff, "destroy", buffName)
 			end
 		else
 			for buffName, _ in pairs(buffDetails) do
-				local buff = task.janitor:get(buffName)
+				local buff = job.janitor:get(buffName)
 				if buff then
 					buff:destroy()
 				end
@@ -42,7 +42,7 @@ function ClientCommand.invoke(task, speed)
 		else
 			local lastUpdate = tick()
 			local camera = main.modules.CameraUtil.camera
-			loopThread = task:loop(0, function()
+			loopThread = job:loop(0, function()
 				local delta = tick()-lastUpdate
 				local look = (camera.Focus.p - camera.CFrame.p).unit
 				local move = main.modules.MovementUtil.getNextMovement(delta, speed)
@@ -58,7 +58,7 @@ function ClientCommand.invoke(task, speed)
 
 	-- This handles the toggling of flight when double jumping
 	local doubleJumpSignal = main.modules.MovementUtil.getSignal("DoubleJump")
-	task:add(doubleJumpSignal:Connect(toggleFlight), "Disconnect")
+	job:add(doubleJumpSignal:Connect(toggleFlight), "Disconnect")
 
 	-- This handles the toggling of flight when pressing E
 	local function toggleFlightByKey(_, input)
@@ -66,9 +66,9 @@ function ClientCommand.invoke(task, speed)
 			toggleFlight()
 		end
 	end
-	local contextId = "NanobloxNoclip-"..task.UID
+	local contextId = "NanobloxNoclip-"..job.UID
 	main.ContextActionService:BindAction(contextId, toggleFlightByKey, false, Enum.KeyCode.E)
-	task:add(function()
+	job:add(function()
 		main.ContextActionService:UnbindAction(contextId)
 	end)
 end

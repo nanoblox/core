@@ -20,18 +20,18 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerRespawns
 Command.args = {"Player", "Material", "BodyParts"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local _, material = unpack(args)
 	if material then
-		local bodyParts = task:getOriginalArg("BodyParts")
+		local bodyParts = job:getOriginalArg("BodyParts")
 		if bodyParts then
 			for _, bodyPartName in pairs(bodyParts) do
 				if bodyPartName ~= "Accessories" then
-					task:buffPlayer("BodyMaterial", bodyPartName):set(material)
+					job:buffPlayer("BodyMaterial", bodyPartName):set(material)
 				end
 			end
 		else
-			task:buffPlayer("BodyMaterial"):set(material)
+			job:buffPlayer("BodyMaterial"):set(material)
 		end
 	end
 end

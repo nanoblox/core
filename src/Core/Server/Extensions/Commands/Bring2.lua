@@ -20,10 +20,10 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.None
 Command.args = {"Players"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local players = args[1]
-	local targetPlayer = task.caller
-	task:hijackCommand("Teleport2", {players, targetPlayer})
+	local targetPlayer = job.caller
+	job:hijackCommand("Teleport2", {players, targetPlayer})
 end
 
 

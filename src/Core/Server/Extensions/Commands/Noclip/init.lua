@@ -20,19 +20,19 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerDies
 Command.args = {"Player", "Speed"}
 
-function Command.invoke(task, args, custom)
+function Command.invoke(job, args, custom)
 	local player = args[1]
 	
-	-- If another flight task is enabled, kill it
-	local potentialTasksToClear = main.services.TaskService.getTasksWithPlayerUserId(player.UserId)
-	for _, potentialTask in pairs(potentialTasksToClear) do
-		if potentialTask ~= task and potentialTask:findTag("Flight") then
-            potentialTask:kill()
+	-- If another flight job is enabled, kill it
+	local potentialJobsToClear = main.services.JobService.getJobsWithPlayerUserId(player.UserId)
+	for _, potentialJob in pairs(potentialJobsToClear) do
+		if potentialJob ~= job and potentialJob:findTag("Flight") then
+            potentialJob:kill()
         end
     end
 
-	local speed = (custom and custom.speed) or task:getOriginalArg("Speed") or 100
-	task:invokeClient(player, speed)
+	local speed = (custom and custom.speed) or job:getOriginalArg("Speed") or 100
+	job:invokeClient(player, speed)
 end
 
 

@@ -20,11 +20,11 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerRespawns
 Command.args = {"Player", "accessoryDictionary"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local player, dictionary = unpack(args)
 	print("player, dictionary = ", player, dictionary)
 	if dictionary then
-		task:buffPlayer("HumanoidDescription", dictionary.hdPropertyName):merge(dictionary.accessoryId)
+		job:buffPlayer("HumanoidDescription", dictionary.hdPropertyName):merge(dictionary.accessoryId)
 	end
 end
 

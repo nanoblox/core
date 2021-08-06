@@ -14,7 +14,7 @@ function FunctionUtil.preventMultiFrameUpdates(func)
 		callsThisFrame += 1
 		if not updatedThisFrame then
 			local args = table.pack(...)
-			main.modules.Thread.spawn(function()
+			task.defer(function()
 				updatedThisFrame = false
 				if callsThisFrame > 1 then
 					callsThisFrame = 1

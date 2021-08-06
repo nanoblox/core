@@ -131,7 +131,7 @@ function Sound.new(soundId, soundType)
             pcall(function() soundInstance.Parent = player.PlayerGui end)
             soundInstance.Parent = originalParent
             -- Delay by a frame to ensure PlayerService creates the User
-            main.modules.Thread.spawn(function()
+            task.defer(function()
                 local user = main.modules.PlayerStore:getUser(player)
                 if not user then
                     return
@@ -195,7 +195,7 @@ function Sound:trackChanges(specificPropertyName)
                     return
                 end
                 totalChangesThisFrame += 1
-                main.modules.Thread.spawn(function()
+                task.defer(function()
                     totalChangesThisFrame -= 1
                 end)
                 local only1ChangeSoFar = totalChangesThisFrame == 1

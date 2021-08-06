@@ -24,15 +24,15 @@ Command.restrictions = {
 	maxClones = 5,
 }
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	-- This ensures users without permission cannot exceed maxClones
-	local tasks = main.services.TaskService.getTasksWithCommandNameAndCallerUserId(task.commandName, task.callerUserId)
-	local totalTasks = #tasks
-	if task.restrict and totalTasks > Command.restrictions.maxClones then
+	local jobs = main.services.JobService.getJobsWithCommandNameAndCallerUserId(job.commandName, job.callerUserId)
+	local totalJobs = #jobs
+	if job.restrict and totalJobs > Command.restrictions.maxClones then
 		warn(("You do not have permission to exceed %s clones!"):format(Command.restrictions.maxClones)) --!!!notice
-		return task:kill()
+		return job:kill()
 	end
-	
+
     local player, userId = unpack(args)
 	local playerHead = main.modules.PlayerUtil.getHead(player)
 	local callerHRP = main.modules.PlayerUtil.getHRP(player)
@@ -43,14 +43,14 @@ function Command.invoke(task, args)
 		-- This creates the clone and spawns it in front of the caller
 		local clonePlayer = main.Players:GetPlayerByUserId(userId)
 		local cloneOrUserId = clonePlayer or userId
-		local clone = task:add(main.modules.Clone.new(cloneOrUserId), "destroy")
+		local clone = job:add(main.modules.Clone.new(cloneOrUserId), "destroy")
 		clone:setCFrame(cloneCFrame)
 
-		-- It's important we kill the task (after the games respawn interval) in case the clone dies
+		-- It's important we kill the job (after the games respawn interval) in case the clone dies
 		clone.Humanoid.Died:Connect(function()
 			clone:setAnchored(false)
 			clone:BreakJoints()
-			task:delay(main.Players.RespawnTime, task.kill, task)
+			job:delay(main.Players.RespawnTime, job.kill, job)
 		end)
 	end
 end

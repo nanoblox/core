@@ -20,8 +20,8 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerDies
 Command.args = {"Player", "Speed"}
 
-function Command.invoke(task, args)
-	task:hijackCommand("Fly", args, {
+function Command.invoke(job, args)
+	job:hijackCommand("Fly", args, {
 		speed = 50,
 		propertyLock = "Sit",
 		noclip = false,

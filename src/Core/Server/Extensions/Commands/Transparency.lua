@@ -20,10 +20,10 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerRespawns
 Command.args = {"Player", "Number"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local _, number = unpack(args)
 	if number then
-		task:buffPlayer("BodyTransparency"):set(number)
+		job:buffPlayer("BodyTransparency"):set(number)
 	end
 end
 

@@ -20,7 +20,7 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.None
 Command.args = {"Player"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local player = unpack(args)
 	-- First, clear the existing HumanoidDescription
 	local humanoid = main.modules.PlayerUtil.getHumanoid(player)
@@ -47,11 +47,11 @@ function Command.invoke(task, args)
 			buff:assassinate()
 		end
 	end
-	-- Third, end any accessory related tasks
-	local potentialTasksToClear = main.services.TaskService.getTasksWithPlayerUserId(player.UserId)
-	for _, potentialTask in pairs(potentialTasksToClear) do
-		if potentialTask ~= task and potentialTask:findTag("Accessory") then
-            potentialTask:kill()
+	-- Third, end any accessory related jobs
+	local potentialJobsToClear = main.services.JobService.getJobsWithPlayerUserId(player.UserId)
+	for _, potentialJob in pairs(potentialJobsToClear) do
+		if potentialJob ~= job and potentialJob:findTag("Accessory") then
+            potentialJob:kill()
         end
     end
 	-- Finally, destroy any accessories that may remain on the character

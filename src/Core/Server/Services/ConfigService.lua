@@ -92,7 +92,7 @@ function ConfigService.start()
 		-- Finally, update the temp (server) container
 		service.recordsActionDelay = 0
 		systemUser.temp:transformTo(categoryTable)
-		Thread.spawn(function()
+		task.defer(function()
 			service.recordsActionDelay = service.originalRecordsActionDelay
 		end)
 		-- Remove tm
@@ -145,7 +145,7 @@ function ConfigService.start()
 		if not service then return end
 		local systemUser = service.user
 		if isNilled then
-			Thread.delay(3, function()
+			task.delay(3, function()
 				if service.records[key] ~= nil and systemUser.perm:get(key) == nil and DataUtil.isEqual(isNilled, nilledUser.perm:find(categoryName, key)) then
 					systemUser.temp:set(key, nil)
 				end

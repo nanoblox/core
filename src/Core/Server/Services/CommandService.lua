@@ -229,8 +229,8 @@ function CommandService.generateRecord(key)
 		cooldown = 0,
 		persistence = main.enum.Persistence.None,
 		args = {},
-		invoke = function(task, args)
-			warn(("Nanoblox command '%s' failed to load."):format(tostring(task.commandName)))
+		invoke = function(job, args)
+			warn(("Nanoblox command '%s' failed to load."):format(tostring(job.commandName)))
 		end
 	}
 end
@@ -410,11 +410,11 @@ function CommandService.verifyThenExecuteStatement(callerUser, statement)
 			end
 			if approved then
 				return Promise.new(function(resolve, reject)
-					local sucess, tasksOrWarning = CommandService.executeStatement(callerUserId, statement):await()
+					local sucess, jobsOrWarning = CommandService.executeStatement(callerUserId, statement):await()
 					if sucess then
-						return resolve(true, tasksOrWarning)
+						return resolve(true, jobsOrWarning)
 					end
-					reject(tasksOrWarning)
+					reject(jobsOrWarning)
 				end)
 			end
 			return false
@@ -450,16 +450,16 @@ function CommandService.verifyThenExecuteBatch(callerUser, batch, message)
 		if not approvedAllStatements then
 			return resolve(false, "Invalid permission to execute all statements")
 		end
-		local collectiveTasks = {}
+		local collectiveJobs = {}
 		for _, statement in pairs(batch) do
-			local sucess, tasks = CommandService.executeStatement(callerUserId, statement):await()
+			local sucess, jobs = CommandService.executeStatement(callerUserId, statement):await()
 			if sucess then
-				for _, task in pairs(tasks) do
-					table.insert(collectiveTasks, task)
+				for _, job in pairs(jobs) do
+					table.insert(collectiveJobs, job)
 				end
 			end
 		end
-		resolve(true, collectiveTasks)
+		resolve(true, collectiveJobs)
 	end)
 end
 
@@ -652,7 +652,7 @@ function CommandService.executeStatement(callerUserId, statement)
 
 	local Args = main.modules.Parser.Args
 	local promises = {}
-	local tasks = {}
+	local jobs = {}
 	local isPermModifier = statement.modifiers.perm
 	local isGlobalModifier = statement.modifiers.wasGlobal
 	for commandName, arguments in pairs(statement.commands) do
@@ -660,8 +660,8 @@ function CommandService.executeStatement(callerUserId, statement)
 		local command = CommandService.getCommand(commandName)
 		local firstArgName = command.args[1] or ""
 		local executeForEachPlayerFirstArg = Args.executeForEachPlayerArgsDictionary[string.lower(firstArgName)]
-		local TaskService = main.services.TaskService
-		local properties = TaskService.generateRecord()
+		local JobService = main.services.JobService
+		local properties = JobService.generateRecord()
 		properties.callerUserId = callerUserId
 		properties.commandName = commandName
 		properties.args = arguments or properties.args
@@ -689,9 +689,9 @@ function CommandService.executeStatement(callerUserId, statement)
 		end
 		if not splitIntoUsers then
 			properties.qualifiers = statement.qualifiers or properties.qualifiers
-			local task = main.services.TaskService.createTask(addToPerm, properties)
-			if task then
-				table.insert(tasks, task)
+			local job = main.services.JobService.createJob(addToPerm, properties)
+			if job then
+				table.insert(jobs, job)
 			end
 		else
 			table.insert(promises, Promise.defer(function(resolve)
@@ -699,9 +699,9 @@ function CommandService.executeStatement(callerUserId, statement)
 				for _, plr in pairs(targetPlayers) do
 					local newProperties = main.modules.TableUtil.copy(properties)
 					newProperties.playerUserId = plr.UserId
-					local task = main.services.TaskService.createTask(addToPerm, newProperties)
-					if task then
-						table.insert(tasks, task)
+					local job = main.services.JobService.createJob(addToPerm, newProperties)
+					if job then
+						table.insert(jobs, job)
 					end
 				end
 				resolve()
@@ -710,7 +710,7 @@ function CommandService.executeStatement(callerUserId, statement)
 	end
 	return Promise.all(promises)
 		:andThen(function()
-			return tasks
+			return jobs
 		end)
 end
 

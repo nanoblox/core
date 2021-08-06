@@ -49,7 +49,7 @@ function Buff.new(effect, property, weight, additional)
     if self.effect == "HideCharacter" then
         table.insert(self.tempBuffDetails, {{"BodyTransparency"}, {1}})
         table.insert(self.tempBuffDetails, {{"Humanoid", "WalkSpeed"}, {0}})
-        main.modules.Thread.delay(0.1, function()
+        task.delay(0.1, function()
             -- This allows enough time for the Humanoid to register as 'stopped'
             if not self.isDestroyed then
                 local collisionId = main.modules.CollisionUtil.getIdFromName("NanobloxPlayersWithNoCollision") or 0
@@ -61,11 +61,11 @@ function Buff.new(effect, property, weight, additional)
         self.requiredTempValue = true
         self:set(true)
         self:setWeight(self.weight+0.1) -- +999
-        main.modules.Thread.spawn(self._update, self, true)
+        task.defer(self._update, self, true)
     end
 
     if main.isServer then
-        self.janitor:add(main.modules.Thread.spawn(function()
+        self.janitor:add(main.modules.Thread.defer(function()
             -- We delay by 1 frame as a buff method (such as :set, :setWeight, etc) may be called immediately afterwards
             if not self.isDestroyed then
                 self.readyToUpdateClient = true
@@ -227,8 +227,8 @@ function Buff:destroy()
     if self.readyToUpdateClient then
         self.agent.callClientBuffRemote:fireAllClients(self.buffId, "destroy")
     end
-    main.modules.Thread.delay(0.1, function()
-        -- We have this delay here to prevent 'appearance' commands from resetting then immidately snapping to a new buff (as there's slight frame different between killing and executing tasks).
+    task.delay(0.1, function()
+        -- We have this delay here to prevent 'appearance' commands from resetting then immidately snapping to a new buff (as there's slight frame different between killing and executing jobs).
         self:_update()
         self.janitor:destroy()
     end)

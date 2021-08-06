@@ -3,7 +3,7 @@ local ClientCommand =	{}
 
 
 
-function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
+function ClientCommand.invoke(job, targetPlayer, congaList, delay, gap)
 
 	-- This command could have been a few lines long, although I really wanted to provide the ability to customise the configuration.delay and configuration.gap, hence
 	-- it became this mammoth instead (due to the additional details like jumps, motors, positions, etc that require tracking)
@@ -33,7 +33,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 			NanobloxCongaDelay = "delay",
 			NanobloxCongaGap = "gap",
 		}
-		task:add(tag.AttributeChanged:Connect(function(attributeName)
+		job:add(tag.AttributeChanged:Connect(function(attributeName)
 			local configKey = tagAttributeValues[attributeName]
 			if configKey then
 				configuration[configKey] = tag:GetAttribute(attributeName)
@@ -82,7 +82,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 		end
 		return requiredTotalAnims == #currentAnims
 	end
-	task:add(main.RunService.Stepped:Connect(function()
+	job:add(main.RunService.Stepped:Connect(function()
 		
 		-- Animation names don't replicate to other clients therefore we have to find the names ourself by comparing AnimationIds
 		local currentAnimsOriginal = targetPlayerAnimator:GetPlayingAnimationTracks()
@@ -197,12 +197,12 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 	end), "Disconnect")
 
 	-- This constructs the clone
-	local playerChattedRemote = task:add(main.modules.Remote.new("PlayerChatted-"..task.UID), "destroy")
+	local playerChattedRemote = job:add(main.modules.Remote.new("PlayerChatted-"..job.UID), "destroy")
 	local cloneStartIndex = 1
 	local clonePastHistoryIndexes = {}
 	local function createClone(index, player)
 		-- This creates and modifies the clone
-		local clone = task:add(main.modules.Clone.new(player, {forcedRigType = rigType}), "destroy")
+		local clone = job:add(main.modules.Clone.new(player, {forcedRigType = rigType}), "destroy")
 		clone:anchorHRP(true)
 		clone:setCollidable(false)
 		clone.congaPlayer = player
@@ -417,7 +417,7 @@ function ClientCommand.invoke(task, targetPlayer, congaList, delay, gap)
 		createClone(index, player)
 	end
 
-	local congaListRemote = task:add(main.modules.Remote.new("CongaList-"..task.UID), "destroy")
+	local congaListRemote = job:add(main.modules.Remote.new("CongaList-"..job.UID), "destroy")
 	congaListRemote.onClientEvent:Connect(function(index, playerOrNil)
 		local existingClone = playerClones[index]
 		if playerOrNil == nil then

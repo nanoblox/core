@@ -20,7 +20,7 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.None
 Command.args = {"Player", "AnimationId", "AnimationSpeed"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local player, animationId, speed = unpack(args)
 	-- This constructs the animation on the server so it can replicate to all other clients
 	local animTrack = main.modules.PlayerUtil.loadTrack(player, animationId)
@@ -28,21 +28,21 @@ function Command.invoke(task, args)
 	if not animTrack then
 		return
 	end
-	task:add(animTrack, "Destroy")
-	task:add(animation, "Destroy")
+	job:add(animTrack, "Destroy")
+	job:add(animation, "Destroy")
 	-- For a bizarre reason, there is no animTrack.Loaded event, so we have to repeat wait until its length is greater than 0 instead
-	task:delayUntil(function() return animTrack.Length > 0 end, function()
+	job:delayUntil(function() return animTrack.Length > 0 end, function()
 		local isLooped = animTrack.looped
 		-- If is looped, bypass the client invocation expiry of 90 seconds
 		if isLooped then
-			task.persistence = main.enum.Persistence.UntilPlayerDies
+			job.persistence = main.enum.Persistence.UntilPlayerDies
 		end
 		animTrack.Priority = Enum.AnimationPriority.Action
 		animTrack.Looped = isLooped
 		-- If speed defaulted (i.e. was not specified, set to 1)
 		speed = speed or 1
 		-- We invoke all clients, instead of just the individual whos playing, to make animations perfectly syncronised and to be able to set the track.Priority
-		task:invokeAllAndFutureClients(player, animationId, speed, isLooped)
+		job:invokeAllAndFutureClients(player, animationId, speed, isLooped)
 	end)
 end
 

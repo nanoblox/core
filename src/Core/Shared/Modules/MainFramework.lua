@@ -109,7 +109,7 @@ function main.initiate(loader)
 				-- Call init
 				if rawget(moduleData, "init") then
 					if doNotYield then
-						Thread.spawn(moduleData.init)
+						task.defer(moduleData.init)
 					else
 						moduleData.init()
 					end
@@ -171,7 +171,7 @@ function main.initiate(loader)
 			local method = type(moduleData) == "table" and moduleData[methodName]
 			if method then
 				serviceMethodsToCall += 1
-				Thread.spawn(function()
+				task.defer(function()
 					method(moduleData)
 					serviceMethodsCalled += 1
 				end)

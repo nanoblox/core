@@ -20,7 +20,7 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.None
 Command.args = {"Player", "Gear"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local player, gear = unpack(args)
 	if gear then
 		gear:Clone().Parent = player.Backpack

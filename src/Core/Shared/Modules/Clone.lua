@@ -106,7 +106,7 @@ function Clone:become(item)
     ]]
     local clone = self._cloneCharacter
     local function getAndApplyDescription()
-        main.modules.Thread.spawn(function()
+        task.defer(function()
             if self.humanoidDescription then
                 return self:applyHumanoidDescription(self.humanoidDescription)
             end
@@ -185,7 +185,7 @@ function Clone:become(item)
                     clone.Name = self.username
                     self.userId = inServerPlayer.UserId
                 else
-                    main.modules.Thread.spawn(function()
+                    task.defer(function()
                         local username = self.username
                         if not username and self.userId then
                             local success, newUsername = main.modules.PlayerUtil.getNameFromUserId(self.userId):await()
@@ -249,7 +249,7 @@ function Clone:become(item)
             animateScript.CloneCharacter.Value = clone
             animateScript.Parent = clientAnimateStorage
         end
-        main.modules.Thread.spawn(function()
+        task.defer(function()
             self:disableAnimateScript(self.animateScriptDisabled)
         end)
     
@@ -285,7 +285,7 @@ function Clone:become(item)
 
         elseif self.userId or self.username or self.humanoidDescription then
             getAndApplyDescription()
-            main.modules.Thread.spawn(function()
+            task.defer(function()
                 local username = self.username
                 if not username and self.userId then
                     local success, newUsername = main.modules.PlayerUtil.getNameFromUserId(self.userId):await()
@@ -475,7 +475,7 @@ function Clone:face(playerOrBasePart, power, dampening)
 
     local basePart
     if playerOrBasePart:IsA("Player") then
-        main.modules.Thread.spawn(function()
+        task.defer(function()
             local currentChar = playerOrBasePart.Character or playerOrBasePart.CharacterAdded:Wait()
             basePart = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:WaitForChild("HumanoidRootPart", 3)
         end)
@@ -529,7 +529,7 @@ function Clone:watch(playerOrBasePart)
 
     local basePart
     if playerOrBasePart:IsA("Player") then
-        main.modules.Thread.spawn(function()
+        task.defer(function()
             local currentChar = playerOrBasePart.Character or playerOrBasePart.CharacterAdded:Wait()
             basePart = currentChar:FindFirstChild("Head") or currentChar:WaitForChild("Head", 3)
         end)
@@ -615,7 +615,7 @@ function Clone:modifyHumanoidDescription(propertyName, value)
     end
 	if self.humanoidDescriptionCount == myCount and not self.applyingHumanoidDescription then
         self.applyingHumanoidDescription = true
-        main.modules.Thread.spawn(function()
+        task.defer(function()
 			local iterations = 0
             local appliedDesc
             local watchingPart = self.watchingPlayerOrBasePart
@@ -811,7 +811,7 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
 
             moveToWaypoint()
         else
-            main.modules.Thread.delay(1, function()
+            task.delay(1, function()
                 self.reachedTarget = true
                 self.janitor:remove("pathJanitor")
                 cloneHumanoid:MoveTo(self.hrp.Position)
@@ -839,7 +839,7 @@ function Clone:moveTo(targetPosition, studsAwayToStop, trackingBasePart)
         end
     end
 
-    main.modules.Thread.spawn(computeWaypoints)
+    task.defer(computeWaypoints)
 
     pathJanitor:add(path.Blocked:Connect(onPathBlocked), "Disconnect")
     pathJanitor:add(cloneHumanoid.MoveToFinished:Connect(onWaypointReached), "Disconnect")
@@ -850,7 +850,7 @@ function Clone:follow(playerOrBasePart, studsAwayToStop)
 
 	local basePart
     if playerOrBasePart:IsA("Player") then
-        main.modules.Thread.spawn(function()
+        task.defer(function()
             local currentChar = playerOrBasePart.Character or playerOrBasePart.CharacterAdded:Wait()
             basePart = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:WaitForChild("HumanoidRootPart", 3)
         end)

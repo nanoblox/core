@@ -1,7 +1,7 @@
 -- Modifiers are items that can be applied to statements to enhance a commands default behaviour
 -- They are split into two groups:
--- 		1. PreAction Modifiers - these execute before a task is created and can block the task being created entirely
---		2. Action Modifiers - these execute while a task is running and can extend the longevity of the task
+-- 		1. PreAction Modifiers - these execute before a job is created and can block the job being created entirely
+--		2. Action Modifiers - these execute while a job is running and can extend the longevity of the job
 
 local main = require(game.Nanoblox)
 local Modifiers = {}
@@ -49,12 +49,12 @@ Modifiers.array = {
 		name = "perm",
 		aliases = {},
 		order = 3,
-		description = "Permanently saves the task. This means in addition to the initial execution, the command will be executed whenever a server starts, or if player specific, every time the player joins a server.",
+		description = "Permanently saves the job. This means in addition to the initial execution, the command will be executed whenever a server starts, or if player specific, every time the player joins a server.",
 		preAction = function(_, statement)
 			local modifiers = statement.modifiers
 			local oldGlobal = modifiers.global
 			if oldGlobal then
-				-- Its important to ignore the global modifier in this situation as setting Task to
+				-- Its important to ignore the global modifier in this situation as setting Job to
 				-- perm storage achieves the same effect. Merging both together however would create
 				-- a vicious infinite cycle
 				modifiers.global = nil
@@ -69,7 +69,7 @@ Modifiers.array = {
 		name = "global",
 		aliases = {},
 		order = 4,
-		description = "Broadcasts the task to all servers.",
+		description = "Broadcasts the job to all servers.",
 		preAction = function(callerUserId, statement)
 			local CommandService = main.services.CommandService
 			local modifiers = statement.modifiers
@@ -86,7 +86,7 @@ Modifiers.array = {
 		name = "undo",
 		aliases = { "un", "revoke" },
 		order = 5,
-		description = "Revokes all tasks that match the given command name(s) (and associated player targets if specified). To revoke a task across all servers, the 'global' modifier must be included.",
+		description = "Revokes all jobs that match the given command name(s) (and associated player targets if specified). To revoke a job across all servers, the 'global' modifier must be included.",
 		preAction = function(callerUserId, statement)
 			local Args = main.modules.Parser.Args
 			for commandName, _ in pairs(statement.commands) do
@@ -97,10 +97,10 @@ Modifiers.array = {
 					if firstArgItem.playerArg and firstArgItem.executeForEachPlayer then
 						local targets = Args.get("player"):parse(statement.qualifiers, callerUserId)
 						for _, plr in pairs(targets) do
-							main.services.TaskService.removeTasksWithCommandNameAndPlayerUserId(commandName, plr.UserId)
+							main.services.JobService.removeJobsWithCommandNameAndPlayerUserId(commandName, plr.UserId)
 						end
 					else
-						main.services.TaskService.removeTasksWithCommandName(commandName)
+						main.services.JobService.removeJobsWithCommandName(commandName)
 					end
 				end
 			end
@@ -117,7 +117,7 @@ Modifiers.array = {
 		executeRightAway = false,
 		executeAfterThread = true,
 		yieldUntilThreadComplete = true,
-		action = function(task, values)
+		action = function(job, values)
 			local executionTime = unpack(values)
 			local timeNow = os.time()
 			local newExecutionTime = tonumber(executionTime) or timeNow + 1
@@ -136,7 +136,7 @@ Modifiers.array = {
 		executeRightAway = false,
 		executeAfterThread = true,
 		yieldUntilThreadComplete = true,
-		action = function(task, values)
+		action = function(job, values)
 			local timeDelay = unpack(values)
 			local seconds = main.modules.DataUtil.convertTimeStringToSeconds(timeDelay)
 			local thread = main.modules.Thread.delay(seconds)
@@ -153,7 +153,7 @@ Modifiers.array = {
 		executeRightAway = true,
 		executeAfterThread = false,
 		yieldUntilThreadComplete = false,
-		action = function(task, values)
+		action = function(job, values)
 			local iterations, interval = unpack(values)
 			local ITERATION_LIMIT = 10000
 			local MINIMUM_INTERVAL = 0.1
@@ -165,7 +165,7 @@ Modifiers.array = {
 			if newInterval < MINIMUM_INTERVAL then
 				newInterval = MINIMUM_INTERVAL
 			end
-			local thread = main.modules.Thread.loopFor(newInterval, newInterations, task.execute, task)
+			local thread = main.modules.Thread.loopFor(newInterval, newInterations, job.execute, job)
 			return thread
 		end,
 	},
@@ -179,16 +179,16 @@ Modifiers.array = {
 		executeRightAway = true,
 		executeAfterThread = false,
 		yieldUntilThreadComplete = false,
-		action = function(task)
-			local targetUser = main.modules.UserStore:getUserByUserId(task.userId)
+		action = function(job)
+			local targetUser = main.modules.UserStore:getUserByUserId(job.userId)
 			local targetPlayer = targetUser and targetUser.player
 			if targetPlayer then
-				task.persistence = main.enum.Persistence.UntilLeave
-				task.janitor:add(targetPlayer.CharacterAdded:Connect(function(char)
+				job.persistence = main.enum.Persistence.UntilLeave
+				job.janitor:add(targetPlayer.CharacterAdded:Connect(function(char)
 					main.RunService.Heartbeat:Wait()
 					char:WaitForChild("HumanoidRootPart")
 					char:WaitForChild("Humanoid")
-					task:execute()
+					job:execute()
 				end), "Disconnect")
 				local thread = main.modules.Thread.loopUntil(0.1, function()
 					return targetUser.isDestroyed == true
@@ -207,10 +207,10 @@ Modifiers.array = {
 		executeRightAway = true,
 		executeAfterThread = false,
 		yieldUntilThreadComplete = false,
-		action = function(task, values)
+		action = function(job, values)
 			local timeDelay = unpack(values)
 			local seconds = main.modules.DataUtil.convertTimeStringToSeconds(timeDelay)
-			local thread = main.modules.Thread.delay(seconds, task.kill, task)
+			local thread = main.modules.Thread.delay(seconds, job.kill, job)
 			return thread
 		end,
 	},

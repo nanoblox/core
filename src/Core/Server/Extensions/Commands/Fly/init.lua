@@ -20,9 +20,9 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerDies
 Command.args = {"Player", "Speed"}
 
-function Command.invoke(task, args, custom)
+function Command.invoke(job, args, custom)
 	local player = args[1]
-	local speed = (custom and custom.speed) or task:getOriginalArg("Speed") or 50
+	local speed = (custom and custom.speed) or job:getOriginalArg("Speed") or 50
 	local propertyLock = (custom and custom.propertyLock) or "PlatformStand"
 	local noclip = (custom and custom.noclip) or false
 
@@ -32,21 +32,21 @@ function Command.invoke(task, args, custom)
 		return
 	end
 
-	-- If another flight task is enabled, kill it
-	local potentialTasksToClear = main.services.TaskService.getTasksWithPlayerUserId(player.UserId)
-	for _, potentialTask in pairs(potentialTasksToClear) do
-		if potentialTask ~= task and potentialTask:findTag("Flight") then
-            potentialTask:kill()
+	-- If another flight job is enabled, kill it
+	local potentialJobsToClear = main.services.JobService.getJobsWithPlayerUserId(player.UserId)
+	for _, potentialJob in pairs(potentialJobsToClear) do
+		if potentialJob ~= job and potentialJob:findTag("Flight") then
+            potentialJob:kill()
         end
     end
 	
-	local flyForce = task:add(Instance.new("BodyPosition"), "Destroy")
+	local flyForce = job:add(Instance.new("BodyPosition"), "Destroy")
 	flyForce.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
 	flyForce.Position = hrp.Position + Vector3.new(0, 4, 0)
 	flyForce.Name = "NanobloxFlyForce"
 	flyForce.Parent = hrp
 
-	local bodyGyro = task:add(Instance.new("BodyGyro"), "Destroy")
+	local bodyGyro = job:add(Instance.new("BodyGyro"), "Destroy")
 	bodyGyro.D = 50
 	bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
 	bodyGyro.P = (noclip and 2000) or 200
@@ -54,7 +54,7 @@ function Command.invoke(task, args, custom)
 	bodyGyro.CFrame = hrp.CFrame
 	bodyGyro.Parent = hrp
 	
-	task:invokeClient(player, flyForce, bodyGyro, speed, noclip, propertyLock)
+	job:invokeClient(player, flyForce, bodyGyro, speed, noclip, propertyLock)
 end
 
 

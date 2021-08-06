@@ -548,12 +548,12 @@ function Agent:modifyHumanoidDescription(propertyName, value, isFinalDestroyedDe
 	self.humanoidDescription[propertyName] = value
 	local delayAmount = 0
 	if isFinalDestroyedDescBuff then
-		-- Tasks are often isDestroyed before the next one is executed, meaning
+		-- Jobs are often isDestroyed before the next one is executed, meaning
 		-- the appearance will reset then immidately update again.
 		-- We do this to prevent that snapping-jagged feel.
 		delayAmount = 0.4
 	end
-	main.modules.Thread.delay(delayAmount, function()
+	task.delay(delayAmount, function()
 		if self.humanoidDescriptionCount ~= myCount then
 			return
 		end

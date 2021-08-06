@@ -20,9 +20,9 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.None
 Command.args = {"Players", "TargetPlayer"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local players = args[1]
-	local targetPlayer = args[2] or task.caller
+	local targetPlayer = args[2] or job.caller
 	local targetHRP = main.modules.PlayerUtil.getHRP(targetPlayer)
 	if not targetHRP then
 		return
@@ -36,11 +36,11 @@ function Command.invoke(task, args)
 		local playerHumanoid = main.modules.PlayerUtil.getHumanoid(player)
 		if playerHRP and playerHumanoid then
 			----
-			task:delay(0.02*i, function()
+			job:delay(0.02*i, function()
 				local targetCFrame = targetHRP.CFrame + Vector3.new(0, playerHRP.Size.Y*4, 0)
 				local wasSeated = main.modules.HumanoidUtil.unseat(playerHumanoid)
 				local teleportDelay = (wasSeated and 0.1) or 0
-				task:delay(teleportDelay, function()
+				job:delay(teleportDelay, function()
 					playerHRP.CFrame = targetCFrame
 				end)
 			end)

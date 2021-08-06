@@ -20,10 +20,10 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerRespawns
 Command.args = {"Player", "Morph"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local _, morph = unpack(args)
 	if morph then
-		task:buffPlayer("HumanoidDescription"):set(morph)
+		job:buffPlayer("HumanoidDescription"):set(morph)
 	end
 end
 

@@ -20,7 +20,7 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.None
 Command.args = {"Player"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local player = unpack(args)
 	local originalCFrame
 	local hrp = main.modules.PlayerUtil.getHRP(player)

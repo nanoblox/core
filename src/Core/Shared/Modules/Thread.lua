@@ -42,7 +42,7 @@ local function formConnection(thread)
 				for _, threadToCheck in pairs(threadsToCheck) do
 					local funcToExecute, args = threadToCheck.behaviour()
 					if funcToExecute then
-						main.modules.Thread.spawnNow(funcToExecute, unpack(args, 1, args.n))
+						task.spawn(funcToExecute, unpack(args, 1, args.n))
 					end
 				end
 				-- This checks if any threads need removing
@@ -68,15 +68,6 @@ local function formConnection(thread)
 	end
 	activeDetail.totalThreadsToCheck += 1
 	table.insert(activeDetail.threadsToCheck, thread)
-	----------------!!! RMOEVE
-	local tableOfNames = {}
-	for _, threadToCheck in pairs(activeDetail.threadsToCheck) do
-		if threadToCheck.name then
-			table.insert(tableOfNames, ("%s (%s)"):format(threadToCheck.name, thread.executeTime))
-		end
-	end
-	--print("threadsToCheck = ", table.concat(tableOfNames, ", "))
-	----------------!!! RMOEVE
 
 	local connection = {}
 	function connection:Disconnect()
@@ -183,17 +174,7 @@ end
 
 
 -- METHODS
-function Thread.spawnNow(func, ...)
-	-- Ideally avoid using spawnNow as it does not provide an as-accurate traceback (and in general is bad practise)
-	-- Credit to BenSBK for this
-	local thread = coroutine.create(func)
-    local isSuccessful, result = coroutine.resume(thread, ...)
-    if not isSuccessful then
-        warn(string.format("%s\n%s", result, debug.traceback(thread)))
-    end
-end
-
-function Thread.spawn(func, ...)
+function Thread.defer(func, ...)
 	local args = table.pack(...)
 	local thread = createThread()
 	thread.frameEvent = "Heartbeat"

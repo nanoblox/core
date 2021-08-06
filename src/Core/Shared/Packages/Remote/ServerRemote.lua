@@ -40,7 +40,7 @@ players.PlayerRemoving:Connect(function(player)
 end)
 
 -- This handles the notification of any blocked requests
-spawn(function()
+task.defer(function()
 	Remote.requestBlockedRemote = Remote.new("requestBlocked")
 end)
 

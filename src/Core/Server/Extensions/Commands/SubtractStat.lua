@@ -20,7 +20,7 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.None
 Command.args = {"Player", "Stat", "StatValue"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
 	local _, stat, value = unpack(args)
 	if stat then
 		main.modules.StatHandler.subtract(stat, value)

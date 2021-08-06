@@ -22,12 +22,12 @@ Command.args = {"Player", "Speed"}
 
 Command.emoteId = 4689362868
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
     local player = args[1]
     local animationId = main.modules.Parser.Args.get("AnimationId"):parse(Command.emoteId)
-    local speed = task:getOriginalArg("Speed") or 0.2
-    task:hijackCommand("Animate", {player, animationId, speed})
-    task:buffPlayer("HumanoidDescription", "Face"):set(162068415)
+    local speed = job:getOriginalArg("Speed") or 0.2
+    job:hijackCommand("Animate", {player, animationId, speed})
+    job:buffPlayer("HumanoidDescription", "Face"):set(162068415)
 end
 
 

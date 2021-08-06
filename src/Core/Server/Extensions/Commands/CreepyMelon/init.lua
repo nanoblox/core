@@ -20,16 +20,16 @@ Command.cooldown = 0
 Command.persistence = main.enum.Persistence.UntilPlayerDies
 Command.args = {"Player"}
 
-function Command.invoke(task, args)
+function Command.invoke(job, args)
     local player = unpack(args)
-	task:invokeAllAndFutureClients(player)
+	job:invokeAllAndFutureClients(player)
 end
 
-function Command.revoke(task)
+function Command.revoke(job)
 	
 end
 
-function Command.preReplication(task, targetPool, packedData)
+function Command.preReplication(job, targetPool, packedData)
 	return false
 end
 
