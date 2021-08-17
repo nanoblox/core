@@ -714,11 +714,22 @@ function CommandService.executeStatement(callerUserId, statement)
 		end)
 end
 
-function CommandService.executeSimpleStatement(callerUserId, commandName, commandArgsArray, qualifiersDictionary, modifiersDictionary)
+local function convertUndecidedTableIntoDictionary(dictionaryOrArray)
+	local dictionary = {}
+	for q1, q2 in pairs(dictionaryOrArray or {}) do
+		if typeof(q1) == "number" then
+			dictionary[q2] = {}
+		else
+			dictionary[q1] = (typeof(q2) == "table" and q2) or {}
+		end
+	end
+	return dictionary
+end
+function CommandService.executeSimpleStatement(callerUserId, commandName, commandArgsArray, qualifiersDictionaryOrArray, modifiersDictionaryOrArray)
 	local statement = {
 		commands = {},
-		qualifiers = qualifiersDictionary or {},
-		modifiers = modifiersDictionary or {},
+		qualifiers = convertUndecidedTableIntoDictionary(qualifiersDictionaryOrArray),
+		modifiers = convertUndecidedTableIntoDictionary(modifiersDictionaryOrArray),
 	}
 	if commandName then
 		statement.commands[commandName] = commandArgsArray
