@@ -1,3 +1,6 @@
+-- Credit to Stravant for this Signal class:
+-- https://devforum.roblox.com/t/lua-signal-class-comparison-optimal-goodsignal-class/1387063
+
 --------------------------------------------------------------------------------
 --               Batched Yield-Safe Signal Implementation                     --
 -- This is a Signal class which has effectively identical behavior to a       --
@@ -119,6 +122,8 @@ end
 function Signal:DisconnectAll()
 	self._handlerListHead = false
 end
+Signal.Destroy = Signal.DisconnectAll
+Signal.destroy = Signal.DisconnectAll
 
 -- Signal:Fire(...) implemented by running the handler functions on the
 -- coRunnerThread, and any time the resulting thread yielded without returning
@@ -148,15 +153,5 @@ function Signal:Wait()
 	end)
 	return coroutine.yield()
 end
-
--- Make signal strict
-setmetatable(Signal, {
-	__index = function(tb, key)
-		error(("Attempt to get Signal::%s (not a valid member)"):format(tostring(key)), 2)
-	end,
-	__newindex = function(tb, key, value)
-		error(("Attempt to set Signal::%s (not a valid member)"):format(tostring(key)), 2)
-	end
-})
 
 return Signal
