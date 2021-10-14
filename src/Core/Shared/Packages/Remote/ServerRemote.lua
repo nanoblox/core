@@ -178,13 +178,12 @@ end
 function Remote:fireClient(player, ...)
 	local remoteInstance = self:_getRemoteInstance("RemoteEvent")
 	if self.deferFireClient or self.deferFireClientAmount > 0 then
-		local args = table.pack(...)
 		local timeDelayed = self.deferFireClientToTime - os.time()
 		self.deferFireClientAmount += 1
 		self.janitor:add(main.modules.Thread.delay(timeDelayed, function()
 			self.deferFireClient = false
 			self.deferFireClientAmount -= 1
-			remoteInstance:FireClient(player, unpack(args))
+			remoteInstance:FireClient(player, ...)
 		end), "destroy")
 		return
 	end
@@ -199,9 +198,8 @@ end
 
 function Remote:fireAllAndFutureClients(...)
 	self:fireAllClients(...)
-	local args = table.pack(...)
 	return self.janitor:add(main.Players.PlayerAdded:Connect(function(player)
-		self:invokeClient(player, unpack(args))
+		self:invokeClient(player, ...)
 	end), "Disconnect")
 end
 
@@ -215,9 +213,8 @@ end
 
 function Remote:invokeClient(player, ...)
 	local remoteInstance = self:_getRemoteInstance("RemoteFunction")
-	local args = table.pack(...)
 	return Promise.defer(function(resolve, reject)
-		local results = table.pack(pcall(remoteInstance.InvokeClient, remoteInstance, player, unpack(args)))
+		local results = table.pack(pcall(remoteInstance.InvokeClient, remoteInstance, player, ...))
 		local success = table.remove(results, 1)
 		if success then
 			resolve(unpack(results))
