@@ -1,0 +1,32 @@
+[data-md-color-scheme="dark"] {
+    --md-default-fg-color: hsla(0,0%,100%,1);
+    --md-default-fg-color--light: hsla(0,0%,100%,1);
+    --md-default-fg-color--lighter:      hsla(0, 0%, 100%, 0.32);
+    --md-default-fg-color--lightest:     hsla(0, 0%, 100%, 0.07);
+    --md-primary-fg-color: rgb(4,7,12);
+    --md-footer-bg-color: rgb(4,7,12);
+    --md-primary-bg-color: hsla(0, 0%, 100%, 1);
+    --md-primary-bg-color--light: hsla(0, 0%, 100%, 0.7);
+    --md-default-bg-color: rgb(12, 15, 19);
+    --md-typeset-color: hsla(0, 0%, 100%, 0.8);
+    --md-typeset-a-color: rgb(25,150,255);
+    --md-code-fg-color: rgb(238, 241, 245);
+    --md-code-bg-color: rgb(28, 31, 35);
+    --md-code-hl-function-color: rgb(250, 104, 104);
+    --md-accent-fg-color: var(--md-typeset-a-color);
+    --md-code-hl-number-color:         rgb(255, 217, 0);
+    --md-code-hl-special-color:        hsla(340, 83%, 47%, 1);
+    --md-code-hl-constant-color:       rgb(89, 217, 106);
+    --md-code-hl-keyword-color:        rgb(92, 149, 255);
+    --md-code-hl-string-color:         rgb(255, 189, 89);
+    --md-code-hl-name-color:           rgb(235, 235, 235);
+    --md-code-hl-operator-color:       rgb(194, 147, 255);
+    --md-code-hl-punctuation-color:    rgb(168, 168, 168);
+    --md-code-hl-comment-color:        rgb(90, 90, 90);
+    --md-admonition-bg-color: rgb(22, 25, 29);;
+    --md-typeset-table-color: rgba(238, 241, 245, 0.534);
+}
+
+.md-typeset h1{
+  font-weight: 600;
+}
