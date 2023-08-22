@@ -27,8 +27,6 @@ theme:
     # Dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: dark
-extracss:
-  - stylesheets/extra.css
       toggle:
         icon: material/weather-night
         name: Switch to light mode
@@ -39,6 +37,9 @@ extracss:
 extra_javascript:
   - javascripts/tags.js
 
+extracss:
+  - stylesheets/extra.css
+  
 extra:
   social:
     - icon: fontawesome/brands/github-alt
