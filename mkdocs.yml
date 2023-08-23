@@ -37,9 +37,9 @@ theme:
 extra_javascript:
   - javascripts/tags.js
 
-extracss:
+extra_css:
   - stylesheets/extra.css
-  
+
 extra:
   social:
     - icon: fontawesome/brands/github-alt
