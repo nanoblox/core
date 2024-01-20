@@ -26,9 +26,7 @@ theme:
         name: Switch to dark mode
     # Dark mode
     - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: blue
-      accent: blue
+      scheme: dark
       toggle:
         icon: material/weather-night
         name: Switch to light mode
@@ -38,6 +36,9 @@ theme:
 
 extra_javascript:
   - javascripts/tags.js
+
+extra_css:
+  - stylesheets/extra.css
 
 extra:
   social:
